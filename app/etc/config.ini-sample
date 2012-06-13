@@ -1,0 +1,6 @@
+[db]
+driver=mysqli
+host = "localhost"
+name = "scalr"
+user = "scalr"
+pass = ""
