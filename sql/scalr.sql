@@ -370,6 +370,13 @@ CREATE TABLE IF NOT EXISTS `clients` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
+
+ALTER TABLE  `account_users` ADD  `loginattempts` INT(4) NOT NULL DEFAULT  '0';
+
+
+
+
+
 -- --------------------------------------------------------
 
 --
@@ -388,6 +395,8 @@ CREATE TABLE IF NOT EXISTS `client_environments` (
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
+
+ALTER TABLE  `client_environments` ADD  `status` VARCHAR( 16 ) NOT NULL DEFAULT  'Active';
 
 --
 -- Table structure for table `client_environment_properties`
@@ -1917,6 +1926,54 @@ CREATE TABLE IF NOT EXISTS `ui_debug_log` (
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
+
+CREATE TABLE IF NOT EXISTS `ui_errors` (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`tm` datetime NOT NULL,
+					`file` varchar(255) NOT NULL,
+					`lineno` varchar(255) NOT NULL,
+					`url` varchar(255) NOT NULL,
+					`short` varchar(255) NOT NULL,
+					`message` text NOT NULL,
+					`browser` varchar(255) NOT NULL,
+					`cnt` int(11) NOT NULL DEFAULT '1',
+					`account_id` int(11) NOT NULL,
+					PRIMARY KEY (`id`),
+					UNIQUE KEY `file` (`file`,`lineno`,`short`)
+				) ENGINE=MyISAM ;
+
+
+CREATE TABLE IF NOT EXISTS `role_scripts` (
+				  `id` int(11) NOT NULL AUTO_INCREMENT,
+				  `role_id` int(11) DEFAULT NULL,
+				  `event_name` varchar(50) DEFAULT NULL,
+				  `target` varchar(15) DEFAULT NULL,
+				  `script_id` int(11) DEFAULT NULL,
+				  `version` varchar(10) DEFAULT NULL,
+				  `timeout` int(5) DEFAULT NULL,
+				  `issync` tinyint(1) DEFAULT NULL,
+				  `params` text,
+				  `order_index` int(11) NOT NULL DEFAULT '0',
+				  PRIMARY KEY (`id`),
+				  KEY `role_id` (`role_id`),
+				  KEY `script_id` (`script_id`)
+				) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+
+ALTER TABLE `role_scripts`
+  				ADD CONSTRAINT `role_scripts_ibfk_2` FOREIGN KEY (`script_id`) REFERENCES `scripts` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
+  				ADD CONSTRAINT `role_scripts_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+
+ALTER TABLE  `farms` ADD FOREIGN KEY (  `clientid` ) REFERENCES  `clients` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION ;
+
+ALTER TABLE  `server_operations` ADD  `timestamp` INT( 11 ) NULL AFTER  `id`;
+
+ALTER TABLE  `server_operations` ADD  `status` VARCHAR( 20 ) NULL AFTER  `timestamp`;
+
+ALTER TABLE  `server_operations` DROP INDEX  `server_id` , ADD INDEX  `server_id` (  `server_id` ,  `name` ( 20 ) );
+
+
+
 --
 -- Constraints for dumped tables
 --
@@ -1996,7 +2053,7 @@ ALTER TABLE `server_properties`
 --
 
 INSERT INTO `account_users` VALUES
-(1, 0, 'Active', 'admin', 'Scalr Admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', '2011-09-08 08:06:53', '2012-03-15 03:11:14', 'ScalrAdmin', NULL);
+(1, 0, 'Active', 'admin', 'Scalr Admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', '2011-09-08 08:06:53', '2012-03-15 03:11:14', 'ScalrAdmin', NULL,0);
 --
 -- Dumping data for table `config`
 --
