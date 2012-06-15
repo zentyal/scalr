@@ -28,7 +28,6 @@
             }
             	
             
-            $this->DB->Execute("INSERT INTO debug_scripting SET request = ?, server_id = ?", array(json_encode($this->Args), $this->DBServer->serverId));
             
             if (!in_array($this->GetArg("event"), $scalr_events))
             	$event_name = $instance_events[strtolower($this->GetArg("event"))];
