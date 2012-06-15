@@ -50,9 +50,6 @@
 		
 		$totalTime = microtime(true) - $t;
 		
-		if ($totalTime > 0.5)
-			$db->Execute("INSERT INTO debug_ui SET `path` = ?, `time` = ?, `ptime` = ?, `t1` = ?, `dtdate` = NOW() ", array($path, $totalTime, $pTime, $dbTime));
-		
 	} catch (Exception $e) {
 		Scalr_UI_Response::getInstance()->failure($e->getMessage());
 		Scalr_UI_Response::getInstance()->sendResponse();

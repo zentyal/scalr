@@ -79,7 +79,7 @@
 	{
 		// Check files & folders permissions
 		$files = array(
-			realpath(dirname(__FILE__)."/../etc"),
+			realpath(dirname(__FILE__)."/../etc/.cryptokey"),
 			realpath(dirname(__FILE__)."/../cache"),
 			realpath(dirname(__FILE__)."/../cache/smarty_bin")
 		);
@@ -89,8 +89,6 @@
 			if (!is_writable($file))
 				$err[] = "Insuficient permissions on file {$file}. Please chmod 0777";
 		}
-		
-		// Create config ini with database settings
 		
 		// Parse config.ini and test database connection
 		$cfg = @parse_ini_file(dirname(__FILE__)."/../etc/config.ini", true);
