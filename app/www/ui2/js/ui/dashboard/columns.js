@@ -848,13 +848,13 @@ Ext.define('Scalr.ui.dashboard.Billing', {
 		items: [{
 			xtype: 'displayfield',
 			name: 'plan',
-			fieldLabel: 'Plan'
+			fieldLabel: 'Plan',
 			value: 'OpenSource'
-		}
-		]
+		}]
 	}],
 	widgetType: 'nonlocal',
 	updateForm: function(data) {
+		
 	},
 	listeners: {
 		boxready: function() {
@@ -870,6 +870,7 @@ Ext.define('Scalr.ui.dashboard.Billing', {
 		}
 	},
 	loadContent: function () {
+		return true;
 	}
 });
 
