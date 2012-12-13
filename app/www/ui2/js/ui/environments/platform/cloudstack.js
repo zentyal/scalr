@@ -115,7 +115,7 @@ Scalr.regPage('Scalr.ui.environments.platform.cloudstack', function (loadParams,
 
 	if (moduleParams['platform'] == 'idcf') {
 		var apiUrl = form.down('[name="api_url"]')
-		apiUrl.setValue('https://apis.i.noahcloud.jp/portal/client/api');
+		apiUrl.setValue('https://api.noahcloud.jp/portal/client/api');
 		//apiUrl.setReadOnly(true);
 	}
 
