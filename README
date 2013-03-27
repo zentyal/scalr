@@ -3,18 +3,18 @@ Scalr is a pretty darn good open source cloud management tool. It provides both 
 FEATURES
 
 * Integrated into Opscode Chef, for configuration management.
-* Pre-automated software, such as nginx, mysql, redis, mongo, and rabbitmq
+* Pre-automated software, such as nginx, Apache, MySQL, Redis, MongoDB, and RabbitMQ
 * Blazing fast UI
 * Multi-cloud
-* More at http://scalr.net/features/
+* More at http://scalr.com/features/
 
 ROADMAP
 
-* http://wiki.scalr.net/Roadmap
+* http://wiki.scalr.com/Roadmap
 
 INSTALLATION
 
-* http://wiki.scalr.net/Installing_Scalr
+* http://wiki.scalr.com/Installing_Scalr
 
 We hope you enjoy using the result of many years of hard labor, it's certainly saved our *ss many times.
 - The Scalr Team
