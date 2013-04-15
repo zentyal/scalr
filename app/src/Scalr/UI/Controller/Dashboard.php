@@ -52,9 +52,6 @@ class Scalr_UI_Controller_Dashboard extends Scalr_UI_Controller
 							array('name' => 'dashboard.announcement', 'params' => array('newsCount' => 5))
 						)
 					);
-
-					if ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER)
-						$panel['configuration'][1][] = array('name' => 'dashboard.billing');
 				}
 
 				$this->user->setDashboard($this->getEnvironmentId(), $panel);
@@ -203,12 +200,6 @@ class Scalr_UI_Controller_Dashboard extends Scalr_UI_Controller
 
 	public function widgetAccountInfoAction()
 	{
-		require_once(APPPATH."/src/externals/chargify-client/class.ChargifyConnector.php");
-		require_once(APPPATH."/src/externals/chargify-client/class.ChargifyCreditCard.php");
-		require_once(APPPATH."/src/externals/chargify-client/class.ChargifyCustomer.php");
-		require_once(APPPATH."/src/externals/chargify-client/class.ChargifyProduct.php");
-		require_once(APPPATH."/src/externals/chargify-client/class.ChargifySubscription.php");
-
 		$js_module = array();
 
 		$clientId = $this->user->getAccountId();
@@ -227,62 +218,6 @@ class Scalr_UI_Controller_Dashboard extends Scalr_UI_Controller
 				'fieldLabel' => 'Logged in as',
 				'value' => $client->Email
 			));
-
-			if (!$client->GetSettingValue(CLIENT_SETTINGS::BILLING_CGF_SID))
-			{
-				array_push($js_module, array(
-					'xtype' => 'displayfield',
-					'fieldLabel' => 'Plan',
-					'value' => 'Development'
-				));
-			}
-			else
-			{
-				$c = new ChargifyConnector();
-
-				try
-				{
-					$subs = $c->getCustomerSubscription($client->GetSettingValue(CLIENT_SETTINGS::BILLING_CGF_SID));
-
-					$color = (ucfirst($subs->getState()) != 'Active') ? 'red' : 'green';
-					array_push($js_module, array(
-						'xtype' => 'displayfield',
-						'fieldLabel' => 'Status',
-						'value' => "<span style='color:{$color}'>".ucfirst($subs->getState())."</span>"
-					));
-
-					array_push($js_module, array(
-						'xtype' => 'displayfield',
-						'fieldLabel' => 'Billing type',
-						'value' => ucfirst($subs->getCreditCard()->getCardType()) . " (" . $subs->getCreditCard()->getMaskedCardNumber() . ")"
-					));
-
-					array_push($js_module, array(
-						'xtype' => 'displayfield',
-						'fieldLabel' => 'Plan',
-						'value' => ucfirst($subs->getProduct()->getHandle())
-					));
-
-					array_push($js_module, array(
-						'xtype' => 'displayfield',
-						'fieldLabel' => 'Due date',
-						'value' => date("M j Y", strtotime($subs->next_assessment_at))
-					));
-
-					array_push($js_module, array(
-						'xtype' => 'displayfield',
-						'fieldLabel' => 'Balance',
-						'value' => "$".number_format($subs->getBalanceInCents()/100, 2)
-					));
-				}
-				catch(Exception $e) {
-					array_push($js_module, array(
-						'xtype' => 'displayfield',
-						'hideLabel' => true,
-						'value' => "<span style='color:red;'>Billing information is not available at the moment</span>"
-					));
-				}
-			}
 		}
 
 		$this->response->data(array(
