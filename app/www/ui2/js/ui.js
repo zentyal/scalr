@@ -942,15 +942,6 @@ Scalr.application.createMenu = function(context) {
 			}
 		});
 
-		if (Scalr.user['type'] == 'AccountOwner' && Scalr.flags['billingExists'])
-			menu.push({
-				text: 'Billing',
-				href: '#/billing',
-				reorderable: false,
-				hrefTarget: '_self',
-				cls: 'x-icon-billing'
-			});
-
 		/*var account = {
 			cls: 'x-icon-account',
 			tooltip: 'Accounting',
@@ -979,7 +970,7 @@ Scalr.application.createMenu = function(context) {
 				hrefTarget: '_blank'
 			}, {
 				text: 'Support',
-				href: '/core/support',
+				href: 'http://groups.google.com/group/scalr-discuss',
 				iconCls: 'x-topmenu-icon-support',
 				hrefTarget: '_blank'
 			}]
