@@ -1,13 +1,4 @@
 
-SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
-SET time_zone = "+00:00";
-
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
-
 --
 -- Database: `scalr`
 --
@@ -65,9 +56,10 @@ CREATE TABLE IF NOT EXISTS `account_groups` (
   `team_id` int(11) NOT NULL,
   `name` varchar(45) DEFAULT NULL,
   `is_active` tinyint(4) DEFAULT '1',
+  `color` varchar(16) DEFAULT '',
   PRIMARY KEY (`id`),
   KEY `fk_account_groups_account_teams1` (`team_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=50 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -82,7 +74,7 @@ CREATE TABLE IF NOT EXISTS `account_group_permissions` (
   `permissions` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_account_group_permissions_account_groups1` (`group_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=289 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -99,7 +91,7 @@ CREATE TABLE IF NOT EXISTS `account_limits` (
   `limit_type_value` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_account_limits_clients` (`account_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=42873 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -114,7 +106,7 @@ CREATE TABLE IF NOT EXISTS `account_teams` (
   `description` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_account_teams_clients1` (`account_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=143 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -128,7 +120,7 @@ CREATE TABLE IF NOT EXISTS `account_team_envs` (
   `team_id` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_account_team_envs_account_teams1` (`team_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=448 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -144,7 +136,7 @@ CREATE TABLE IF NOT EXISTS `account_team_users` (
   PRIMARY KEY (`id`),
   KEY `fk_account_team_users_account_teams1` (`team_id`),
   KEY `fk_account_team_users_account_users1` (`user_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1371 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -167,7 +159,7 @@ CREATE TABLE IF NOT EXISTS `account_users` (
   PRIMARY KEY (`id`),
   KEY `fk_account_users_clients1` (`account_id`),
   KEY `email` (`email`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=9163 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -196,7 +188,7 @@ CREATE TABLE IF NOT EXISTS `account_user_groups` (
   PRIMARY KEY (`id`),
   KEY `fk_account_user_groups_account_users1` (`user_id`),
   KEY `fk_account_user_groups_account_groups1` (`group_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=206 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -212,7 +204,23 @@ CREATE TABLE IF NOT EXISTS `account_user_settings` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `userid_name` (`user_id`,`name`),
   KEY `name` (`name`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=53018 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `account_user_vars`
+--
+
+CREATE TABLE IF NOT EXISTS `account_user_vars` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `value` text,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `userid_name` (`user_id`,`name`),
+  KEY `name` (`name`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -240,7 +248,7 @@ CREATE TABLE IF NOT EXISTS `apache_vhosts` (
   UNIQUE KEY `ix_name` (`name`,`env_id`),
   KEY `clientid` (`client_id`),
   KEY `env_id` (`env_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=7893 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -261,7 +269,7 @@ CREATE TABLE IF NOT EXISTS `api_log` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `transaction_id` (`transaction_id`),
   KEY `client_index` (`clientid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=234985 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -282,7 +290,7 @@ CREATE TABLE IF NOT EXISTS `autosnap_settings` (
   `object_type` varchar(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `env_id` (`env_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=844 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -310,20 +318,6 @@ CREATE TABLE IF NOT EXISTS `aws_regions` (
   `api_url` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `billing_packages`
---
-
-CREATE TABLE IF NOT EXISTS `billing_packages` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) DEFAULT NULL,
-  `cost` float(7,2) DEFAULT NULL,
-  `group` tinyint(2) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=6 ;
 
 -- --------------------------------------------------------
 
@@ -362,7 +356,7 @@ CREATE TABLE IF NOT EXISTS `bundle_tasks` (
   KEY `env_id` (`env_id`),
   KEY `server_id` (`server_id`),
   KEY `status` (`status`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=38677 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -377,7 +371,7 @@ CREATE TABLE IF NOT EXISTS `bundle_task_log` (
   `message` text,
   PRIMARY KEY (`id`),
   KEY `NewIndex1` (`bundle_task_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 ROW_FORMAT=COMPACT AUTO_INCREMENT=1757310 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 ROW_FORMAT=COMPACT AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -409,7 +403,7 @@ CREATE TABLE IF NOT EXISTS `clients` (
   `comments` text,
   `priority` int(4) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=9470 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -427,7 +421,7 @@ CREATE TABLE IF NOT EXISTS `client_environments` (
   `color` varchar(16) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   KEY `client_id` (`client_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=9657 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -447,7 +441,7 @@ CREATE TABLE IF NOT EXISTS `client_environment_properties` (
   KEY `env_id` (`env_id`),
   KEY `name_value` (`name`(100),`value`(100)),
   KEY `name` (`name`(100))
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=123967 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -463,7 +457,7 @@ CREATE TABLE IF NOT EXISTS `client_settings` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `NewIndex1` (`clientid`,`key`),
   KEY `settingskey` (`key`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=28960226 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -479,7 +473,7 @@ CREATE TABLE IF NOT EXISTS `comments` (
   `comment` varchar(255) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `main` (`env_id`,`sg_name`,`rule`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1507 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -493,21 +487,7 @@ CREATE TABLE IF NOT EXISTS `config` (
   `value` text,
   PRIMARY KEY (`id`),
   UNIQUE KEY `key` (`key`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1685 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `countries`
---
-
-CREATE TABLE IF NOT EXISTS `countries` (
-  `id` int(5) NOT NULL AUTO_INCREMENT,
-  `name` varchar(64) NOT NULL DEFAULT '',
-  `code` char(2) NOT NULL DEFAULT '',
-  PRIMARY KEY (`id`),
-  KEY `IDX_COUNTRIES_NAME` (`name`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=240 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -546,7 +526,7 @@ CREATE TABLE IF NOT EXISTS `debug_scripting` (
   `server_id` varchar(36) DEFAULT NULL,
   `params` text,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1808 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -564,7 +544,7 @@ CREATE TABLE IF NOT EXISTS `debug_ui` (
   `t3` varchar(10) DEFAULT NULL,
   `dtdate` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=93852 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -581,7 +561,7 @@ CREATE TABLE IF NOT EXISTS `default_records` (
   `value` varchar(255) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=3596 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -598,7 +578,7 @@ CREATE TABLE IF NOT EXISTS `distributions` (
   `bucket` varchar(255) DEFAULT NULL,
   `clientid` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=80 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -614,7 +594,7 @@ CREATE TABLE IF NOT EXISTS `dm_applications` (
   `post_deploy_script` text,
   `name` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=713 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -649,7 +629,7 @@ CREATE TABLE IF NOT EXISTS `dm_deployment_task_logs` (
   `dtadded` datetime DEFAULT NULL,
   `message` tinytext,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=71526 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -665,7 +645,7 @@ CREATE TABLE IF NOT EXISTS `dm_sources` (
   `auth_type` enum('password','certificate') DEFAULT NULL,
   `auth_info` text,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=731 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -701,7 +681,7 @@ CREATE TABLE IF NOT EXISTS `dns_zones` (
   KEY `clientid` (`client_id`),
   KEY `env_id` (`env_id`),
   KEY `iszoneconfigmodified` (`iszoneconfigmodified`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=14638 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -723,7 +703,7 @@ CREATE TABLE IF NOT EXISTS `dns_zone_records` (
   `server_id` varchar(36) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `zoneid` (`zone_id`,`type`(1),`value`,`name`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=39319120 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -745,7 +725,7 @@ CREATE TABLE IF NOT EXISTS `ebs_snaps_info` (
   KEY `mainindex` (`farm_roleid`,`is_autoebs_master_snap`),
   KEY `autosnapid` (`autosnapshotid`),
   KEY `snapid` (`snapid`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 CHECKSUM=1 DELAY_KEY_WRITE=1 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=650159 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 CHECKSUM=1 DELAY_KEY_WRITE=1 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -780,7 +760,7 @@ CREATE TABLE IF NOT EXISTS `ec2_ebs` (
   KEY `env_id` (`env_id`),
   KEY `server_id` (`server_id`),
   KEY `farm_roleid_index` (`farm_roleid`,`server_index`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=6162 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -805,7 +785,7 @@ CREATE TABLE IF NOT EXISTS `elastic_ips` (
   KEY `farm_roleid` (`farm_roleid`),
   KEY `env_id` (`env_id`),
   KEY `server_id` (`server_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=3523 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -828,7 +808,7 @@ CREATE TABLE IF NOT EXISTS `events` (
   UNIQUE KEY `event_id` (`event_id`),
   KEY `farmid` (`farmid`),
   KEY `event_server_id` (`event_server_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=5330082 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -843,7 +823,7 @@ CREATE TABLE IF NOT EXISTS `event_definitions` (
   `name` varchar(25) NOT NULL,
   `description` text NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=15 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -867,10 +847,12 @@ CREATE TABLE IF NOT EXISTS `farms` (
   `comments` text,
   `created_by_id` int(11) DEFAULT NULL,
   `created_by_email` varchar(250) DEFAULT NULL,
+  `changed_by_id` int(11) NOT NULL,
+  `changed_time` varchar(32) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `clientid` (`clientid`),
   KEY `env_id` (`env_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=12371 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -884,7 +866,7 @@ CREATE TABLE IF NOT EXISTS `farm_event_observers` (
   `event_observer_name` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `NewIndex1` (`farmid`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=661 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -899,7 +881,7 @@ CREATE TABLE IF NOT EXISTS `farm_event_observers_config` (
   `value` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `NewIndex1` (`observerid`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=16015 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -923,7 +905,7 @@ CREATE TABLE IF NOT EXISTS `farm_roles` (
   KEY `role_id` (`role_id`),
   KEY `farmid` (`farmid`),
   KEY `platform` (`platform`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=42385 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -938,8 +920,9 @@ CREATE TABLE IF NOT EXISTS `farm_role_config_presets` (
   `cfg_filename` varchar(25) DEFAULT NULL,
   `cfg_key` varchar(100) DEFAULT NULL,
   `cfg_value` text,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+  PRIMARY KEY (`id`),
+  KEY `main` (`farm_roleid`,`behavior`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -958,7 +941,7 @@ CREATE TABLE IF NOT EXISTS `farm_role_options` (
   PRIMARY KEY (`id`),
   KEY `farmid` (`farmid`),
   KEY `farm_roleid` (`farm_roleid`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1097077 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -977,7 +960,7 @@ CREATE TABLE IF NOT EXISTS `farm_role_scaling_metrics` (
   UNIQUE KEY `NewIndex4` (`farm_roleid`,`metric_id`),
   KEY `NewIndex1` (`farm_roleid`),
   KEY `NewIndex2` (`metric_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=5485 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -994,7 +977,7 @@ CREATE TABLE IF NOT EXISTS `farm_role_scaling_times` (
   `instances_count` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `farmroleid` (`farm_roleid`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=2807 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1007,12 +990,13 @@ CREATE TABLE IF NOT EXISTS `farm_role_scripting_params` (
   `farm_role_id` int(11) DEFAULT NULL,
   `role_script_id` int(11) DEFAULT NULL,
   `farm_role_script_id` int(11) DEFAULT NULL,
+  `hash` varchar(12) DEFAULT NULL,
   `params` text,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq` (`farm_role_id`,`role_script_id`,`farm_role_script_id`),
+  UNIQUE KEY `uniq` (`farm_role_id`,`hash`,`farm_role_script_id`),
   KEY `farm_roleid` (`farm_role_id`),
   KEY `role_script_id` (`role_script_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=122 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1023,14 +1007,11 @@ CREATE TABLE IF NOT EXISTS `farm_role_scripting_params` (
 CREATE TABLE IF NOT EXISTS `farm_role_scripting_targets` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `farm_role_script_id` int(11) DEFAULT NULL,
-  `farmid` int(11) DEFAULT NULL,
-  `farm_roleid` int(11) DEFAULT NULL,
-  `instance_index` int(11) DEFAULT NULL,
+  `target_type` enum('farmrole','behavior') DEFAULT NULL,
+  `target` varchar(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `farm_role_script_id` (`farm_role_script_id`),
-  KEY `farm_roleid` (`farm_roleid`),
-  KEY `farmid` (`farmid`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+  KEY `farm_role_script_id` (`farm_role_script_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1059,7 +1040,7 @@ CREATE TABLE IF NOT EXISTS `farm_role_scripts` (
   KEY `farm_roleid` (`farm_roleid`),
   KEY `event_name` (`event_name`),
   KEY `UniqueIndex` (`scriptid`,`farmid`,`event_name`,`farm_roleid`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=12654623 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1077,7 +1058,7 @@ CREATE TABLE IF NOT EXISTS `farm_role_service_config_presets` (
   KEY `fk_farm_role_service_config_presets_service_config_presets1` (`preset_id`),
   KEY `farm_roleid` (`farm_roleid`),
   KEY `preset_id` (`preset_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=478 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1093,7 +1074,64 @@ CREATE TABLE IF NOT EXISTS `farm_role_settings` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique` (`farm_roleid`,`name`),
   KEY `name` (`name`(30))
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 ROW_FORMAT=COMPACT AUTO_INCREMENT=293021120 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 ROW_FORMAT=COMPACT AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `farm_role_storage_config`
+--
+
+CREATE TABLE IF NOT EXISTS `farm_role_storage_config` (
+  `id` varchar(36) NOT NULL,
+  `farm_role_id` int(11) DEFAULT NULL,
+  `index` tinyint(3) DEFAULT NULL,
+  `type` varchar(15) DEFAULT NULL,
+  `fs` varchar(15) DEFAULT NULL,
+  `re_use` tinyint(1) DEFAULT NULL,
+  `mount` tinyint(1) DEFAULT NULL,
+  `mountpoint` varchar(255) DEFAULT NULL,
+  `status` varchar(20) DEFAULT NULL,
+  UNIQUE KEY `id` (`id`),
+  KEY `farm_role_id` (`farm_role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `farm_role_storage_devices`
+--
+
+CREATE TABLE IF NOT EXISTS `farm_role_storage_devices` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `farm_role_id` int(11) DEFAULT NULL,
+  `env_id` int(11) DEFAULT NULL,
+  `cloud_location` varchar(50) DEFAULT NULL,
+  `server_index` tinyint(4) DEFAULT NULL,
+  `placement` varchar(36) DEFAULT NULL,
+  `storage_config_id` varchar(36) DEFAULT NULL,
+  `config` text,
+  `storage_id` varchar(36) DEFAULT NULL,
+  `status` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `storage_id` (`storage_id`),
+  KEY `storage_config_id` (`storage_config_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `farm_role_storage_settings`
+--
+
+CREATE TABLE IF NOT EXISTS `farm_role_storage_settings` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `storage_config_id` varchar(36) DEFAULT NULL,
+  `name` varchar(45) DEFAULT NULL,
+  `value` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `storage_config` (`storage_config_id`,`name`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1108,7 +1146,7 @@ CREATE TABLE IF NOT EXISTS `farm_settings` (
   `value` text,
   PRIMARY KEY (`id`),
   UNIQUE KEY `farmid_name` (`farmid`,`name`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=3162348 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1134,7 +1172,7 @@ CREATE TABLE IF NOT EXISTS `farm_stats` (
   PRIMARY KEY (`id`),
   KEY `NewIndex1` (`month`,`year`),
   KEY `NewIndex2` (`farmid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=17246 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1148,7 +1186,30 @@ CREATE TABLE IF NOT EXISTS `garbage_queue` (
   `data` text,
   PRIMARY KEY (`id`),
   UNIQUE KEY `NewIndex1` (`clientid`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 CHECKSUM=1 DELAY_KEY_WRITE=1 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=34 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 CHECKSUM=1 DELAY_KEY_WRITE=1 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `global_variables`
+--
+
+CREATE TABLE IF NOT EXISTS `global_variables` (
+  `env_id` int(11) NOT NULL,
+  `role_id` int(11) NOT NULL,
+  `farm_id` int(11) NOT NULL,
+  `farm_role_id` int(11) NOT NULL,
+  `name` varchar(30) NOT NULL,
+  `value` text,
+  `flag_final` tinyint(1) DEFAULT '0',
+  `flag_required` tinyint(1) DEFAULT '0',
+  `scope` enum('env','role','farm','farmrole') DEFAULT NULL,
+  PRIMARY KEY (`env_id`,`role_id`,`farm_id`,`farm_role_id`,`name`),
+  KEY `name` (`name`),
+  KEY `role_id` (`role_id`),
+  KEY `farm_id` (`farm_id`),
+  KEY `farm_role_id` (`farm_role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
@@ -1210,7 +1271,7 @@ CREATE TABLE IF NOT EXISTS `logentries` (
   PRIMARY KEY (`id`),
   KEY `NewIndex1` (`farmid`),
   KEY `NewIndex2` (`severity`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=92278874 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1226,11 +1287,13 @@ CREATE TABLE IF NOT EXISTS `messages` (
   `handle_attempts` int(2) DEFAULT '1',
   `dtlasthandleattempt` datetime DEFAULT NULL,
   `message` longtext,
+  `json_message` text,
   `server_id` varchar(36) DEFAULT NULL,
   `type` enum('in','out') DEFAULT NULL,
   `isszr` tinyint(1) DEFAULT '0',
   `message_name` varchar(30) DEFAULT NULL,
   `message_version` int(2) DEFAULT NULL,
+  `ipaddress` varchar(15) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `server_message` (`messageid`(36),`server_id`),
   KEY `server_id` (`server_id`),
@@ -1239,7 +1302,7 @@ CREATE TABLE IF NOT EXISTS `messages` (
   KEY `status` (`status`,`type`),
   KEY `message_name` (`message_name`),
   KEY `dt` (`dtlasthandleattempt`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=43819349 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1260,7 +1323,7 @@ CREATE TABLE IF NOT EXISTS `nameservers` (
   `isbackup` tinyint(1) DEFAULT '0',
   `ipaddress` varchar(15) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=8 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1276,7 +1339,7 @@ CREATE TABLE IF NOT EXISTS `rds_snaps_info` (
   `region` varchar(255) DEFAULT 'us-east-1',
   `autosnapshotid` int(11) DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 CHECKSUM=1 DELAY_KEY_WRITE=1 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=7357 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 CHECKSUM=1 DELAY_KEY_WRITE=1 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1354,7 +1417,7 @@ CREATE TABLE IF NOT EXISTS `roles` (
   KEY `NewIndex1` (`origin`),
   KEY `NewIndex2` (`client_id`),
   KEY `NewIndex3` (`env_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=46305 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1369,7 +1432,7 @@ CREATE TABLE IF NOT EXISTS `roles_queue` (
   `action` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `role_id` (`role_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=6062 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1384,7 +1447,7 @@ CREATE TABLE IF NOT EXISTS `role_behaviors` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `role_id_behavior` (`role_id`,`behavior`),
   KEY `role_id` (`role_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=57418 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1408,7 +1471,7 @@ CREATE TABLE IF NOT EXISTS `role_images` (
   UNIQUE KEY `role_id_location` (`role_id`,`cloud_location`),
   KEY `NewIndex1` (`platform`),
   KEY `location` (`cloud_location`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=40422 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1429,7 +1492,7 @@ CREATE TABLE IF NOT EXISTS `role_parameters` (
   `issystem` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `role_id` (`role_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=10629 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1445,7 +1508,7 @@ CREATE TABLE IF NOT EXISTS `role_properties` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `NewIndex1` (`role_id`,`name`),
   KEY `role_id` (`role_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=24434 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1464,10 +1527,11 @@ CREATE TABLE IF NOT EXISTS `role_scripts` (
   `issync` tinyint(1) DEFAULT NULL,
   `params` text,
   `order_index` int(11) NOT NULL DEFAULT '0',
+  `hash` varchar(12) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `role_id` (`role_id`),
   KEY `script_id` (`script_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=561 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1481,7 +1545,7 @@ CREATE TABLE IF NOT EXISTS `role_security_rules` (
   `rule` varchar(90) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `role_id` (`role_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=75135 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1497,7 +1561,7 @@ CREATE TABLE IF NOT EXISTS `role_software` (
   `software_key` varchar(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `role_id` (`role_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=73204 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1512,7 +1576,7 @@ CREATE TABLE IF NOT EXISTS `role_tags` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `role_tag` (`role_id`,`tag`),
   KEY `role_id` (`role_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=21419 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1534,7 +1598,7 @@ CREATE TABLE IF NOT EXISTS `scaling_metrics` (
   UNIQUE KEY `NewIndex3` (`client_id`,`name`),
   KEY `NewIndex1` (`client_id`),
   KEY `NewIndex2` (`env_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=65 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1543,6 +1607,34 @@ CREATE TABLE IF NOT EXISTS `scaling_metrics` (
 --
 
 CREATE TABLE IF NOT EXISTS `scheduler` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) DEFAULT NULL,
+  `type` enum('script_exec','terminate_farm','launch_farm') DEFAULT NULL,
+  `target_id` int(11) DEFAULT NULL COMMENT 'id of farm, farm_role from other tables',
+  `target_server_index` int(11) DEFAULT NULL,
+  `target_type` enum('farm','role','instance') DEFAULT NULL,
+  `start_time` datetime DEFAULT NULL COMMENT 'start task''s time',
+  `end_time` datetime DEFAULT NULL COMMENT 'end task by this time',
+  `last_start_time` datetime DEFAULT NULL COMMENT 'the last time task was started',
+  `restart_every` int(11) DEFAULT '0' COMMENT 'restart task every N minutes',
+  `config` text COMMENT 'arguments for action',
+  `order_index` int(11) DEFAULT NULL COMMENT 'task order',
+  `timezone` varchar(100) DEFAULT NULL,
+  `status` varchar(11) DEFAULT NULL COMMENT 'active, suspended, finished',
+  `account_id` int(11) DEFAULT NULL COMMENT 'Task belongs to selected account',
+  `env_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `status` (`status`),
+  KEY `account_id` (`account_id`,`env_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `scheduler2`
+--
+
+CREATE TABLE IF NOT EXISTS `scheduler2` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) DEFAULT NULL,
   `type` varchar(255) DEFAULT NULL,
@@ -1561,7 +1653,7 @@ CREATE TABLE IF NOT EXISTS `scheduler` (
   PRIMARY KEY (`id`),
   KEY `status` (`status`),
   KEY `account_id` (`account_id`,`env_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=693 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1587,7 +1679,7 @@ CREATE TABLE IF NOT EXISTS `scheduler_tasks` (
   `timezone` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `status` (`status`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=672 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1612,7 +1704,7 @@ CREATE TABLE IF NOT EXISTS `scripting_log` (
   KEY `server_id` (`server_id`),
   KEY `event_id` (`event_id`),
   KEY `event_server_id` (`event_server_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=17239767 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1630,7 +1722,7 @@ CREATE TABLE IF NOT EXISTS `scripts` (
   `clientid` int(11) DEFAULT '0',
   `approval_state` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=4766 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1647,8 +1739,8 @@ CREATE TABLE IF NOT EXISTS `script_revisions` (
   `approval_state` varchar(255) DEFAULT NULL,
   `variables` text,
   PRIMARY KEY (`id`),
-  KEY `scriptid_revision` (`scriptid`,`revision`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=10267 ;
+  UNIQUE KEY `scriptid_revision` (`scriptid`,`revision`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1665,7 +1757,7 @@ CREATE TABLE IF NOT EXISTS `sensor_data` (
   `raw_sensor_data` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique` (`farm_roleid`,`sensor_name`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=120124872 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1681,7 +1773,7 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `client_id` int(11) DEFAULT NULL,
   `env_id` int(11) NOT NULL,
   `role_id` int(11) DEFAULT NULL,
-  `platform` varchar(10) DEFAULT NULL,
+  `platform` varchar(20) DEFAULT NULL,
   `status` varchar(25) DEFAULT NULL,
   `remote_ip` varchar(15) DEFAULT NULL,
   `local_ip` varchar(15) DEFAULT NULL,
@@ -1699,7 +1791,7 @@ CREATE TABLE IF NOT EXISTS `servers` (
   KEY `env_id` (`env_id`),
   KEY `role_id` (`role_id`),
   KEY `client_id` (`client_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=823226 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1724,10 +1816,14 @@ CREATE TABLE IF NOT EXISTS `servers_history` (
   `farm_roleid` int(11) DEFAULT NULL,
   `server_index` int(5) DEFAULT NULL,
   `shutdown_confirmed` tinyint(3) NOT NULL DEFAULT '0',
+  `scu_used` float(11,2) DEFAULT '0.00',
+  `scu_reported` float(11,2) DEFAULT '0.00',
+  `scu_updated` tinyint(1) DEFAULT '0',
+  `scu_collecting` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `client_id` (`client_id`),
   KEY `server_id` (`server_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=709760 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1749,7 +1845,7 @@ CREATE TABLE IF NOT EXISTS `servers_stats` (
   KEY `envid` (`env_id`),
   KEY `farm_id` (`farm_id`),
   KEY `year` (`year`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=20066 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1774,7 +1870,7 @@ CREATE TABLE IF NOT EXISTS `server_alerts` (
   KEY `main2` (`server_id`,`metric`,`status`),
   KEY `env_id` (`env_id`),
   KEY `farm_role` (`farm_id`,`farm_roleid`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=436 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1830,7 +1926,7 @@ CREATE TABLE IF NOT EXISTS `server_properties` (
   UNIQUE KEY `serverid_name` (`server_id`,`name`),
   KEY `serverid` (`server_id`),
   KEY `name_value` (`name`(20),`value`(20))
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=537838583 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1848,7 +1944,7 @@ CREATE TABLE IF NOT EXISTS `services_chef_runlists` (
   `attributes` text,
   `chef_environment` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=148 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1865,7 +1961,7 @@ CREATE TABLE IF NOT EXISTS `services_chef_servers` (
   `v_username` varchar(255) DEFAULT NULL,
   `v_auth_key` text,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=51 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1886,7 +1982,24 @@ CREATE TABLE IF NOT EXISTS `services_db_backups` (
   `cloud_location` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `env_id` (`env_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=81124 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `services_db_backups_history`
+--
+
+CREATE TABLE IF NOT EXISTS `services_db_backups_history` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `farm_role_id` int(11) NOT NULL,
+  `operation` enum('backup','bundle') NOT NULL,
+  `date` datetime NOT NULL,
+  `status` enum('ok','error') NOT NULL,
+  `error` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `main` (`farm_role_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1902,7 +2015,7 @@ CREATE TABLE IF NOT EXISTS `services_db_backup_parts` (
   `seq_number` int(5) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `backup_id` (`backup_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=172795 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1917,7 +2030,7 @@ CREATE TABLE IF NOT EXISTS `services_mongodb_cluster_log` (
   `dtadded` datetime DEFAULT NULL,
   `message` text,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=3818 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1932,7 +2045,7 @@ CREATE TABLE IF NOT EXISTS `services_mongodb_snapshots_map` (
   `snapshot_id` varchar(25) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `main` (`farm_roleid`,`shard_index`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1160 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1948,7 +2061,7 @@ CREATE TABLE IF NOT EXISTS `services_mongodb_volumes_map` (
   `volume_id` varchar(25) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `main` (`farm_roleid`,`replica_set_index`,`shard_index`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=2067 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1968,7 +2081,7 @@ CREATE TABLE IF NOT EXISTS `service_config_presets` (
   KEY `env_id` (`env_id`),
   KEY `client_id` (`client_id`),
   KEY `name` (`name`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=471 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -1982,7 +2095,7 @@ CREATE TABLE IF NOT EXISTS `service_config_preset_data` (
   `key` varchar(45) DEFAULT NULL,
   `value` text,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=30885 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -2003,7 +2116,7 @@ CREATE TABLE IF NOT EXISTS `ssh_keys` (
   `platform` varchar(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `farmid` (`farm_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=9501 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -2019,7 +2132,7 @@ CREATE TABLE IF NOT EXISTS `storage_backup_configs` (
   `farm_roleid` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `farm_roleid` (`farm_roleid`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=33 ;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -2031,9 +2144,11 @@ CREATE TABLE IF NOT EXISTS `storage_restore_configs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `farm_roleid` int(11) DEFAULT NULL,
   `dtadded` datetime DEFAULT NULL,
-  `restore_config` text NOT NULL,
+  `manifest` text,
+  `type` enum('full','incremental') NOT NULL,
+  `parent_manifest` text,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=115 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -2042,7 +2157,7 @@ CREATE TABLE IF NOT EXISTS `storage_restore_configs` (
 --
 
 CREATE TABLE IF NOT EXISTS `storage_snapshots` (
-  `id` varchar(20) NOT NULL,
+  `id` varchar(36) NOT NULL,
   `client_id` int(11) DEFAULT NULL,
   `env_id` int(11) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
@@ -2106,7 +2221,7 @@ CREATE TABLE IF NOT EXISTS `syslog` (
   PRIMARY KEY (`id`),
   KEY `NewIndex1` (`transactionid`),
   KEY `NewIndex2` (`sub_transactionid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=697687 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -2122,7 +2237,7 @@ CREATE TABLE IF NOT EXISTS `syslog_metadata` (
   `message` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `transid` (`transactionid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=167973 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -2137,7 +2252,7 @@ CREATE TABLE IF NOT EXISTS `task_queue` (
   `dtadded` datetime DEFAULT NULL,
   `failed_attempts` int(3) DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=5227353 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -2148,7 +2263,7 @@ CREATE TABLE IF NOT EXISTS `task_queue` (
 CREATE TABLE IF NOT EXISTS `ui_debug_log` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `ipaddress` varchar(15) DEFAULT NULL,
-  `dtadded` datetime DEFAULT NULL,
+  `dtadded` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `url` varchar(255) DEFAULT NULL,
   `report` text,
   `env_id` int(11) DEFAULT NULL,
@@ -2176,7 +2291,25 @@ CREATE TABLE IF NOT EXISTS `ui_errors` (
   `account_id` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `file` (`file`,`lineno`,`short`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=307 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `wus_info`
+--
+
+CREATE TABLE IF NOT EXISTS `wus_info` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `clientid` int(11) DEFAULT NULL,
+  `company` varchar(255) DEFAULT NULL,
+  `about` text,
+  `scalrabout` text,
+  `isapproved` tinyint(1) DEFAULT '0',
+  `url` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `NewIndex1` (`clientid`)
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 --
 -- Constraints for dumped tables
@@ -2194,6 +2327,12 @@ ALTER TABLE `account_alerts`
 ALTER TABLE `account_user_dashboard`
   ADD CONSTRAINT `account_user_dashboard_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `account_users` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
   ADD CONSTRAINT `account_user_dashboard_ibfk_2` FOREIGN KEY (`env_id`) REFERENCES `client_environments` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+
+--
+-- Constraints for table `account_user_vars`
+--
+ALTER TABLE `account_user_vars`
+  ADD CONSTRAINT `account_user_vars_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `account_users` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
 
 --
 -- Constraints for table `autosnap_settings`
@@ -2220,6 +2359,12 @@ ALTER TABLE `farm_roles`
   ADD CONSTRAINT `farm_roles_ibfk_1` FOREIGN KEY (`farmid`) REFERENCES `farms` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
 
 --
+-- Constraints for table `farm_role_config_presets`
+--
+ALTER TABLE `farm_role_config_presets`
+  ADD CONSTRAINT `farm_role_config_presets_ibfk_1` FOREIGN KEY (`farm_roleid`) REFERENCES `farm_roles` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+
+--
 -- Constraints for table `farm_role_scaling_metrics`
 --
 ALTER TABLE `farm_role_scaling_metrics`
@@ -2229,16 +2374,31 @@ ALTER TABLE `farm_role_scaling_metrics`
 -- Constraints for table `farm_role_scripting_params`
 --
 ALTER TABLE `farm_role_scripting_params`
-  ADD CONSTRAINT `farm_role_scripting_params_ibfk_3` FOREIGN KEY (`farm_role_id`) REFERENCES `farm_roles` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  ADD CONSTRAINT `farm_role_scripting_params_ibfk_2` FOREIGN KEY (`role_script_id`) REFERENCES `role_scripts` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+  ADD CONSTRAINT `farm_role_scripting_params_ibfk_3` FOREIGN KEY (`farm_role_id`) REFERENCES `farm_roles` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
 
 --
 -- Constraints for table `farm_role_scripting_targets`
 --
 ALTER TABLE `farm_role_scripting_targets`
-  ADD CONSTRAINT `farm_role_scripting_targets_ibfk_1` FOREIGN KEY (`farm_roleid`) REFERENCES `farm_roles` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  ADD CONSTRAINT `farm_role_scripting_targets_ibfk_2` FOREIGN KEY (`farmid`) REFERENCES `farms` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
   ADD CONSTRAINT `farm_role_scripting_targets_ibfk_3` FOREIGN KEY (`farm_role_script_id`) REFERENCES `farm_role_scripts` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+
+--
+-- Constraints for table `farm_role_storage_devices`
+--
+ALTER TABLE `farm_role_storage_devices`
+  ADD CONSTRAINT `farm_role_storage_devices_ibfk_1` FOREIGN KEY (`storage_config_id`) REFERENCES `farm_role_storage_config` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+
+--
+-- Constraints for table `farm_role_storage_settings`
+--
+ALTER TABLE `farm_role_storage_settings`
+  ADD CONSTRAINT `farm_role_storage_settings_ibfk_1` FOREIGN KEY (`storage_config_id`) REFERENCES `farm_role_storage_config` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+
+--
+-- Constraints for table `global_variables`
+--
+ALTER TABLE `global_variables`
+  ADD CONSTRAINT `global_variables_ibfk_1` FOREIGN KEY (`env_id`) REFERENCES `client_environments` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
 
 --
 -- Constraints for table `role_behaviors`
@@ -2321,11 +2481,15 @@ ALTER TABLE `services_db_backups`
   ADD CONSTRAINT `services_db_backups_ibfk_1` FOREIGN KEY (`env_id`) REFERENCES `client_environments` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
 
 --
+-- Constraints for table `services_db_backups_history`
+--
+ALTER TABLE `services_db_backups_history`
+  ADD CONSTRAINT `services_db_backups_history_ibfk_1` FOREIGN KEY (`farm_role_id`) REFERENCES `farm_roles` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+
+--
 -- Constraints for table `services_db_backup_parts`
 --
 ALTER TABLE `services_db_backup_parts`
   ADD CONSTRAINT `services_db_backup_parts_ibfk_1` FOREIGN KEY (`backup_id`) REFERENCES `services_db_backups` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
 
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
