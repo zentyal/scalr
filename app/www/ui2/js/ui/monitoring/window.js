@@ -80,14 +80,21 @@ Ext.define('Scalr.ui.monitoring.statisticswindow', {
 	type: 'daily',
 	farm: '',
 	role: '',
-
+	toolMenu: true,
+	typeMenu: true,
+		
 	html: '<div style="position: relative; top: 48%; text-align: center; width: 100%; height: 50%;"><img src = "/ui2/images/icons/anim/loading_16x16.gif">&nbsp;Loading...</div>',
-
+	
+	removeDockedItem: true,
 
 	onBoxReady: function (){
 		this.fillByStatistics();
-		this.addToolMenu();
-		this.addDockMenu();
+		if (this.toolMenu) {
+			this.addToolMenu();
+		}
+		if (this.typeMenu) {
+			this.addDockMenu();
+		}
 	},
 
 	addToDashboard: function () {
@@ -135,21 +142,21 @@ Ext.define('Scalr.ui.monitoring.statisticswindow', {
 	addDockMenu: function() {
 		var me = this;
 		if(me){
-			if (me.dockedItems.getAt(1))
+			if (me.removeDockedItem && me.dockedItems.getAt(1))
 				me.removeDocked(me.dockedItems.getAt(1), true);
 			me.addDocked({
 				xtype: 'toolbar',
 				dock: 'top',
 				items: [{
-					xtype: 'combobutton',
+					xtype: 'buttongroupfield',
+					value: 'daily',
 					defaults: {
-						width: 60
+						width: 66
 					},
 					items: [{
 						xtype: 'button',
 						text: 'Daily',
-						value: 'daily',
-						pressed: true
+						value: 'daily'
 					}, {
 						xtype: 'button',
 						text: 'Weekly',
@@ -163,9 +170,11 @@ Ext.define('Scalr.ui.monitoring.statisticswindow', {
 						text: 'Yearly',
 						value: 'yearly'
 					}],
-					handler: function (value) {
-						me.type = value;
-						me.fillByStatistics();
+					listeners: {
+						change: function (field, value) {
+							me.type = value;
+							me.fillByStatistics();
+						}
 					}
 				}]
 			});
@@ -182,12 +191,14 @@ Ext.define('Scalr.ui.monitoring.statisticswindow', {
 				scope: this,
 				url: '/server/statistics.php?version=2&task=get_stats_image_url&farmid=' + me.farm + '&watchername=' + me.watchername + '&graph_type=' + me.type + '&role=' + me.role,
 				success: function (data, response, options) {
-					if(me.body)
+					if(me.rendered && !me.destroyed) {
 						me.body.update('<div style="position: relative; text-align: center; width: 100%; height: 50%;"><img src = "' + data.msg + '"/></div>');
+					}
 				},
 				failure: function(data, response, options) {
-					if (me.body)
+					if(me.rendered && !me.destroyed) {
 						me.body.update('<div style="position: relative; top: 48%; text-align: center; width: 100%; height: 50%;"><font color = "red">' + (data ? data['msg'] : '') + '</font></div>');
+					}
 				}
 			});
 		}

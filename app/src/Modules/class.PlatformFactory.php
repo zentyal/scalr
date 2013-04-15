@@ -31,8 +31,13 @@
 					self::$cache[$platform] = new Modules_Platforms_Idcf();
 				elseif ($platform == SERVER_PLATFORMS::UCLOUD)
 					self::$cache[$platform] = new Modules_Platforms_uCloud();
+				
 				elseif ($platform == SERVER_PLATFORMS::OPENSTACK)
 					self::$cache[$platform] = new Modules_Platforms_Openstack();
+				elseif ($platform == SERVER_PLATFORMS::RACKSPACENG_UK)
+					self::$cache[$platform] = new Modules_Platforms_RackspaceNgUk();
+				elseif ($platform == SERVER_PLATFORMS::RACKSPACENG_US)
+					self::$cache[$platform] = new Modules_Platforms_RackspaceNgUs();
 				else
 					throw new Exception(sprintf("Platform %s not supported by Scalr", $platform));
 			}

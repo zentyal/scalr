@@ -16,31 +16,31 @@ use Scalr\Service\Aws\DataType\ListDataType;
 class AppCookieStickinessPolicyList extends AbstractElbListDataType
 {
 
-	/**
-	 * List of external identifier names.
-	 *
-	 * @var array
-	 */
-	protected $_externalKeys = array(
-		'loadBalancerName'
-	);
+    /**
+     * List of external identifier names.
+     *
+     * @var array
+     */
+    protected $_externalKeys = array(
+        'loadBalancerName'
+    );
 
-	/**
-	 * Constructor
-	 *
-	 * @param array|AppCookieStickinessPolicyData  $aListData  Instance List
-	 */
-	public function __construct($aListData = null)
-	{
-		parent::__construct($aListData, array('policyName'), 'Scalr\\Service\\Aws\\Elb\\DataType\\AppCookieStickinessPolicyData');
-	}
+    /**
+     * Constructor
+     *
+     * @param array|AppCookieStickinessPolicyData  $aListData  Instance List
+     */
+    public function __construct($aListData = null)
+    {
+        parent::__construct($aListData, array('policyName'), 'Scalr\\Service\\Aws\\Elb\\DataType\\AppCookieStickinessPolicyData');
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
-	 */
-	public function getQueryArray($uriParameterName = 'AppCookieStickinessPolicies')
-	{
-		return parent::getQueryArray($uriParameterName);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
+     */
+    public function getQueryArray($uriParameterName = 'AppCookieStickinessPolicies', $member = true)
+    {
+        return parent::getQueryArray($uriParameterName);
+    }
 }

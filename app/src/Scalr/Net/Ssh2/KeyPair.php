@@ -1,5 +1,5 @@
-<? 	
-	class Scalr_Net_Ssh2_KeyPair 
+<?
+	class Scalr_Net_Ssh2_KeyPair
 	{
 	    var $_math_obj;
     	var $_key_len;
@@ -8,7 +8,7 @@
     	var $_random_generator;
     	var $_attrs;
 
-	    private function getAttributeNames() 
+	    private function getAttributeNames()
 	    {
 	        return array('version', 'n', 'e', 'd', 'p', 'q', 'dmp1', 'dmq1', 'iqmp');
 	    }
@@ -19,7 +19,7 @@
 	        if ($max_pos < 2) {
 	            throw new Exception("ASN.1 string too short");
 	        }
-	
+
 	        // get ASN.1 tag value
 	        $tag = ord($str[$pos++]) & 0x1f;
 	        if ($tag == 0x1f) {
@@ -33,7 +33,7 @@
 	        if ($pos >= $max_pos) {
 	            throw new Exception("ASN.1 string too short");
 	        }
-	
+
 	        // get ASN.1 object length
 	        $len = ord($str[$pos++]);
 	        if ($len & 0x80) {
@@ -47,10 +47,10 @@
 	        if ($pos >= $max_pos || $len > $max_pos - $pos) {
 	            throw new Exception("ASN.1 string too short");
 	        }
-	
+
 	        // get string value of ASN.1 object
 	        $str = substr($str, $pos, $len);
-	
+
 	        return array(
 	            'tag' => $tag,
 	            'str' => $str,
@@ -64,14 +64,14 @@
 	            throw new Exception (sprintf("wrong ASN tag value: 0x%02x. Expected 0x02 (INTEGER)", $tmp['tag']));
 	        }
 	        $pos += strlen($tmp['str']);
-	
+
 	        return strrev($tmp['str']);
 	    }
 
     	private function asn1Store($str, $tag, $is_constructed = false, $is_private = false)
     	{
 	        $out = '';
-	
+
 	        // encode ASN.1 tag value
 	        $tag_ext = ($is_constructed ? 0x20 : 0) | ($is_private ? 0xc0 : 0);
 	        if ($tag < 0x1f) {
@@ -86,7 +86,7 @@
 	            }
 	            $out .= strrev($tmp);
 	        }
-	
+
 	        // encode ASN.1 object length
 	        $len = strlen($str);
 	        if ($len < 0x7f) {
@@ -102,7 +102,7 @@
 	            $out .= chr($n | 0x80);
 	            $out .= strrev($tmp);
 	        }
-	
+
 	        return $out . $str;
     	}
 
@@ -116,7 +116,7 @@
     	{
         	/*
 	        // try to load math wrapper
-	        $obj = &Crypt_RSA_MathLoader::loadWrapper($wrapper_name);
+	        $obj = Crypt_RSA_MathLoader::loadWrapper($wrapper_name);
 	        if ($this->isError($obj)) {
 	            // error during loading of math wrapper
 	            $this->pushError($obj);
@@ -144,7 +144,7 @@
 	                }
 	                ${$attr} = $this->_math_obj->bin2int($rsa_attrs[$attr]);
 	            }
-	
+
 	            // check primality of p and q
 	            if (!$this->_math_obj->isPrime($p)) {
 	                throw new Exception("[p] must be prime");
@@ -154,14 +154,14 @@
 	                throw new Exception("[q] must be prime");
 	                return;
 	            }
-	
+
 	            // check n = p * q
 	            $n1 = $this->_math_obj->mul($p, $q);
 	            if ($this->_math_obj->cmpAbs($n, $n1)) {
 	                throw new Exception("n != p * q");
 	                return;
 	            }
-	
+
 	            // check e * d = 1 mod (p-1) * (q-1)
 	            $p1 = $this->_math_obj->dec($p);
 	            $q1 = $this->_math_obj->dec($q);
@@ -172,34 +172,34 @@
 	                throw new Exception("e * d != 1 mod (p-1)*(q-1)");
 	                return;
 	            }
-	
+
 	            // check dmp1 = d mod (p-1)
 	            $dmp = $this->_math_obj->mod($d, $p1);
 	            if ($this->_math_obj->cmpAbs($dmp, $dmp1)) {
 	                throw new Exception("dmp1 != d mod (p-1)");
 	                return;
 	            }
-	
+
 	            // check dmq1 = d mod (q-1)
 	            $dmq = $this->_math_obj->mod($d, $q1);
 	            if ($this->_math_obj->cmpAbs($dmq, $dmq1)) {
 	                throw new Exception("dmq1 != d mod (q-1)");
 	                return;
 	            }
-	
+
 	            // check iqmp = 1/q mod p
 	            $q1 = $this->_math_obj->invmod($iqmp, $p);
 	            if ($this->_math_obj->cmpAbs($q, $q1)) {
 	                throw new Exception("iqmp != 1/q mod p");
 	                return;
 	            }
-	
+
 	            // try to create public key object
 	            $this->_public_key = new Crypt_RSA_Key($rsa_attrs['n'], $rsa_attrs['e'], 'public', $wrapper_name);
-	
+
 	            // try to create private key object
-	            $this->_private_key = &new Crypt_RSA_Key($rsa_attrs['n'], $rsa_attrs['d'], 'private', $wrapper_name);
-	
+	            $this->_private_key = new Crypt_RSA_Key($rsa_attrs['n'], $rsa_attrs['d'], 'private', $wrapper_name);
+
 	            $this->_key_len = $this->_public_key->getKeyLength();
 	            $this->_attrs = $rsa_attrs;
 	        } else {
@@ -221,17 +221,17 @@
 	                return false;
 	            }
 	        }
-	
+
 	        // minimal key length is 8 bit ;)
 	        if ($key_len < 8) {
 	            $key_len = 8;
 	        }
 	        // store key length in the _key_len property
 	        $this->_key_len = $key_len;
-	
+
 	        // set [e] to 0x10001 (65537)
 	        $e = $this->_math_obj->bin2int("\x01\x00\x01");
-	
+
 	        // generate [p], [q] and [n]
 	        $p_len = intval(($key_len + 1) / 2);
 	        $q_len = $key_len - $p_len;
@@ -264,20 +264,20 @@
 	            // calculate n = p * q
 	            $n = $this->_math_obj->mul($p, $q);
 	        } while ($this->_math_obj->bitLen($n) != $key_len);
-	
+
 	        // calculate d = 1/e mod (p - 1) * (q - 1)
 	        $pq = $this->_math_obj->mul($p1, $q1);
 	        $d = $this->_math_obj->invmod($e, $pq);
-	
+
 	        // calculate dmp1 = d mod (p - 1)
 	        $dmp1 = $this->_math_obj->mod($d, $p1);
-	
+
 	        // calculate dmq1 = d mod (q - 1)
 	        $dmq1 = $this->_math_obj->mod($d, $q1);
-	
+
 	        // calculate iqmp = 1/q mod p
 	        $iqmp = $this->_math_obj->invmod($q, $p);
-	
+
 	        // store RSA keypair attributes
 	        $this->_attrs = array(
 	            'version' => "\x00",
@@ -290,29 +290,29 @@
 	            'dmq1' => $this->_math_obj->int2bin($dmq1),
 	            'iqmp' => $this->_math_obj->int2bin($iqmp),
 	        );
-	
+
 	        $n = $this->_attrs['n'];
 	        $e = $this->_attrs['e'];
 	        $d = $this->_attrs['d'];
-	
+
 	        // try to create public key object
-	        $obj = &new Crypt_RSA_Key($n, $e, 'public', $this->_math_obj->getWrapperName(), $this->_error_handler);
+	        $obj = new Crypt_RSA_Key($n, $e, 'public', $this->_math_obj->getWrapperName(), $this->_error_handler);
 	        if ($obj->isError()) {
 	            // error during creating public object
 	            $this->pushError($obj->getLastError());
 	            return false;
 	        }
 	        $this->_public_key = &$obj;
-	
+
 	        // try to create private key object
-	        $obj = &new Crypt_RSA_Key($n, $d, 'private', $this->_math_obj->getWrapperName(), $this->_error_handler);
+	        $obj = new Crypt_RSA_Key($n, $d, 'private', $this->_math_obj->getWrapperName(), $this->_error_handler);
 	        if ($obj->isError()) {
 	            // error during creating private key object
 	            $this->pushError($obj->getLastError());
 	            return false;
 	        }
 	        $this->_private_key = &$obj;
-	
+
 	        return true; // key pair successfully generated
 	    }
 
@@ -411,7 +411,7 @@
                 $error_handler = $this->_error_handler;
             }
         }
-        $err_handler = &new Crypt_RSA_ErrorHandler;
+        $err_handler = new Crypt_RSA_ErrorHandler;
         $err_handler->setErrorHandler($error_handler);
 
         // search for base64-encoded private key
@@ -447,7 +447,7 @@
         }
 
         // create Crypt_RSA_KeyPair object.
-        $keypair = &new Crypt_RSA_KeyPair($rsa_attrs, $wrapper_name, $error_handler);
+        $keypair = new Crypt_RSA_KeyPair($rsa_attrs, $wrapper_name, $error_handler);
         if ($keypair->isError()) {
             return $keypair->getLastError();
         }
@@ -456,7 +456,7 @@
     }
 
     /**
-     * converts keypair to PEM-encoded string, which can be stroed in 
+     * converts keypair to PEM-encoded string, which can be stroed in
      * .pem compatible files, contianing RSA private key.
      *
      * @return string PEM-encoded keypair on success, false on error
@@ -505,6 +505,6 @@
             }
         }
         return true;
-    }	
+    }
 	}
 ?>

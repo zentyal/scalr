@@ -61,7 +61,7 @@ Scalr.regPage('Scalr.ui.dnszones.view', function (loadParams, moduleParams) {
 			{ text: "Last modified", width: 200, dataIndex: 'dtlastmodified', sortable: true, xtype: 'templatecolumn',
 				tpl: '<tpl if="dtlastmodified">{dtlastmodified}</tpl><tpl if="! dtlastmodified">Never</tpl>'
 			},
-			{ text: "Status", width: 150, dataIndex: 'status', sortable: false, xtype: 'templatecolumn', tpl:
+			{ text: "Status", width: 150, dataIndex: 'status', sortable: true, xtype: 'templatecolumn', tpl:
 				new Ext.XTemplate('<span style="{[this.getClass(values.status)]}">{status}</span>', {
 					getClass: function (value) {
 						if (value == 'Active')
@@ -75,9 +75,9 @@ Scalr.regPage('Scalr.ui.dnszones.view', function (loadParams, moduleParams) {
 			}, {
 				xtype: 'optionscolumn',
 				optionsMenu: [{
-					text:'Edit DNS Zone',
+					text: 'Edit DNS Zone',
 					iconCls: 'x-menu-icon-edit',
-					href: '#/dnszones/{id}/edit'
+					href: '#/dnszones/{id}/edit2'
 				}, {
 					text: 'Settings',
 					iconCls: 'x-menu-icon-settings',
@@ -92,52 +92,68 @@ Scalr.regPage('Scalr.ui.dnszones.view', function (loadParams, moduleParams) {
 		multiSelect: true,
 		selModel: {
 			selType: 'selectedmodel',
-			selectedMenu: [{
-				text: 'Delete',
-				iconCls: 'x-menu-icon-delete',
-				request: {
-					confirmBox: {
-						type: 'delete',
-						msg: 'Remove selected dns zone(s): %s ?'
-					},
-					processBox: {
-						type: 'delete',
-						msg: 'Removing dns zone(s)...'
-					},
-					url: '/dnszones/xRemoveZones',
-					dataHandler: function(records) {
-						var zones = [];
-						this.confirmBox.objects = [];
-						for (var i = 0, len = records.length; i < len; i++) {
-							zones.push(records[i].get('id'));
-							this.confirmBox.objects.push(records[i].get('zone_name'));
-						}
-						return { zones: Ext.encode(zones) };
-					}
-				}
-			}]
+			getVisibility: function (record) {
+				return (record.get('status') != 'Pending delete');
+			}
+		},
+
+		listeners: {
+			selectionchange: function(selModel, selections) {
+				this.down('scalrpagingtoolbar').down('#delete').setDisabled(!selections.length);
+			}
 		},
 
 		dockedItems: [{
 			xtype: 'scalrpagingtoolbar',
 			store: store,
 			dock: 'top',
-			afterItems: [{
+			beforeItems: [{
 				ui: 'paging',
 				iconCls: 'x-tbar-add',
 				handler: function() {
-					Scalr.event.fireEvent('redirect', '#/dnszones/create');
+					Scalr.event.fireEvent('redirect', '#/dnszones/create2');
+				}
+			}],
+			afterItems: [{
+				ui: 'paging',
+				itemId: 'delete',
+				iconCls: 'x-tbar-delete',
+				tooltip: 'Select one or more zones to delete them',
+				disabled: true,
+				handler: function() {
+					var request = {
+						confirmBox: {
+							msg: 'Remove selected zone(s): %s ?',
+							type: 'delete'
+						},
+						processBox: {
+							msg: 'Removing dns zone(s) ...',
+							type: 'delete'
+						},
+						url: '/dnszones/xRemoveZones',
+						success: function() {
+							store.load();
+						}
+					}, records = this.up('grid').getSelectionModel().getSelection(), zones = [];
+
+					request.confirmBox.objects = [];
+					for (var i = 0, len = records.length; i < len; i++) {
+						zones.push(records[i].get('id'));
+						request.confirmBox.objects.push(records[i].get('zone_name'));
+					}
+					request.params = { zones: Ext.encode(zones) };
+					Scalr.Request(request);
 				}
 			}],
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}, ' ', {
 				text: 'Default Records',
 				width: 120,
 				tooltip: 'Manage Default DNS records',
 				handler: function() {
-					Scalr.event.fireEvent('redirect', '#/dnszones/defaultRecords');
+					Scalr.event.fireEvent('redirect', '#/dnszones/defaultRecords2');
 				}
 			}]
 		}]

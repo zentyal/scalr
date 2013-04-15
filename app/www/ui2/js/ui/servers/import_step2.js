@@ -32,7 +32,7 @@ Scalr.regPage('Scalr.ui.servers.import_step2', function (loadParams, moduleParam
 			items: [{
 				xtype: 'displayfield',
 				hideLabel: true,
-				value: '<a target="_blank" href="http://wiki.scalr.net/display/docs/Import+a+non+Scalr+server">Please follow this instruction to install scalarizr on your server</a>'
+				value: '<a target="_blank" href="http://wiki.scalr.com/x/RgAF">Please follow this instruction to install scalarizr on your server</a>'
 			}]
 		}, {
 			xtype: 'fieldset',

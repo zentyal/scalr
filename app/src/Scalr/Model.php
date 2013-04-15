@@ -3,6 +3,10 @@
 	abstract class Scalr_Model
 	{
 		public $id;
+
+		/**
+		 * @var ADOConnection
+		 */
 		protected $db;
 
 		const ENVIRONMENT				= 'Scalr_Environment';
@@ -77,12 +81,12 @@
 		}
 
 		/**
+		 * Init
 		 *
-		 * @param string $className
-		 * @return Scalr_Model
-		 *
+		 * @param   string       $className
+		 * @return  Scalr_Model
 		 */
-		public static function init($className=null)
+		public static function init($className = null)
 		{
 			//TODO: Validate class
 			if (!$className)
@@ -109,7 +113,7 @@
 
 				if (isset($info[$key])) {
 					$val = $info[$key];
-					if (is_array($value) && $value['type']) {
+					if (is_array($value) && !empty($value['type'])) {
 						switch ($value['type']) {
 							case 'bool':
 								$val = $val ? true : false;

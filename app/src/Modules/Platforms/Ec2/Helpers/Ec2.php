@@ -4,12 +4,6 @@
 	{   		
 		public static function farmSave(DBFarm $DBFarm, array $roles)
 		{
-			$buckets   = array();
-			foreach ($roles as $DBFarmRole) {	
-				if ($DBFarmRole->GetSetting(DBFarmRole::SETTING_AWS_S3_BUCKET))
-					$buckets[$DBFarmRole->CloudLocation] = $DBFarmRole->GetSetting(DBFarmRole::SETTING_AWS_S3_BUCKET);
-			}
-			
 			foreach ($roles as $DBFarmRole)
 			{
 				if ($DBFarmRole->Platform != SERVER_PLATFORMS::EC2)
@@ -43,52 +37,6 @@
 						
 						$sshKey->save();
 		            }
-				}
-			
-				try {
-					/*
-					if (!$DBFarmRole->GetSetting(DBFarmRole::SETTING_AWS_S3_BUCKET))
-					{
-						if (!$buckets[$location])
-						{
-							$aws_account_id = $DBFarm->GetEnvironmentObject()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCOUNT_ID);
-							
-							$bucket_name = "farm-{$DBFarm->Hash}-{$aws_account_id}-{$location}";
-			        
-							//
-			                // Create S3 Bucket (For MySQL, BackUs, etc.)
-			                //
-			                $AmazonS3 = new AmazonS3(
-			                	$DBFarm->GetEnvironmentObject()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			                	$DBFarm->GetEnvironmentObject()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY)
-			                );
-			                $buckets = $AmazonS3->ListBuckets();
-			                $create_bucket = true;
-			                foreach ($buckets as $bucket)
-			                {
-			                	if ($bucket->Name == $bucket_name)
-			                   	{
-									$create_bucket = false;
-									$buckets[$location] = $bucket_name;
-									break;
-								}
-							}
-			                    
-			                if ($create_bucket)
-			                {
-			                	if ($AmazonS3->CreateBucket($bucket_name, $location))
-									$buckets[$location] = $bucket_name;
-			                }
-						}
-						
-						$DBFarmRole->SetSetting(
-							DBFarmRole::SETTING_AWS_S3_BUCKET, 
-							$buckets[$location]
-						);
-					}
-					*/
-				} catch (Exception $e) {
-					throw new Exception("Amazon S3: {$e->getMessage()}");
 				}
 			}
 		}

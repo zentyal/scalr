@@ -27,97 +27,77 @@ class Scalr_UI_Controller_Tools_Aws_Rds_Instances extends Scalr_UI_Controller
 			'locations' => self::loadController('Platforms')->getCloudLocations(SERVER_PLATFORMS::EC2, false)
 		));
 	}
-	
+
 	public function editAction()
 	{
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-			$this->getParam('cloudLocation')
-		);
-		$info = $amazonRDSClient->DescribeDBInstances($this->getParam(self::CALL_PARAM_NAME));
-		$dbinstance = $info->DescribeDBInstancesResult->DBInstances->DBInstance;
-		
+		$dbinstance = $this->getEnvironment()->aws($this->getParam('cloudLocation'))->rds->dbInstance->describe($this->getParam(self::CALL_PARAM_NAME))->get(0)->toArray();
 		$this->response->page('ui/tools/aws/rds/instances/create.js', array(
 			'locations' => self::loadController('Platforms')->getCloudLocations(SERVER_PLATFORMS::EC2, false),
 			'instance' => $dbinstance
 		));
 	}
-	
-	public function xModifyInstanceAction(){
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-			$this->getParam('cloudLocation')
-		);
-		$amazonRDSClient->ModifyDBInstance(
-			$this->getParam('DBInstanceIdentifier'),
-			$this->getParam('DBParameterGroup'),
-			$this->getParam('DBSecurityGroups'),
-			$this->getParam('PreferredMaintenanceWindow'),
-			$this->getParam('MasterUserPassword') ? $this->getParam('MasterUserPassword') : null,
-			$this->getParam('AllocatedStorage'),
-			$this->getParam('DBInstanceClass'),
-			null,
-			$this->getParam('BackupRetentionPeriod'),
-			$this->getParam('PreferredBackupWindow'),
-			($this->getParam('MultiAZ') ? 1 : 0)
-		);
+
+	public function xModifyInstanceAction()
+	{
+		$aws = $this->getEnvironment()->aws($this->getParam('cloudLocation'));
+
+		$request = new \Scalr\Service\Aws\Rds\DataType\ModifyDBInstanceRequestData($this->getParam('DBInstanceIdentifier'));
+		$request->dBParameterGroupName = $this->getParam('DBParameterGroup');
+		$request->dBSecurityGroups = $this->getParam('DBSecurityGroups');
+		$request->preferredMaintenanceWindow = $this->getParam('PreferredMaintenanceWindow');
+		$request->masterUserPassword = $this->getParam('MasterUserPassword') != '' ? $this->getParam('MasterUserPassword') : null;
+		$request->allocatedStorage = $this->getParam('AllocatedStorage');
+		$request->dBInstanceClass = $this->getParam('DBInstanceClass');
+		$request->backupRetentionPeriod = $this->getParam('BackupRetentionPeriod');
+		$request->preferredBackupWindow = $this->getParam('PreferredBackupWindow');
+		$request->multiAZ = $this->getParam('MultiAZ') ? true : false;
+
+		$aws->rds->dbInstance->modify($request);
 		$this->response->success("DB Instance successfully modified");
 	}
-	
-	public function xLaunchInstanceAction(){
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-			$this->getParam('cloudLocation')
-		);
-		$amazonRDSClient->CreateDBInstance(
+
+	public function xLaunchInstanceAction()
+	{
+		$aws = $this->getEnvironment()->aws($this->getParam('cloudLocation'));
+
+		$request = new \Scalr\Service\Aws\Rds\DataType\CreateDBInstanceRequestData(
 			$this->getParam('DBInstanceIdentifier'),
 			$this->getParam('AllocatedStorage'),
 			$this->getParam('DBInstanceClass'),
 			$this->getParam('Engine'),
 			$this->getParam('MasterUsername'),
-			$this->getParam('MasterUserPassword'),
-			$this->getParam('Port'),
-			$this->getParam('DBName'),
-			$this->getParam('DBParameterGroup'),
-			$this->getParam('DBSecurityGroups'),
-			$this->getParam('AvailabilityZone'),
-			$this->getParam('PreferredMaintenanceWindow'),
-			$this->getParam('BackupRetentionPeriod'),
-			$this->getParam('PreferredBackupWindow'),
-			$this->getParam('MultiAZ')
+			$this->getParam('MasterUserPassword')
 		);
+		$request->port = $this->getParam('Port') ?: null;
+		$request->dBName = $this->getParam('DBName') ?: null;
+		$request->dBParameterGroupName = $this->getParam('DBParameterGroup') ?: null;
+		$request->dBSecurityGroups = $this->getParam('DBSecurityGroups');
+		$request->availabilityZone = $this->getParam('AvailabilityZone') ?: null;
+		$request->backupRetentionPeriod = $this->getParam('BackupRetentionPeriod');
+		$request->preferredBackupWindow = $this->getParam('PreferredBackupWindow');
+		$request->preferredMaintenanceWindow = $this->getParam('PreferredMaintenanceWindow');
+		$request->multiAZ = $this->getParam('MultiAZ') ? true : false;
+
+		$aws->rds->dbInstance->create($request);
+
 		$this->response->success("DB Instance successfully created");
 	}
+
+
 	public function detailsAction()
 	{
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-			$this->getParam('cloudLocation')
-		);
+		$aws = $this->getEnvironment()->aws($this->getParam('cloudLocation'));
 
-		$info = $amazonRDSClient->DescribeDBInstances($this->getParam(self::CALL_PARAM_NAME));
-		$dbinstance = $info->DescribeDBInstancesResult->DBInstances->DBInstance;
+		/* @var $dbinstance \Scalr\Service\Aws\Rds\DataType\DBInstanceData */
+		$dbinstance = $aws->rds->dbInstance->describe($this->getParam(self::CALL_PARAM_NAME))->get(0);
 
 		$sGroups = array();
-		$sg = (array) $dbinstance->DBSecurityGroups;
-		if (is_array($sg['DBSecurityGroup'])) {
-			foreach ($sg['DBSecurityGroup'] as $g)
-				$sGroups[] = "{$g->DBSecurityGroupName} ({$g->Status})";
-		} else
-			$sGroups[] = "{$sg['DBSecurityGroup']->DBSecurityGroupName} ({$sg['DBSecurityGroup']->Status})";
+		foreach ($dbinstance->dBSecurityGroups as $g)
+			$sGroups[] = "{$g->dBSecurityGroupName} ({$g->status})";
 
 		$pGroups = array();
-		$pg = (array)$dbinstance->DBParameterGroups;
-
-		if (is_array($pg['DBParameterGroup'])) {
-			foreach ($pg['DBParameterGroup'] as $g)
-				$pGroups[] = "{$g->DBParameterGroupName} ({$g->ParameterApplyStatus})";
-		} else
-			$pGroups[] = "{$pg['DBParameterGroup']->DBParameterGroupName} ({$pg['DBParameterGroup']->ParameterApplyStatus})";
+		foreach ($dbinstance->dBParameterGroups as $g)
+			$pGroups[] = "{$g->dBParameterGroupName} ({$g->parameterApplyStatus})";
 
 		$form = array(
 			array(
@@ -128,37 +108,44 @@ class Scalr_UI_Controller_Tools_Aws_Rds_Instances extends Scalr_UI_Controller
 						'xtype' => 'displayfield',
 						'labelWidth' => 200,
 						'fieldLabel' => 'Name',
-						'value' => (string) $dbinstance->DBInstanceIdentifier
+						'value' => (string) $dbinstance->dBInstanceIdentifier
 					),
 					array(
 						'xtype' => 'displayfield',
 						'labelWidth' => 200,
 						'fieldLabel' => 'Engine',
-						'value' => $dbinstance->PendingModifiedValues->Engine ? (string) $dbinstance->Engine. ' <i><font color="red">New value (' . $dbinstance->PendingModifiedValues->Engine . ') is pending</font></i>' : (string) $dbinstance->Engine
+						'value' => isset($dbinstance->pendingModifiedValues) && $dbinstance->pendingModifiedValues->engine ? $dbinstance->engine. ' <i><font color="red">New value (' . $dbinstance->pendingModifiedValues->engine . ') is pending</font></i>' : $dbinstance->engine,
+					),
+					array(
+						'xtype' => 'displayfield',
+						'labelWidth' => 200,
+						'fieldLabel' => 'Engine Version',
+						'value' => isset($dbinstance->pendingModifiedValues) && $dbinstance->pendingModifiedValues->engineVersion ? $dbinstance->engineVersion. ' <i><font color="red">New value (' . $dbinstance->pendingModifiedValues->engineVersion . ') is pending</font></i>' : $dbinstance->engineVersion,
 					),
 					array(
 						'xtype' => 'displayfield',
 						'labelWidth' => 200,
 						'fieldLabel' => 'DNS Name',
-						'value' => (string) $dbinstance->Endpoint->Address
+						'value' => isset($dbinstance->endpoint) ? $dbinstance->endpoint->address : '',
 					),
 					array(
 						'xtype' => 'displayfield',
 						'labelWidth' => 200,
 						'fieldLabel' => 'Port',
-						'value' => $dbinstance->PendingModifiedValues->Port ? (string) $dbinstance->Endpoint->Port . ' <i><font color="red">New value (' . $dbinstance->PendingModifiedValues->Port . ') is pending</font></i>' : (string)$dbinstance->Endpoint->Port
+						'value' => isset($dbinstance->pendingModifiedValues) && $dbinstance->pendingModifiedValues->port ?
+							(string) $dbinstance->endpoint->port . ' <i><font color="red">New value (' . $dbinstance->pendingModifiedValues->port . ') is pending</font></i>' : (string)$dbinstance->endpoint->port
 					),
 					array(
 						'xtype' => 'displayfield',
 						'labelWidth' => 200,
 						'fieldLabel' => 'Created at',
-						'value' => Scalr_Util_DateTime::convertTz((string)$dbinstance->InstanceCreateTime)
+						'value' => Scalr_Util_DateTime::convertTz($dbinstance->instanceCreateTime)
 					),
 					array(
 						'xtype' => 'displayfield',
 						'labelWidth' => 200,
 						'fieldLabel' => 'Status',
-						'value' => (string) $dbinstance->DBInstanceStatus
+						'value' => $dbinstance->dBInstanceStatus
 					)
 				)
 			),
@@ -170,25 +157,28 @@ class Scalr_UI_Controller_Tools_Aws_Rds_Instances extends Scalr_UI_Controller
 						'xtype' => 'displayfield',
 						'labelWidth' => 200,
 						'fieldLabel' => 'Availability Zone',
-						'value' => (string) $dbinstance->AvailabilityZone
+						'value' => isset($dbinstance->availabilityZone) ? $dbinstance->availabilityZone : '',
 					),
 					array(
 						'xtype' => 'displayfield',
 						'labelWidth' => 200,
 						'fieldLabel' => 'MultiAZ',
-						'value' => ($dbinstance->MultiAZ == 'true' ? 'Enabled' : 'Disabled') . ($dbinstance->PendingModifiedValues->MultiAZ ? ' <i><font color="red">New value(' . $dbinstance->PendingModifiedValues->MultiAZ . ') is pending</font></i>' : '')
+						'value' => ($dbinstance->multiAZ ? 'Enabled' : 'Disabled') .
+							(isset($dbinstance->pendingModifiedValues) && isset($dbinstance->pendingModifiedValues->multiAZ) ?
+								' <i><font color="red">New value(' . ($dbinstance->pendingModifiedValues->multiAZ ? 'true' : 'false') . ') is pending</font></i>' : '')
 					),
 					array(
 						'xtype' => 'displayfield',
 						'labelWidth' => 200,
 						'fieldLabel' => 'Type',
-						'value' => $dbinstance->PendingModifiedValues->DBInstanceClass ? (string) $dbinstance->DBInstanceClass . ' <i><font color="red">New value ('.$dbinstance->PendingModifiedValues->DBInstanceClass.') is pending</font></i>' : (string) $dbinstance->DBInstanceClass
+						'value' => isset($dbinstance->pendingModifiedValues) && $dbinstance->pendingModifiedValues->dBInstanceClass ?
+							$dbinstance->dBInstanceClass . ' <i><font color="red">New value ('. $dbinstance->pendingModifiedValues->dBInstanceClass.') is pending</font></i>' : $dbinstance->dBInstanceClass
 					),
 					array(
 						'xtype' => 'displayfield',
 						'labelWidth' => 200,
 						'fieldLabel' => 'Allocated storage',
-						'value' => $dbinstance->PendingModifiedValues->AllocatedStorage ? (string) $dbinstance->AllocatedStorage . ' GB' . ' <i><font color="red">New value (' . $dbinstance->PendingModifiedValues->AllocatedStorage . ') is pending</font></i>' : (string) $dbinstance->AllocatedStorage
+						'value' => isset($dbinstance->pendingModifiedValues) && $dbinstance->pendingModifiedValues->allocatedStorage ? (string) $dbinstance->allocatedStorage . ' GB' . ' <i><font color="red">New value (' . $dbinstance->pendingModifiedValues->allocatedStorage . ') is pending</font></i>' : (string) $dbinstance->allocatedStorage
 					)
 				)
 			),
@@ -220,19 +210,20 @@ class Scalr_UI_Controller_Tools_Aws_Rds_Instances extends Scalr_UI_Controller
 						'xtype' => 'displayfield',
 						'labelWidth' => 200,
 						'fieldLabel' => 'Preferred maintenance window',
-						'value' => (string) $dbinstance->PreferredMaintenanceWindow
+						'value' => $dbinstance->preferredMaintenanceWindow
 					),
 					array(
 						'xtype' => 'displayfield',
 						'labelWidth' => 200,
 						'fieldLabel' => 'Preferred backup window',
-						'value' => (string) $dbinstance->PreferredBackupWindow
+						'value' => $dbinstance->preferredBackupWindow
 					),
 					array(
 						'xtype' => 'displayfield',
 						'labelWidth' => 200,
 						'fieldLabel' => 'Backup retention period',
-						'value' => $dbinstance->PendingModifiedValues->BackupRetentionPeriod ? (string) $dbinstance->BackupRetentionPeriod. ' <i><font color="red">(Pending Modified)</font></i>' : (string) $dbinstance->BackupRetentionPeriod
+						'value' => isset($dbinstance->pendingModifiedValues) && $dbinstance->pendingModifiedValues->backupRetentionPeriod ?
+							$dbinstance->backupRetentionPeriod. ' <i><font color="red">(Pending Modified)</font></i>' : $dbinstance->backupRetentionPeriod
 					)
 				)
 			)
@@ -243,77 +234,38 @@ class Scalr_UI_Controller_Tools_Aws_Rds_Instances extends Scalr_UI_Controller
 
 	public function xRebootAction()
 	{
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-			$this->getParam('cloudLocation')
-		);
-
-		$amazonRDSClient->RebootDBInstance($this->getParam('instanceId'));
+		$aws = $this->getEnvironment()->aws($this->getParam('cloudLocation'));
+		$aws->rds->dbInstance->reboot($this->getParam('instanceId'));
 		$this->response->success();
 	}
 
 	public function xTerminateAction()
 	{
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-			$this->getParam('cloudLocation')
-		);
-
-		$amazonRDSClient->DeleteDBInstance($this->getParam('instanceId'));
+		$aws = $this->getEnvironment()->aws($this->getParam('cloudLocation'));
+		$aws->rds->dbInstance->delete($this->getParam('instanceId'), true);
 		$this->response->success();
 	}
 
 	public function xGetParametersAction()
 	{
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-			$this->getParam('cloudLocation')
-		);
-
-		$amazonEC2Client = Scalr_Service_Cloud_Aws::newEc2(
-			$this->getParam('cloudLocation'),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::PRIVATE_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::CERTIFICATE)
-		);
-		
-		$dbParameterGroups = $amazonRDSClient->DescribeDBParameterGroups();
-		$groups = (array) $dbParameterGroups->DescribeDBParameterGroupsResult->DBParameterGroups;
-		$groups = $groups['DBParameterGroup'];
-
-		if ($groups) {
-			if (!is_array($groups))
-				$groups = array($groups);
-		}
-
-		$describeDBSecurityGroups = $amazonRDSClient->DescribeDBSecurityGroups();
-		$sgroups = (array) $describeDBSecurityGroups->DescribeDBSecurityGroupsResult->DBSecurityGroups;
-		$sgroups = $sgroups['DBSecurityGroup'];
-
-		if ($sgroups) {
-			if (!is_array($sgroups))
-				$sgroups = array($sgroups);
-		}
-
-		$response = $amazonEC2Client->DescribeAvailabilityZones();
-		if ($response->availabilityZoneInfo->item instanceOf stdClass)
-			$response->availabilityZoneInfo->item = array($response->availabilityZoneInfo->item);
-
-		foreach ($response->availabilityZoneInfo->item as $zone) {
-			if (stristr($zone->zoneState,'available')) {
+		$aws = $this->getEnvironment()->aws($this->getParam('cloudLocation'));
+		$groups = $aws->rds->dbParameterGroup->describe();
+		$sgroups = $aws->rds->dbSecurityGroup->describe();
+		$azlist = $aws->ec2->availabilityZone->describe();
+		$zones = array();
+		/* @var $az \Scalr\Service\Aws\Ec2\DataType\AvailabilityZoneData */
+		foreach ($azlist as $az) {
+			if (stristr($az->zoneState, 'available')) {
 				$zones[] = array(
-					'id' => (string)$zone->zoneName,
-					'name' => (string)$zone->zoneName
+					'id'   => $az->zoneName,
+					'name' => $az->zoneName,
 				);
 			}
 		}
-
 		$this->response->data(array(
-			'groups' => $groups,
-			'sgroups' => $sgroups,
-			'zones' => $zones
+			'groups'  => $groups->toArray(),
+			'sgroups' => $sgroups->toArray(),
+			'zones'   => $zones,
 		));
 	}
 
@@ -324,31 +276,24 @@ class Scalr_UI_Controller_Tools_Aws_Rds_Instances extends Scalr_UI_Controller
 			'sort' => array('type' => 'json', 'default' => array('property' => 'id', 'direction' => 'ASC'))
 		));
 
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-			$this->getParam('cloudLocation')
-		);
+		$aws = $this->getEnvironment()->aws($this->getParam('cloudLocation'));
 
-		$awsResponse = $amazonRDSClient->DescribeDBInstances();
-		$rows = $awsResponse->DescribeDBInstancesResult->DBInstances->DBInstance;
+		$rows = $aws->rds->dbInstance->describe();
 		$rowz = array();
 
-		if ($rows instanceof stdClass)
-			$rows = array($rows);
-
+		/* @var $pv \Scalr\Service\Aws\Rds\DataType\DBInstanceData */
 		foreach ($rows as $pv)
 			$rowz[] = array(
-				'engine'	=> (string)$pv->Engine,
-				'status'	=> (string)$pv->DBInstanceStatus,
-				'hostname'	=> (string)$pv->Endpoint->Address,
-				'port'		=> (string)$pv->Endpoint->Port,
-				'name'		=> (string)$pv->DBInstanceIdentifier,
-				'username'	=> (string)$pv->MasterUsername,
-				'type'		=> (string)$pv->DBInstanceClass,
-				'storage'	=> (string)$pv->AllocatedStorage,
-				'dtadded'	=> (string)$pv->InstanceCreateTime,
-				'avail_zone'=> (string)$pv->AvailabilityZone
+				'engine'	=> (string)$pv->engine,
+				'status'	=> (string)$pv->dBInstanceStatus,
+				'hostname'	=> (isset($pv->endpoint) ? (string)$pv->endpoint->address : ''),
+				'port'		=> (isset($pv->endpoint) ? (string)$pv->endpoint->port : ''),
+				'name'		=> (string)$pv->dBInstanceIdentifier,
+				'username'	=> (string)$pv->masterUsername,
+				'type'		=> (string)$pv->dBInstanceClass,
+				'storage'	=> (string)$pv->allocatedStorage,
+				'dtadded'	=> $pv->instanceCreateTime,
+				'avail_zone'=> (string)$pv->availabilityZone
 			);
 
 		$response = $this->buildResponseFromData($rowz);
@@ -357,42 +302,38 @@ class Scalr_UI_Controller_Tools_Aws_Rds_Instances extends Scalr_UI_Controller
 		}
 		$this->response->data($response);
 	}
+
 	public function restoreAction()
 	{
-		$amazonEC2Client = Scalr_Service_Cloud_Aws::newEc2(
-			$this->getParam('cloudLocation'),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::PRIVATE_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::CERTIFICATE)
-		);
-		$response = $amazonEC2Client->DescribeAvailabilityZones();
-		if ($response->availabilityZoneInfo->item instanceOf stdClass)
-			$response->availabilityZoneInfo->item = array($response->availabilityZoneInfo->item);
-
-		foreach ($response->availabilityZoneInfo->item as $zone) {
-			if (stristr($zone->zoneState,'available')) {
+		$aws = $this->getEnvironment()->aws($this->getParam('cloudLocation'));
+		$azlist = $aws->ec2->availabilityZone->describe();
+		$zones = array();
+		/* @var $az \Scalr\Service\Aws\Ec2\DataType\AvailabilityZoneData */
+		foreach ($azlist as $az) {
+			if (stristr($az->zoneState, 'available')) {
 				$zones[] = array(
-					'id' => (string)$zone->zoneName,
-					'name' => (string)$zone->zoneName
+					'id'   => $az->zoneName,
+					'name' => $az->zoneName,
 				);
 			}
 		}
 		$this->response->page('ui/tools/aws/rds/instances/restore.js', array('zones' => $zones));
 	}
+
 	public function xRestoreInstanceAction()
 	{
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-			$this->getParam('cloudLocation')
+		$aws = $this->getEnvironment()->aws($this->getParam('cloudLocation'));
+		$request = new \Scalr\Service\Aws\Rds\DataType\RestoreDBInstanceFromDBSnapshotRequestData(
+			$this->getParam('DBInstanceIdentifier'),
+			$this->getParam('Snapshot')
 		);
-		$amazonRDSClient->RestoreDBInstanceFromDBSnapshot(
-			$this->getParam('Snapshot'), 
-			$this->getParam('DBInstanceIdentifier'), 
-			$this->getParam('DBInstanceClass'), 
-			$this->getParam('Port'), 
-			$this->getParam('AvailabilityZone'),
-			$this->getParam('MultiAZ')
-		);
+		$request->dBInstanceClass = $this->getParam('DBInstanceClass') ?: null;
+		$request->port = $this->getParam('Port') ?: null;
+		$request->availabilityZone = $this->getParam('AvailabilityZone') ?: null;
+		$request->multiAZ = $this->getParam('MultiAZ') ? 'true' : null;
+
+		$aws->rds->dbInstance->restoreFromSnapshot($request);
+
 		$this->response->success("DB Instance successfully restore from Snapshot");
 	}
 }

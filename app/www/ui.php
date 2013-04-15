@@ -1,5 +1,4 @@
 <?php
-
 	//@TODO: optimize
 	register_shutdown_function(function () {
 		$error = error_get_last();
@@ -33,7 +32,9 @@
 				Scalr_UI_Response::getInstance()->sendResponse();
 				exit;
 			}
-			$message = $e->getMessage() . ' <a href="/guest/logout">Click here to login as another user</a>';
+			$message = $e->getMessage();
+			if ($e->getCode() != 1)
+				$message = $message . ' <a href="/guest/logout">Click here to login as another user</a>';
 			throw new Exception($message);
 		}
 

@@ -933,15 +933,13 @@
 		if ($this->transOff > 0) return $this->_transOK == false;
 		return false;
 	}
-	
+
 	/**
-	 * Execute SQL 
-	 *
-	 * @param sql		SQL statement to execute, or possibly an array holding prepared statement ($sql[0] will hold sql text)
-	 * @param [inputarr]	holds the input data to bind to. Null elements will be set to null.
-	 * @return 		RecordSet or false
+	 * @param $sql
+	 * @param bool|array $inputarr
+	 * @return ADORecordSet_empty|bool|the
 	 */
-	function Execute($sql,$inputarr=false) 
+	function Execute($sql,$inputarr=false)
 	{
 		if ($this->fnExecute) {
 			$fn = $this->fnExecute;
@@ -1374,10 +1372,12 @@
 		$rs2->fetchMode = isset($rs->adodbFetchMode) ? $rs->adodbFetchMode : $rs->fetchMode;
 		return $rs2;
 	}
-	
-	/*
-	* Return all rows. Compat with PEAR DB
-	*/
+
+	/**
+	 * @param $sql
+	 * @param bool|array $inputarr
+	 * @return bool|array
+	 */
 	function GetAll($sql, $inputarr=false)
 	{
 		$arr = $this->GetArray($sql,$inputarr);
@@ -1409,14 +1409,12 @@
 		$arr = $rs->GetAssoc($force_array,$first2cols);
 		return $arr;
 	}
-	
+
 	/**
-	* Return first element of first row of sql statement. Recordset is disposed
-	* for you.
-	*
-	* @param sql			SQL statement
-	* @param [inputarr]		input bind array
-	*/
+	 * @param $sql
+	 * @param bool|array $inputarr
+	 * @return bool|mixed
+	 */
 	function GetOne($sql,$inputarr=false)
 	{
 	global $ADODB_COUNTRECS,$ADODB_GETONE_EOF;
@@ -1461,7 +1459,13 @@
 		
 		return $ret;
 	}
-	
+
+	/**
+	 * @param $sql
+	 * @param array|bool $inputarr
+	 * @param bool $trim
+	 * @return array|bool
+	 */
 	function GetCol($sql, $inputarr = false, $trim = false)
 	{
 	  	
@@ -1592,13 +1596,12 @@
 		$sz = sizeof($rezarr);
 		return $rezarr[abs(rand()) % $sz];
 	}
-	
+
 	/**
-	* Return one row of sql statement. Recordset is disposed for you.
-	*
-	* @param sql			SQL statement
-	* @param [inputarr]		input bind array
-	*/
+	 * @param $sql
+	 * @param array|bool $inputarr
+	 * @return array|bool
+	 */
 	function GetRow($sql,$inputarr=false)
 	{
 	global $ADODB_COUNTRECS;
@@ -2657,7 +2660,7 @@ http://www.stanford.edu/dept/itss/docs/oracle/10g/server.101/b10759/statements_1
 	/**
 	* Will select the supplied $page number from a recordset, given that it is paginated in pages of 
 	* $nrows rows per page. It also saves two boolean values saying if the given page is the first 
-	* and/or last one of the recordset. Added by Iván Oliva to provide recordset pagination.
+	* and/or last one of the recordset. Added by Ivï¿½n Oliva to provide recordset pagination.
 	*
 	* See readme.htm#ex8 for an example of usage.
 	*
@@ -2684,7 +2687,7 @@ http://www.stanford.edu/dept/itss/docs/oracle/10g/server.101/b10759/statements_1
 	/**
 	* Will select the supplied $page number from a recordset, given that it is paginated in pages of 
 	* $nrows rows per page. It also saves two boolean values saying if the given page is the first 
-	* and/or last one of the recordset. Added by Iván Oliva to provide recordset pagination.
+	* and/or last one of the recordset. Added by Ivï¿½n Oliva to provide recordset pagination.
 	*
 	* @param secs2cache	seconds to cache data, set to 0 to force query
 	* @param sql
@@ -2883,9 +2886,9 @@ http://www.stanford.edu/dept/itss/docs/oracle/10g/server.101/b10759/statements_1
 	var $_obj; 				/** Used by FetchObj */
 	var $_names;			/** Used by FetchObj */
 	
-	var $_currentPage = -1;	/** Added by Iván Oliva to implement recordset pagination */
-	var $_atFirstPage = false;	/** Added by Iván Oliva to implement recordset pagination */
-	var $_atLastPage = false;	/** Added by Iván Oliva to implement recordset pagination */
+	var $_currentPage = -1;	/** Added by Ivï¿½n Oliva to implement recordset pagination */
+	var $_atFirstPage = false;	/** Added by Ivï¿½n Oliva to implement recordset pagination */
+	var $_atLastPage = false;	/** Added by Ivï¿½n Oliva to implement recordset pagination */
 	var $_lastPageNo = -1; 
 	var $_maxRecordCount = 0;
 	var $datetime = false;

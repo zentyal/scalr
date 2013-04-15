@@ -67,25 +67,14 @@ Scalr.regPage('Scalr.ui.guest.login', function (loadParams, moduleParams) {
 					'</div>',
 				listeners: {
 					afterrender: function() {
-						/*
-						 from <script type="text/javascript" src="https://www.google.com/recaptcha/api/challenge?k=6Le9Us4SAAAAAOlqx9rkyJq0g3UBZtpoETmqUsmY"></script>
-						 */
-						RecaptchaState = {
-							site : '6Le9Us4SAAAAAOlqx9rkyJq0g3UBZtpoETmqUsmY',
-							rtl : false,
-							challenge : '03AHJ_VusTaUJHZh24wZZKe2S3g-9WflEqNOdit2UDU-c38Gmx6_8I1A5Cq3xOExZD-KiobqaS25ox-i4lHMhSBTRVpdb6LWwCzJTUYDKt9zLl3HoC4HGWKc6XhUxNWIBeMkYkZDpZEmQUIH-XS8Dho3VTQYBa33RvEg',
-							is_incorrect : false,
-							programming_error : '',
-							error_message : '',
-							server : 'https://www.google.com/recaptcha/api/',
-							lang : 'ru',
-							timeout : 1800
-						};
 						RecaptchaOptions = {
 							theme: 'custom',
 							custom_theme_widget: 'recaptcha_widget'
 						};
-						Ext.Loader.injectScriptElement(RecaptchaState.server + 'js/recaptcha.js', Ext.emptyFn);
+
+						Ext.Loader.injectScriptElement('https://www.google.com/recaptcha/api/challenge?k=6LcmltwSAAAAAJNs9vxjQeZ2cwhBleap9Dr8wQ7F', function() {
+							Ext.Loader.injectScriptElement(RecaptchaState.server + 'js/recaptcha.js', Ext.emptyFn);
+						});
 					}
 				}
 			}, {
@@ -103,6 +92,11 @@ Scalr.regPage('Scalr.ui.guest.login', function (loadParams, moduleParams) {
 						this.prev().hide();
 					}
 				}
+			}, {
+				xtype: 'hiddenfield',
+				name: 'userTimezone',
+				value: (new Date()).getTimezoneOffset()
+
 			}],
 			listeners: {
 				render: function() {
@@ -159,12 +153,17 @@ Scalr.regPage('Scalr.ui.guest.login', function (loadParams, moduleParams) {
 										Scalr.event.fireEvent('close');
 									} else {
 										Scalr.application.updateContext(function() {
+											Scalr.event.fireEvent('unlock');
 											Scalr.event.fireEvent('close', true);
 										});
 									}
 								}
 							},
 							failure: function (data) {
+								if (Ext.isChrome) {
+									history.back();
+								}
+
 								if (data && data['loginattempts'] && data['loginattempts'] > 2) {
 									this.up('form').down('[name="scalrCaptcha"]').show().enable().reset();
 

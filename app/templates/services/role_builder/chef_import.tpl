@@ -15,15 +15,14 @@ CHEF_SERVER_URL="%CHEF_SERVER_URL%"
 CHEF_VALIDATOR_NAME="%CHEF_VALIDATOR_NAME%"
 CHEF_VALIDATOR_KEY="%CHEF_VALIDATOR_KEY%"
 CHEF_ENVIRONMENT="%CHEF_ENVIRONMENT%"
-CHEF_ROLE="%CHEF_ROLE%"
+CHEF_ROLE_NAME="%CHEF_ROLE_NAME%"
 
 # Chef client configuration
 CHEF_CLIENT_CNF_TPL="log_level        :info
 log_location     STDOUT
 chef_server_url  '$CHEF_SERVER_URL'
 environment      '$CHEF_ENVIRONMENT'
-validation_client_name '$CHEF_VALIDATOR_NAME'
-node_name        '$CHEF_NODE_NAME'"
+validation_client_name '$CHEF_VALIDATOR_NAME'"
 
 
 for recipe in $RECIPES; do
@@ -115,7 +114,7 @@ if [ "$rhel" -eq 0 ] && [ "$fedora" -eq 0 ]; then
 		fi
 	fi
 	action "Updating package list" "apt-get update"
-	action "Installing essential packages" "apt-get -y install ruby ruby1.8-dev libopenssl-ruby rdoc ri irb build-essential wget make tar ssl-cert"
+	action "Installing essential packages" "apt-get -y install ruby ruby1.8-dev libopenssl-ruby rdoc ri irb build-essential wget make tar ssl-cert git"
 	action 'Downloading rubygems' "wget -c http://production.cf.rubygems.org/rubygems/rubygems-1.8.24.tgz"
 	action 'Unpacking rubygems' "tar zxf rubygems-1.8.24.tgz"
 	cd rubygems-1.8.24
@@ -137,27 +136,17 @@ else
 		fi
 		action "Removing unnecessary packages" "yum -y remove mysql*"
 	else
-		action "Installing EPEL repository"  "rpm -Uvh --replacepkgs http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-7.noarch.rpm"
+		action "Installing EPEL repository"  "rpm -Uvh --replacepkgs http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm"
 	fi
-	action "Installing essential packages" "yum -y install ruby ruby-devel make automake gcc-c++ gcc autoconf"
+	action "Installing essential packages" "yum -y install ruby ruby-devel make automake gcc-c++ gcc autoconf git-core"
 	action "Installing rubygems" "yum -y install rubygems"
 fi
 
 cd /tmp
 action "Installing chef" "gem install chef --no-ri --no-rdoc"
-
-#########
-#if [ -n "$CHEF_CLIENT_PEM" ]; then
-#	mkdir -p /etc/chef
-#	action "Creating chef-client configuration file" 'echo "$CHEF_CLIENT_CNF_TPL" > /tmp/client.rb'
-#	action "Creating chef-client validation key" 'echo "$CHEF_CLIENT_PEM" > /tmp/client.pem'
-#	action "Running chef client" 'chef-client -c /tmp/client.rb -k /tmp/client.pem'
-#fi
-#########	
-
 mkdir -p /tmp/chef-solo
-action "Creating chef configuration file" "echo -e 'file_cache_path \"/tmp/chef-solo\"\r\ncookbook_path \"/tmp/chef-solo\"' > /tmp/solo.rb"
-action "Unpacking cookbooks"	"tar zxf /tmp/recipes.tar.gz -C /tmp/chef-solo"
+action "Creating chef configuration file" "echo -e 'file_cache_path \"/tmp/chef-solo/cookbooks\"\r\ncookbook_path \"/tmp/chef-solo/cookbooks\"' > /tmp/solo.rb"
+action "Retrieving cookbooks from scalr's public repo" "git clone git://github.com/Scalr/cookbooks.git /tmp/chef-solo"
 action "Creating runlist" 		'echo $CHEF_RUNLIST | tee /tmp/soft.json'
 action "Installing software" "chef-solo -c /tmp/solo.rb -j /tmp/soft.json"
 
@@ -166,14 +155,15 @@ action "Installing software" "chef-solo -c /tmp/solo.rb -j /tmp/soft.json"
 if [ -n "$CHEF_VALIDATOR_KEY" ]; then
 	mkdir -p /etc/chef/
 	echo "$CHEF_VALIDATOR_KEY" > /etc/chef/validation.pem
+	echo '{"run_list": [ "role['$CHEF_ROLE_NAME']" ]}'  > /tmp/attributes.json
+
 	action "Creating chef-client configuration file" 'echo "$CHEF_CLIENT_CNF_TPL" > /etc/chef/client.rb'
-	action "Creating new chef API client using validator client" 'chef-client'
-	
+	action "Creating new chef API client using validaton key" 'chef-client'
+
 	# Deleting validation key
 	rm -f /etc/chef/validation.pem
-	
-	action "Applying chef role to node" "knife node run_list add $CHEF_NODE_NAME 'role[$CHEF_ROLE]'"
-	action "Running chef recipes" "chef-client"	
+	action "Applying specified runlist" "chef-client --json-attribute /tmp/attributes.json"
+	rm -f /etc/chef/client.pem
 fi
 
 

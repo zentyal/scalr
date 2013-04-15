@@ -9,6 +9,29 @@ class Chargify
     	$this->domain  = $domain;
   	}
   
+  
+    public function createComponentUsage($subscriptionId, $componentId, $quantity, $memo)
+    {
+        $rObject = new stdClass();
+        $rObject->usage = new stdClass();
+        $rObject->usage->quantity = $quantity;
+        $rObject->usage->memo = $memo;
+        
+        $r = $this->sendRequest("/subscriptions/{$subscriptionId}/components/{$componentId}/usages.json", 'POST', json_encode($rObject));
+        
+        if ($r->getResponseCode() == 200) {
+            return json_decode($r->getResponseBody(), true);
+        }
+        else {
+            if ($r->getResponseCode() == 422) {
+                $response = json_decode($r->getResponseBody(), true);
+                throw new Exception($response['errors'][0]);
+            }
+            
+            throw new Exception("Cannot create component usage. Response code: ".$r->getResponseCode().". Response body: ".$r->getResponseBody());
+        }
+    }
+  
   	public function setComponentValue($subscriptionId, $componentId, $value)
   	{
   		$rObject = new stdClass();

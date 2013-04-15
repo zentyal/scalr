@@ -29,6 +29,64 @@ class Scalr_UI_Controller_Environments extends Scalr_UI_Controller
 		$this->response->page('ui/environments/view.js');
 	}
 
+	public function view2Action()
+	{
+		// TODO: refactor
+		$sql = "SELECT
+			id,
+			name,
+			dt_added AS dtAdded,
+			status
+			FROM client_environments
+			WHERE client_id = ".$this->user->getAccountId()."
+			GROUP BY id
+		";
+
+		$envList = $this->db->getAll($sql);
+		
+		foreach ($envList as &$row) {
+			$env = Scalr_Environment::init()->loadById($row['id']);
+			foreach ($env->getEnabledPlatforms() as $platform)
+				$row['platforms'][] = SERVER_PLATFORMS::GetName($platform);
+			$row['teams'] = $this->db->getCol('SELECT team_id FROM `account_team_envs` WHERE env_id = ?', array($row['id']));
+			$row['dtAdded'] = Scalr_Util_DateTime::convertTz($row['dtAdded']);
+			$row[ENVIRONMENT_SETTINGS::TIMEZONE] = $env->getPlatformConfigValue(ENVIRONMENT_SETTINGS::TIMEZONE);
+		}
+		
+		$timezones = array();
+		$timezoneAbbreviationsList = timezone_abbreviations_list();
+		foreach ($timezoneAbbreviationsList as $timezoneAbbreviations) {
+			foreach ($timezoneAbbreviations as $value) {
+				if (preg_match( '/^(America\/|Antartica\/|Arctic\/|Asia\/|Atlantic\/|Europe\/|Indian\/|Pacific\/|Australia\/|UTC)/', $value['timezone_id']))
+					$timezones[$value['timezone_id']] = $value['offset'];
+			}
+		}
+
+		@ksort($timezones);
+		$timezones = array_keys($timezones);
+		
+		$platforms = SERVER_PLATFORMS::GetList();
+		unset($platforms[SERVER_PLATFORMS::RDS]);
+
+		//TODO:
+		if (!$this->request->getHeaderVar('Interface-Beta')) {
+			//unset($platforms[SERVER_PLATFORMS::OPENSTACK]);
+			//unset($platforms[SERVER_PLATFORMS::RACKSPACENG_UK]);
+			//unset($platforms[SERVER_PLATFORMS::RACKSPACENG_US]);
+			unset($platforms[SERVER_PLATFORMS::UCLOUD]);
+			//unset($platforms[SERVER_PLATFORMS::GCE]);
+		}
+		
+		$teams = $this->db->getAll("SELECT id, name FROM account_teams WHERE account_id='" . $this->user->getAccountId() . "'");
+		
+		$this->response->page('ui/environments/view2.js', array(
+			'envList' => $envList,
+			'timezones' => $timezones,
+			'platforms' => $platforms,
+			'teams' => $teams
+		), array('ui/environments/platform/ec2.js'), array('ui/environments/view2.css'));
+	}
+	
 	public function xListEnvironmentsAction()
 	{
 		$this->request->defineParams(array(
@@ -40,7 +98,6 @@ class Scalr_UI_Controller_Environments extends Scalr_UI_Controller
 				id,
 				name,
 				dt_added AS dtAdded,
-				is_system AS isSystem,
 				status
 				FROM client_environments
 				WHERE client_id = ? AND :FILTER:
@@ -52,7 +109,6 @@ class Scalr_UI_Controller_Environments extends Scalr_UI_Controller
 				client_environments.id,
 				client_environments.name,
 				client_environments.dt_added AS dtAdded,
-				client_environments.is_system AS isSystem,
 				client_environments.status
 				FROM client_environments
 				JOIN account_team_envs ON client_environments.id = account_team_envs.env_id
@@ -136,7 +192,7 @@ class Scalr_UI_Controller_Environments extends Scalr_UI_Controller
 			throw new Scalr_Exception_InsufficientPermissions();
 
 		$this->user->getAccount()->validateLimit(Scalr_Limits::ACCOUNT_ENVIRONMENTS, 1);
-		$env = $this->user->getAccount()->createEnvironment($this->getParam('name'), false);
+		$env = $this->user->getAccount()->createEnvironment($this->getParam('name'));
 		
 		$this->response->success("Environment successfully created");
 		$this->response->data(array(
@@ -203,11 +259,12 @@ class Scalr_UI_Controller_Environments extends Scalr_UI_Controller
 		unset($platforms[SERVER_PLATFORMS::RDS]);
 
 		//TODO:
-		if (!$this->getParam('beta')) {
-			unset($platforms[SERVER_PLATFORMS::OPENSTACK]);
+		if (!$this->request->getHeaderVar('Interface-Beta')) {
+			//unset($platforms[SERVER_PLATFORMS::OPENSTACK]);
+			//unset($platforms[SERVER_PLATFORMS::RACKSPACENG_UK]);
+			//unset($platforms[SERVER_PLATFORMS::RACKSPACENG_US]);
 			unset($platforms[SERVER_PLATFORMS::UCLOUD]);
-			//unset($platforms[SERVER_PLATFORMS::RACKSPACENG]);
-			unset($platforms[SERVER_PLATFORMS::GCE]);
+			//unset($platforms[SERVER_PLATFORMS::GCE]);
 		}
 
 		$timezones = array();

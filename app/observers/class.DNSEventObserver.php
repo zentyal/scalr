@@ -56,11 +56,10 @@
 			if (count($zones) == 0)
 				return;
 				
-			foreach ($zones as $zone)
-			{
-				if ($zone->status == DNS_ZONE_STATUS::INACTIVE)
-				{
+			foreach ($zones as $zone) {
+				if ($zone->status == DNS_ZONE_STATUS::INACTIVE) {
 					$zone->status = DNS_ZONE_STATUS::PENDING_CREATE;
+                    $zone->isZoneConfigModified = 1;
 					$zone->save();
 				}
 			}
@@ -227,6 +226,9 @@
 				$dbmsr = $dbRole->getDbMsrBehavior();
 				if ($dbmsr) {
 					$recordPrefix = $dbmsr;
+					
+					if ($recordPrefix == ROLE_BEHAVIORS::MYSQL2 || $recordPrefix == ROLE_BEHAVIORS::PERCONA)
+					    $recordPrefix = ROLE_BEHAVIORS::MYSQL;
 					
 					// Clear records
 					$this->DB->Execute("DELETE FROM powerdns.records WHERE `service` = ? AND domain_id = ?", array($dbmsr, $domainId));

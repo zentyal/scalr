@@ -2,7 +2,7 @@
 
 class Scalr_Net_Scalarizr_Services_Service extends Scalr_Net_Scalarizr_Client
 {
-	public function __construct($dbServer, $port = 8010) {
+	public function __construct(DBServer $dbServer, $port = 8010) {
 		$this->namespace = "service";
 		parent::__construct($dbServer, $port);
 	}

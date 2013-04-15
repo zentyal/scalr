@@ -26,119 +26,119 @@ use Scalr\Service\Aws\Elb\DataType\LoadBalancerDescriptionData;
 class Elb extends AbstractService implements ServiceInterface
 {
 
-	/**
-	 * AWS ELB API Version 20120601
-	 */
-	const API_VERSION_20120601 = '20120601';
+    /**
+     * AWS ELB API Version 20120601
+     */
+    const API_VERSION_20120601 = '20120601';
 
-	/**
-	 * Current version of the API
-	 */
-	const API_VERSION_CURRENT = self::API_VERSION_20120601;
+    /**
+     * Current version of the API
+     */
+    const API_VERSION_CURRENT = self::API_VERSION_20120601;
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractService::getCurrentApiVersion()
-	 */
-	public function getCurrentApiVersion()
-	{
-		return self::API_VERSION_CURRENT;
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractService::getCurrentApiVersion()
+     */
+    public function getCurrentApiVersion()
+    {
+        return self::API_VERSION_CURRENT;
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractService::getAvailableApiVersions()
-	 */
-	public function getAvailableApiVersions()
-	{
-		return array(
-			self::API_VERSION_20120601
-		);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractService::getAvailableApiVersions()
+     */
+    public function getAvailableApiVersions()
+    {
+        return array(
+            self::API_VERSION_20120601
+        );
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractService::getUrl()
-	 */
-	public function getUrl()
-	{
-		return 'elasticloadbalancing.' . $this->getAws()->getRegion() . '.amazonaws.com';
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractService::getUrl()
+     */
+    public function getUrl()
+    {
+        return 'elasticloadbalancing.' . $this->getAws()->getRegion() . '.amazonaws.com';
+    }
 
-	/**
-	 * DescribeLoadBalancers action
-	 *
-	 * Returns detailed configuration information for the specified LoadBalancers.
-	 * If no LoadBalancers are specified, the operation returns configuration information for all
-	 * LoadBalancers created by the caller.
-	 *
-	 * @param  $loadBalancerNamesList      array|string|LoadBalancerDescriptionData|LoadBalancerDescriptionList optional A list of names associated with the LoadBalancers at creation time.
-	 * @param  $marker                     string                                                               optional An optional parameter reserved for future use.
-	 * @return LoadBalancerDescriptionList Returns list of detailed configuration for the specified LoadBalancers
-	 * @throws ClientException
-	 */
-	public function describeLoadBalancers($loadBalancerNamesList = null, $marker = null)
-	{
-		if ($loadBalancerNamesList !== null && !($loadBalancerNamesList instanceof ListDataType)) {
-			$list = new ListDataType($loadBalancerNamesList, 'loadBalancerName');
-		}
-		$ret = $this->getApiHandler()->describeLoadBalancers(isset($list) ? $list : null, $marker);
-		return $ret;
-	}
+    /**
+     * DescribeLoadBalancers action
+     *
+     * Returns detailed configuration information for the specified LoadBalancers.
+     * If no LoadBalancers are specified, the operation returns configuration information for all
+     * LoadBalancers created by the caller.
+     *
+     * @param  $loadBalancerNamesList      array|string|LoadBalancerDescriptionData|LoadBalancerDescriptionList optional A list of names associated with the LoadBalancers at creation time.
+     * @param  $marker                     string                                                               optional An optional parameter reserved for future use.
+     * @return LoadBalancerDescriptionList Returns list of detailed configuration for the specified LoadBalancers
+     * @throws ClientException
+     */
+    public function describeLoadBalancers($loadBalancerNamesList = null, $marker = null)
+    {
+        if ($loadBalancerNamesList !== null && !($loadBalancerNamesList instanceof ListDataType)) {
+            $list = new ListDataType($loadBalancerNamesList, 'loadBalancerName');
+        }
+        $ret = $this->getApiHandler()->describeLoadBalancers(isset($list) ? $list : null, $marker);
+        return $ret;
+    }
 
-	/**
-	 * CreateLoadBalancer action
-	 *
-	 * @param  string                                                  $loadBalancerName      Load Balancer Name
-	 * @param  array|ListenerData|ListenerDescriptionData|ListenerList $listenersList         A list of the Listeners
-	 * @param  array|string|ListDataType                               $availabilityZonesList optional A list of Availability Zones
-	 * @param  array|string|ListDataType                               $subnetsList           optional A list of subnet IDs in your
-	 *                                                                                        VPC to attach to your LoadBalancer.
-	 * @param  array|string|ListDataType                               $securityGroupsList    optional The security groups assigned to your
-	 *                                                                                        LoadBalancer within your VPC.
-	 * @param  string                                                  $scheme                optional The type of LoadBalancer
-	 * @return LoadBalancerDescriptionData                             Returns LoadBalancerDescriptionData.
-	 * @throws ElbException
-	 * @throws ClientException
-	 */
-	public function createLoadBalancer($loadBalancerName, $listenersList, $availabilityZonesList = null, $subnetsList = null, $securityGroupsList = null, $scheme = null)
-	{
-		if (!is_string($loadBalancerName)) {
-			throw new \InvalidArgumentException('Invalid loadBalancerName argument. It must be string.');
-		}
-		if (!($listenersList instanceof ListenerList)) {
-			$listenersList = new ListenerList($listenersList);
-		}
-		if ($scheme !== null && !is_string($scheme)) {
-			throw new \InvalidArgumentException('Invalid scheme argument. It must be string.');
-		}
-		if ($availabilityZonesList !== null && !($availabilityZonesList instanceof ListDataType)) {
-			$availabilityZonesList = new ListDataType($availabilityZonesList);
-		}
-		if ($securityGroupsList !== null && !($securityGroupsList instanceof ListDataType)) {
-			$securityGroupsList = new ListDataType($securityGroupsList);
-		}
-		if ($subnetsList !== null && !($subnetsList instanceof ListDataType)) {
-			$subnetsList = new ListDataType($subnetsList);
-		}
-		$dnsName = $this->getApiHandler()->createLoadBalancer($loadBalancerName, $listenersList, $availabilityZonesList, $subnetsList, $securityGroupsList, $scheme);
-		$list = $this->describeLoadBalancers($loadBalancerName);
-		return $this->loadBalancer->get($loadBalancerName);
-	}
+    /**
+     * CreateLoadBalancer action
+     *
+     * @param  string                                                  $loadBalancerName      Load Balancer Name
+     * @param  array|ListenerData|ListenerDescriptionData|ListenerList $listenersList         A list of the Listeners
+     * @param  array|string|ListDataType                               $availabilityZonesList optional A list of Availability Zones
+     * @param  array|string|ListDataType                               $subnetsList           optional A list of subnet IDs in your
+     *                                                                                        VPC to attach to your LoadBalancer.
+     * @param  array|string|ListDataType                               $securityGroupsList    optional The security groups assigned to your
+     *                                                                                        LoadBalancer within your VPC.
+     * @param  string                                                  $scheme                optional The type of LoadBalancer
+     * @return LoadBalancerDescriptionData                             Returns LoadBalancerDescriptionData.
+     * @throws ElbException
+     * @throws ClientException
+     */
+    public function createLoadBalancer($loadBalancerName, $listenersList, $availabilityZonesList = null, $subnetsList = null, $securityGroupsList = null, $scheme = null)
+    {
+        if (!is_string($loadBalancerName)) {
+            throw new \InvalidArgumentException('Invalid loadBalancerName argument. It must be string.');
+        }
+        if (!($listenersList instanceof ListenerList)) {
+            $listenersList = new ListenerList($listenersList);
+        }
+        if ($scheme !== null && !is_string($scheme)) {
+            throw new \InvalidArgumentException('Invalid scheme argument. It must be string.');
+        }
+        if ($availabilityZonesList !== null && !($availabilityZonesList instanceof ListDataType)) {
+            $availabilityZonesList = new ListDataType($availabilityZonesList);
+        }
+        if ($securityGroupsList !== null && !($securityGroupsList instanceof ListDataType)) {
+            $securityGroupsList = new ListDataType($securityGroupsList);
+        }
+        if ($subnetsList !== null && !($subnetsList instanceof ListDataType)) {
+            $subnetsList = new ListDataType($subnetsList);
+        }
+        $dnsName = $this->getApiHandler()->createLoadBalancer($loadBalancerName, $listenersList, $availabilityZonesList, $subnetsList, $securityGroupsList, $scheme);
+        $list = $this->describeLoadBalancers($loadBalancerName);
+        return $this->loadBalancer->get($loadBalancerName);
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractService::getAllowedEntities()
-	 */
-	public function getAllowedEntities()
-	{
-		return array(
-			'loadBalancer'
-		);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractService::getAllowedEntities()
+     */
+    public function getAllowedEntities()
+    {
+        return array(
+            'loadBalancer'
+        );
+    }
 }
 
-//TODO implement following api actions:
+//TODO [postponed] implement following api actions:
 /*
     ->createPolicy( ! PolicyAttribute List, string PolicyName, string PolicyTypeName) "CreateLoadBalancerPolicy"
     ->describePolicies( string PolicyName List ) returns PolicyDescription list  "DescribeLoadBalancerPolicies"

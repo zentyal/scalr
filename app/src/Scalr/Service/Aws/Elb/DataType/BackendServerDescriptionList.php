@@ -16,31 +16,31 @@ use Scalr\Service\Aws\DataType\ListDataType;
 class BackendServerDescriptionList extends AbstractElbListDataType
 {
 
-	/**
-	 * List of external identifier names.
-	 *
-	 * @var array
-	 */
-	protected $_externalKeys = array(
-		'loadBalancerName'
-	);
+    /**
+     * List of external identifier names.
+     *
+     * @var array
+     */
+    protected $_externalKeys = array(
+        'loadBalancerName'
+    );
 
-	/**
-	 * Constructor
-	 *
-	 * @param array|BackendServerDescriptionData  $aListData  Instance List
-	 */
-	public function __construct($aListData = null)
-	{
-		parent::__construct($aListData, array('instancePort'), 'Scalr\\Service\\Aws\\Elb\\DataType\\BackendServerDescriptionData');
-	}
+    /**
+     * Constructor
+     *
+     * @param array|BackendServerDescriptionData  $aListData  Instance List
+     */
+    public function __construct($aListData = null)
+    {
+        parent::__construct($aListData, array('instancePort'), 'Scalr\\Service\\Aws\\Elb\\DataType\\BackendServerDescriptionData');
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
-	 */
-	public function getQueryArray($uriParameterName = 'BackendServerDescriptions')
-	{
-		return parent::getQueryArray($uriParameterName);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
+     */
+    public function getQueryArray($uriParameterName = 'BackendServerDescriptions', $member = true)
+    {
+        return parent::getQueryArray($uriParameterName);
+    }
 }

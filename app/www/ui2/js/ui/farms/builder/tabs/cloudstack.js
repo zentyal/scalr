@@ -103,6 +103,8 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.cloudstack', function () {
 			if (settings['cloudstack.shared_ip.id']) {
 				var r = this.down('[name="cloudstack.shared_ip.id"]').findRecordByValue(settings['cloudstack.shared_ip.id']);
 				settings['cloudstack.shared_ip.address'] = r.get('name');
+			} else {
+				settings['cloudstack.shared_ip.address'] = "";
 			}
 			
 			record.set('settings', settings);

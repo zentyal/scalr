@@ -5,7 +5,7 @@ Scalr.regPage('Scalr.ui.operations.details', function (loadParams, moduleParams)
 		scalrOptions: {
 			'modal': true
 		},
-		width: 900,
+		width: 700,
 		items:[{
 			xtype: 'fieldset',
 			title: 'General information',

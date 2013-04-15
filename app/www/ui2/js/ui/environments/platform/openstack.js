@@ -1,178 +1,85 @@
 Scalr.regPage('Scalr.ui.environments.platform.openstack', function (loadParams, moduleParams) {
 	var params = moduleParams['params'];
 
+	var isEnabledProp = moduleParams['platform'] + '.is_enabled';
+	
 	var form = Ext.create('Ext.form.Panel', {
+		bodyCls: 'x-panel-body-frame',
 		scalrOptions: {
 			'modal': true
 		},
-		width: 900,
-		title: 'Environments &raquo; ' + moduleParams.env.name + ' &raquo; Openstack',
-
-		layout: 'card',
-		activeItem: 0,
-
-		addCardTab: function (region, values) {
-			values = values || {};
-
-			var record = this.down('#view').store.add({
-				region: region,
-				api_url: values['openstack.api_url'] || '',
-				username: values['openstack.username'] || '',
-				invalid: false
-			})[0];
-
-			return this.add({
-				xtype: 'form',
-				border: false,
-				bodyCls: 'x-panel-body-frame',
-				layout: 'anchor',
-				sType: 'add',
-				defaults: {
-					anchor: '100%',
-					labelWidth: 350
-				},
-				regionName: region,
-				items: [{
-					xtype: 'textfield',
-					readOnly: true,
-					fieldLabel: 'Cloud Location',
-					value: region
-				}, {
-					xtype: 'textfield',
-					fieldLabel: 'Username',
-					name: 'openstack.username.' + region,
-					value: values['openstack.username'] || '',
-					listeners: {
-						change: function (field, newValue) {
-							record.set('username', newValue);
-						}
-					}
-				}, {
-					xtype: 'textfield',
-					fieldLabel: 'Password',
-					name: 'openstack.api_key.' + region,
-					value: values['openstack.api_key'] || ''
-				}, {
-					xtype: 'textfield',
-					fieldLabel: 'Project name',
-					name: 'openstack.project_name.' + region,
-					value: values['openstack.project_name'] || ''
-				}, {
-					xtype: 'textfield',
-					fieldLabel: 'API URL (eg. http://openstack.mycompany.com:8774)',
-					name: 'openstack.api_url.' + region,
-					value: values['openstack.api_url'] || '',
-					listeners: {
-						change: function (field, newValue) {
-							record.set('api_url', newValue);
-						}
-					}
-				}],
-
-				listeners: {
-					removed: function (comp, cont) {
-						if (cont.down('#view'))
-							cont.down('#view').store.remove(record);
-					},
-					hide: function () {
-						record.set('invalid', false);
-						this.form.getFields().findBy(function(field) {
-							field.resetOriginalValue();
-						});
-					}
-				}
-			});
+		width: 600,
+		title: 'Environments &raquo; ' + moduleParams.env.name + '&raquo; ' + moduleParams['platformName'],
+		fieldDefaults: {
+			anchor: '100%',
+			labelWidth: 120
 		},
 
 		items: [{
-			xtype: 'grid',
-			itemId: 'view',
-			border: false,
-			sType: 'view',
-			store: {
-				fields: [ 'region', 'username', 'api_url', 'invalid' ],
-				proxy: 'object'
-			},
-			plugins: {
-				ptype: 'gridstore'
-			},
-
-			viewConfig: {
-				emptyText: 'No cloud locations found',
-				loadingText: 'Loading cloud locations ...',
-				deferEmptyText: false,
-				getRowClass: function (record) {
-					return record.get('invalid') ? 'x-grid-row-red' : '';
-				}
-			},
-
-			columns: [
-				{ header: "Cloud Location", flex: 100, dataIndex: 'region' },
-				{ header: "Username", flex: 100, dataIndex: 'username' },
-				{ header: "API URL", flex: 400, dataIndex: 'api_url' },
-				{
-					xtype: 'optionscolumn',
-					optionsMenu: [{
-						iconCls: 'x-menu-icon-configure',
-						text: 'Edit',
-						menuHandler: function (item) {
-							form.layout.setActiveItem(
-								form.down('[regionName="' + item.record.get('region') + '"]')
-							);
-
-							form.down('[regionName="' + item.record.get('region') + '"]').sType = 'location';
-							form.down('#buttonSave').hide();
-							form.down('#buttonEdit').show();
+			xtype: 'checkbox',
+			name: isEnabledProp,
+			checked: params[isEnabledProp],
+			hideLabel: true,
+			boxLabel: 'I want to use '+moduleParams['platformName'],
+			listeners: {
+				'change': function () {
+					if (this.getValue()) {
+						form.down('[name="keystone_url"]').show();
+						form.down('[name="username"]').show();
+						
+						if (moduleParams['platform'] == 'rackspacengus') {
+							form.down('[name="api_key"]').show();
+							form.down('[name="password"]').hide();
+							form.down('[name="tenant_name"]').hide();
 						}
-					}, {
-						iconCls: 'x-menu-icon-delete',
-						text: 'Delete',
-						handler: function (item) {
-							form.remove(
-								form.down('[regionName="' + item.record.get('region') + '"]')
-							);
-							delete form.form._fields;
+						else if (moduleParams['platform'] == 'rackspacenguk') {
+							form.down('[name="api_key"]').show();
+							form.down('[name="password"]').hide();
+							form.down('[name="tenant_name"]').hide();
+						} else {
+							form.down('[name="api_key"]').hide();
+							form.down('[name="password"]').show();
+							form.down('[name="tenant_name"]').show();
 						}
-					}]
-				}
-			],
-
-			dockedItems: [{
-				xtype: 'toolbar',
-				dock: 'top',
-				items: [{
-					ui: 'paging',
-					iconCls: 'x-tbar-add',
-					handler: function() {
-						Scalr.Confirm({
-							form: [{
-								xtype: 'textfield',
-								fieldLabel: 'Openstack Cloud Location',
-								name: 'location',
-								allowBlank: false,
-								validator: function(value) {
-									var reg = /^([a-zA-Z0-9])([\w,-])*([a-zA-Z0-9])$/;
-									if (!reg.test(value))
-										return 'Name must contain [a-z,A-Z,0-9,_,-] and start/end with [a-z,A-Z,0-9]';
-									return true;
-								},
-								labelWidth: 160
-							}],
-							ok: 'Add',
-							title: 'Please specify cloud location name',
-							formValidate: true,
-							formWidth: 500,
-							scope: this.up('#view'),
-							success: function (formValues) {
-								var c = this.up('form').addCardTab(formValues.location);
-								this.up('form').layout.setActiveItem(c);
-								this.up('form').down('#buttonSave').hide();
-								this.up('form').down('#buttonAdd').show();
-							}
-						});
+					} else {
+						form.down('[name="keystone_url"]').hide();
+						form.down('[name="username"]').hide();
+						form.down('[name="password"]').hide();
+						form.down('[name="api_key"]').hide();
+						form.down('[name="tenant_name"]').hide();
 					}
-				}]
-			}]
+				}
+			}
+		}, {
+			xtype: 'textfield',
+			fieldLabel: 'Keystone URL',
+			name: 'keystone_url',
+			value: params['keystone_url'],
+			hidden: true
+		}, {
+			xtype: 'textfield',
+			fieldLabel: 'Username',
+			name: 'username',
+			value: params['username'],
+			hidden: false
+		}, {
+			xtype: 'textfield',
+			fieldLabel: 'Password',
+			name: 'password',
+			value: params['password'],
+			hidden: true
+		}, {
+			xtype: 'textfield',
+			fieldLabel: 'API key',
+			name: 'api_key',
+			value: params['api_key'],
+			hidden: true
+		}, {
+			xtype: 'textfield',
+			fieldLabel: 'Tenant name',
+			name: 'tenant_name',
+			value: params['tenant_name'],
+			hidden: true
 		}],
 
 		dockedItems: [{
@@ -185,93 +92,79 @@ Scalr.regPage('Scalr.ui.environments.platform.openstack', function (loadParams, 
 			},
 			items: [{
 				xtype: 'button',
-				itemId: 'buttonSave',
 				text: 'Save',
 				handler: function() {
-					var data = [];
-					Ext.each (form.down('#view').store.getRange(), function (item) {
-						data.push(item.get('region'));
-					});
-
-					Scalr.Request({
-						processBox: {
-							type: 'save'
-						},
-						params: {
-							clouds: Ext.encode(data)
-						},
-						form: form.getForm(),
-						url: '/environments/' + moduleParams.env.id + '/platform/xSaveOpenstack',
-						success: function (data) {
-							var flag = Scalr.flags.needEnvConfig && data.enabled;
-							Scalr.event.fireEvent('update', '/environments/' + moduleParams.env.id + '/edit', 'openstack', data.enabled);
-							if (! flag)
-								Scalr.event.fireEvent('close');
-						},
-						failure: function (data, response, options) {
-							if (options.failureType == 'server') {
-								form.down('#view').store.each(function (record) {
-									record.set('invalid',
-										!!form.down('[regionName="' + record.get('region') + '"]').form.getFields().findBy(function(field) {
-											if (field.getActiveError())
-												return true;
-										})
-									);
-								});
+					if (form.getForm().isValid()) {
+						Scalr.Request({
+							processBox: {
+								type: 'save'
+							},
+							form: form.getForm(),
+							params: { platform: moduleParams['platform']},
+							url: '/environments/' + moduleParams.env.id + '/platform/xSaveOpenstack',
+							success: function (data) {
+								var flag = Scalr.flags.needEnvConfig && data.enabled;
+								Scalr.event.fireEvent('update', '/environments/' + moduleParams.env.id + '/edit', moduleParams['platform'], data.enabled);
+								if (! flag)
+									Scalr.event.fireEvent('close');
 							}
-						}
-					});
+						});
+					}
 				}
 			}, {
 				xtype: 'button',
-				itemId: 'buttonAdd',
-				text: 'Add',
-				hidden: true,
-				handler: function () {
-					this.up('panel').layout.setActiveItem(this.up('panel').down('#view'));
-					this.hide();
-					this.prev('#buttonSave').show();
-				}
-			}, {
-				xtype: 'button',
-				itemId: 'buttonEdit',
-				text: 'Edit',
-				hidden: true,
-				handler: function () {
-					this.up('panel').layout.setActiveItem(this.up('panel').down('#view'));
-					this.hide();
-					this.prev('#buttonSave').show();
-				}
-			}, {
-				xtype: 'button',
-				itemId: 'buttonCancel',
 				margin: '0 0 0 5',
+				hidden: Scalr.flags.needEnvConfig,
 				text: 'Cancel',
 				handler: function() {
-					var item = this.up('panel').layout.getActiveItem();
-					if (item.sType == 'add') {
-						this.up('panel').layout.setActiveItem(this.up('panel').down('#view'));
-						this.up('panel').remove(item);
-						this.prev('#buttonAdd').hide();
-						this.prev('#buttonSave').show();
-					} else if (item.sType == 'location') {
-						this.up('panel').layout.getActiveItem().form.getFields().findBy(function(field) {
-							field.reset();
-						});
-						this.up('panel').layout.setActiveItem(this.up('panel').down('#view'));
-						this.prev('#buttonEdit').hide();
-						this.prev('#buttonSave').show();
-					} else {
-						Scalr.event.fireEvent('close');
-					}
+					Scalr.event.fireEvent('close');
+				}
+			}, {
+				xtype: 'button',
+				hidden: !Scalr.flags.needEnvConfig,
+				margin: '0 0 0 5',
+				text: "I'm not using "+moduleParams['platformName']+", let me configure another cloud",
+				handler: function () {
+					Scalr.event.fireEvent('redirect', '#/environments/' + moduleParams.env.id + '/edit', true);
+				}
+			}, {
+				xtype: 'button',
+				hidden: !Scalr.flags.needEnvConfig,
+				margin: '0 0 0 5',
+				text: 'Do this later',
+				handler: function () {
+					sessionStorage.setItem('needEnvConfigLater', true);
+					Scalr.event.fireEvent('unlock');
+					Scalr.event.fireEvent('redirect', '#/dashboard');
 				}
 			}]
 		}]
 	});
 
-	if (Ext.isObject(moduleParams['params'])) {
-		for (var i in moduleParams['params'])
-			form.addCardTab(i, moduleParams['params'][i]);
+	if (moduleParams['platform'] == 'rackspacengus') {
+		var apiUrl = form.down('[name="keystone_url"]')
+		apiUrl.setValue('https://identity.api.rackspacecloud.com/v2.0');
+		apiUrl.setReadOnly(true);
+		
+		form.down('[name="api_key"]').show();
+		
+		form.down('[name="password"]').hide();
+		form.down('[name="tenant_name"]').hide();
+	}
+	else if (moduleParams['platform'] == 'rackspacenguk') {
+		var apiUrl = form.down('[name="keystone_url"]')
+		apiUrl.setValue('https://lon.identity.api.rackspacecloud.com/v2.0');
+		apiUrl.setReadOnly(true);
+		
+		form.down('[name="api_key"]').show();
+		
+		form.down('[name="password"]').hide();
+		form.down('[name="tenant_name"]').hide();
+	} else {
+		form.down('[name="api_key"]').hide();
+		
+		form.down('[name="password"]').show();
+		form.down('[name="tenant_name"]').show();
 	}
 
 	return form;

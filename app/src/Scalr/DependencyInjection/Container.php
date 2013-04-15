@@ -9,19 +9,54 @@ namespace Scalr\DependencyInjection;
  * @author   Vitaliy Demidov    <zend@i.ua>
  * @since    19.10.2012
  *
- * @property string                               $awsRegion            An Aws region derived from user's environment.
- * @property string                               $awsSecretAccessKey   An Aws sercret access key taken from user's environment.
- * @property string                               $awsAccessKeyId       An Aws access key id taken from user's environment.
- * @property string                               $awsAccountNumber     An Aws account number.
- * @property \Scalr_Session                       $session              An Scalr Session isntance.
- * @property \Scalr\Service\Cloudyn               $cloudyn              An Cloudyn instance for the current user
- * @property \Scalr_Environment                   $environment          Recent Scalr_Environment instance.
- * @property \Scalr\Service\Aws                   $aws                  An Aws instance for the last instantiated user's environment.
- * @property \Scalr_UI_Request                    $request              A Scalr_UI_Request instance.
- * @property \Scalr_Account_User                  $user                 A Scalr_Account_User instance which is property for the request.
- * @property \Scalr\Logger\AuditLog               $auditLog             An AuditLog.
- * @property \Scalr\Logger\LoggerStorageInterface $auditLogStorage An AuditLogStorage
- * @method   \Scalr\Service\Aws    aws() aws(string|\DBServer $awsRegion = null, $awsAccessKeyId = null, $awsSecretAccessKey = null) Gets an Aws instance.
+ * @property string $awsRegion
+ *           The AWS region derived from user's environment.
+ *
+ * @property string $awsSecretAccessKey
+ *           The AWS sercret access key taken from user's environment.
+ *
+ * @property string $awsAccessKeyId
+ *           The Aws access key id taken from user's environment.
+ *
+ * @property string $awsAccountNumber
+ *           The Aws account number.
+ *
+ * @property \Scalr_Session $session
+ *           The Scalr Session isntance.
+ *
+ * @property \Scalr\Service\Cloudyn $cloudyn
+ *           The Cloudyn instance for the current user
+ *
+ * @property \Scalr_Environment $environment
+ *           Recently loaded Scalr_Environment instance.
+ *
+ * @property \Scalr\Service\Aws $aws
+ *           The Aws instance for the last instantiated user's environment.
+ *
+ * @property \Scalr_UI_Request $request
+ *           The Scalr_UI_Request instance.
+ *
+ * @property \Scalr_Account_User $user
+ *           The Scalr_Account_User instance which is property for the request.
+ *
+ * @property \Scalr\Logger\AuditLog $auditLog
+ *           The AuditLog.
+ *
+ * @property \Scalr\Logger\LoggerStorageInterface $auditLogStorage
+ *           The AuditLogStorage
+ *
+ *
+ * @method   \Scalr\Service\Aws aws()
+ *           aws(string|\DBServer|\DBFarmRole|\DBEBSVolume $awsRegion = null,
+ *               string|\Scalr_Environment $awsAccessKeyId = null,
+ *               string $awsSecretAccessKey = null,
+ *               string $certificate = null,
+ *               string $privateKey = null)
+ *           Gets an Aws instance.
+ *
+ * @method   \Scalr\Service\OpenStack\OpenStack openstack()
+ *           openstack($platform, $region)
+ *           Gets an Openstack instance for the current environment
  */
 class Container
 {
@@ -37,19 +72,37 @@ class Container
      */
     protected $values = array();
 
-    protected function __construct() {}
+    /**
+     * Shared objects pseudo-static cache
+     *
+     * @var array
+     */
+    protected $shared = array();
 
-    private final function __clone() {}
+    /**
+     * Associated services for release memory
+     *
+     * @var array
+     */
+    protected $releasehooks = array();
+
+    protected function __construct()
+    {
+    }
+
+    private final function __clone()
+    {
+    }
 
     /**
      * Gets singleton instance of the Container
      *
      * @return Container
      */
-    static public function getInstance ()
+    static public function getInstance()
     {
         if (is_null(self::$instance)) {
-            self::$instance = new Container ();
+            self::$instance = new Container();
         }
         return self::$instance;
     }
@@ -59,7 +112,7 @@ class Container
      *
      * It can be used for phpunit testing purposes.
      */
-    static public function reset ()
+    static public function reset()
     {
         self::$instance = null;
     }
@@ -69,7 +122,7 @@ class Container
      * @throws  RuntimeException
      * @return  mixed
      */
-    public function __get ($id)
+    public function __get($id)
     {
         return $this->get($id);
     }
@@ -78,7 +131,7 @@ class Container
      * @param   string     $id
      * @param   mixed      $value
      */
-    public function __set ($id, $value)
+    public function __set($id, $value)
     {
         $this->set($id, $value);
     }
@@ -90,10 +143,12 @@ class Container
      * @param   mixed      $value  Value
      * @return  Container
      */
-    public function set ($id, $value)
+    public function set($id, $value)
     {
         $this->values[$id] = $value;
-
+        if ($value === null) {
+            $this->release($id);
+        }
         return $this;
     }
 
@@ -104,7 +159,7 @@ class Container
      * @throws  \RuntimeException
      * @return  mixed
      */
-    public function get ($id)
+    public function get($id)
     {
         if (!isset($this->values[$id])) {
             throw new \RuntimeException(
@@ -119,7 +174,7 @@ class Container
      * @param   array      $arguments
      * @throws  \RuntimeException
      */
-    public function __call ($id, $arguments)
+    public function __call($id, $arguments)
     {
         if (!is_callable($this->values[$id])) {
             throw new \RuntimeException(sprintf(
@@ -133,16 +188,56 @@ class Container
      * Creates lambda function for making single instance of services.
      *
      * @param   callback   $callable
+     * @return  Container
      */
-    public function asShared ($callable)
+    public function setShared($id, $callable)
     {
-        return function (Container $container) use ($callable) {
-            static $object;
-            if (is_null($object)) {
-                $object = $callable ($container);
+        if (!is_callable($callable)) {
+            throw new \InvalidArgumentException(sprintf(
+                'Second argument of the "%s" method must be callable.', __FUNCTION__
+            ));
+        }
+        $ptr =& $this->shared;
+        if (($t = strpos($id, '.')) !== false) {
+            //We need to register release hook which is needed to remove all
+            //associated objects from the memory.
+            $parentid = substr($id, 0, $t);
+            if (!isset($this->releasehooks[$parentid])) {
+                $this->releasehooks[$parentid] = array();
             }
-            return $object;
+            $this->releasehooks[$parentid][$id] = true;
+        }
+        $this->values[$id] = function (Container $container) use ($id, $callable, &$ptr) {
+            if (!isset($ptr[$id])) {
+                $ptr[$id] = $callable($container);
+            }
+            return $ptr[$id];
         };
+        return $this;
+    }
+
+    /**
+     * Releases shared object from the pseudo-static cache
+     *
+     * @param   string    $id  The ID of the service
+     * @return  Container
+     */
+    public function release($id)
+    {
+        if (isset($this->shared[$id])) {
+            if (is_object($this->shared[$id]) && method_exists($this->shared[$id], '__destruct')) {
+                $this->shared[$id]->__destruct();
+            }
+            unset($this->shared[$id]);
+        }
+        //Releases all children shared objects
+        if (!empty($this->releasehooks[$id])) {
+            foreach ($this->releasehooks[$id] as $serviceid => $b) {
+                $this->release($serviceid);
+            }
+            unset($this->releasehooks[$id]);
+        }
+        return $this;
     }
 
     /**
@@ -152,7 +247,7 @@ class Container
      * @param   bool     $callable  optional If true it will check whether service is callable.
      * @return  bool     Returns true if required service is initialized or false otherwise.
      */
-    public function initialized ($id, $callable = false)
+    public function initialized($id, $callable = false)
     {
         return isset($this->values[$id]) && (!$callable || is_callable($this->values[$id]));
     }

@@ -6,5 +6,7 @@
 		const EBS  = 'ebs';
 		const CSVOL = 'csvol';
 		const RAID_EBS = 'raid.ebs';
+        const CINDER = 'cinder';
+        const GCE_PERSISTENT = 'gce_persistent';
 	}
 ?>

@@ -19,12 +19,12 @@ Scalr.regPage('Scalr.ui.environments.platform.ec2', function (loadParams, module
 			hidden: !Scalr.flags.needEnvConfig,
 			value: 'Thanks for signing up to Scalr!<br><br>' +
 				'The next step after signing up is to share your EC2 keys with us, or keys from any other infrastructure cloud. We use these keys to make the API calls to the cloud, on your behalf. These keys are stored encrypted on a secured, firewalled server.<br><br>' +
-				'You can <a href="http://wiki.scalr.net/Tutorials/Create_an_AWS_account" target="_blank" style="font-weight: bold">get these keys by following this video</a>'
+				'You can <a href="http://wiki.scalr.com/x/DQAF" target="_blank" style="font-weight: bold">get these keys by following this video</a>'
 		}, {
 			xtype: 'displayfield',
 			fieldCls: 'x-form-field-info',
 			hidden: Scalr.flags.needEnvConfig,
-			value: '<a href="http://wiki.scalr.net/Tutorials/Create_an_AWS_account" target="_blank" style="font-weight: bold">Tutorial: How to obtain all this information.</a>'
+			value: '<a href="http://wiki.scalr.com/x/DQAF" target="_blank" style="font-weight: bold">Tutorial: How to obtain all this information.</a>'
 		}, {
 			xtype: 'checkbox',
 			name: 'ec2.is_enabled',
@@ -107,7 +107,7 @@ Scalr.regPage('Scalr.ui.environments.platform.ec2', function (loadParams, module
 							},
 							form: form.getForm(),
 							url: '/environments/' + moduleParams.env.id + '/platform/xSaveEc2',
-							params: {beta: loadParams['beta']},
+							params: {beta: Scalr.flags['betaMode']},
 							success: function (data) {
 								
 								Scalr.event.fireEvent('unlock');

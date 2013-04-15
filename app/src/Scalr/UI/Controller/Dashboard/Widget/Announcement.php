@@ -20,7 +20,7 @@ class Scalr_UI_Controller_Dashboard_Widget_Announcement extends Scalr_UI_Control
 			$time = filemtime($rssCachePath);
 			$data = json_decode(file_get_contents($rssCachePath));
 		} else {
-			$feedUrl = 'http://feeds.feedburner.com/scalr/qmzj';
+			$feedUrl = 'http://scalr.com/blog/feed/';
 			$feedContent = "";
 			$curl = curl_init();
 			curl_setopt($curl, CURLOPT_URL, $feedUrl);

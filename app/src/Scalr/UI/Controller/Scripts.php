@@ -3,7 +3,7 @@
 class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 {
 	const CALL_PARAM_NAME = 'scriptId';
-	
+
 	public function hasAccess()
 	{
 		return true;
@@ -12,22 +12,6 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 	public static function getPermissionDefinitions()
 	{
 		return array();
-	}
-	
-	public function getFilterSql()
-	{
-		return "(" .
-			" origin='".SCRIPT_ORIGIN_TYPE::SHARED."'" .
-			" OR (origin='".SCRIPT_ORIGIN_TYPE::CUSTOM."' AND clientid='".$this->user->getAccountId()."')" .
-			" OR (origin='".SCRIPT_ORIGIN_TYPE::USER_CONTRIBUTED."' AND (scripts.approval_state='".APPROVAL_STATE::APPROVED."' OR clientid='".$this->user->getAccountId()."'))" .
-		")";
-	}
-
-	static public function getCustomVariables($template)
-	{
-		$text = preg_replace('/(\\\%)/si', '$$scalr$$', $template);
-		preg_match_all("/\%([^\%\s]+)\%/si", $text, $matches);
-		return $matches[1];
 	}
 
 	public function defaultAction()
@@ -38,38 +22,27 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 	public function viewAction()
 	{
 		if ($this->getParam(self::CALL_PARAM_NAME)) {
-			$scriptInfo = $this->db->GetRow("SELECT * FROM scripts WHERE id=? AND {$this->getFilterSql()}", array($this->getParam(self::CALL_PARAM_NAME)));
-			if (!$scriptInfo)
-				throw new Exception("Script not found");
+			$script = new Scalr_Script();
+			$script->loadById($this->getParam(self::CALL_PARAM_NAME));
 
-			$latestRevision = $this->db->GetOne("SELECT MAX(revision) as rev FROM script_revisions WHERE scriptid=? GROUP BY scriptid", array(
-				$this->getParam(self::CALL_PARAM_NAME)
-			));
-            $revisions = $this->db->GetAll("SELECT revision as rev FROM script_revisions WHERE scriptid=? ORDER BY revision DESC", array(
-                $this->getParam(self::CALL_PARAM_NAME)
-            ));
-            $content = array();
-            $revision = array();
+			if ($script->accountId)
+				$this->user->getPermissions()->validate($script);
 
-            foreach ($revisions as $value) {
-                $rev = $this->db->GetRow("SELECT script, revision FROM script_revisions WHERE scriptid=? AND revision=?", array(
-                    $this->getParam(self::CALL_PARAM_NAME), $value['rev']
-                ));
-                $revision[] = $rev['revision'];
-	            $content[$rev['revision']] = $rev['script'];
-            }
+			$content = array();
+			$revision = array();
+			foreach ($script->getRevisions() as $rev) {
+				$revision[] = $rev['revision'];
+				$content[$rev['revision']] = $rev['script'];
+			}
 
 			$this->response->page('ui/scripts/viewcontent.js', array(
-				'script' => $scriptInfo,
+				'script' => $script,
 				'content' => $content,
                 'revision' => $revision,
-                'latest' => $latestRevision
+                'latest' => $script->getLatestRevision()
 			), array('codemirror/codemirror.js'), array('codemirror/codemirror.css'));
-		} else 
-			$this->response->page('ui/scripts/view.js', array(
-				'isScalrAdmin' => $this->user->getType() == Scalr_Account_User::TYPE_SCALR_ADMIN,
-				'clientId' => $this->user->getAccountId()
-			));
+		} else
+			$this->response->page('ui/scripts/view.js');
 	}
 
 	public function xGetScriptContentAction()
@@ -79,64 +52,70 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 			'version' => array('type' => 'int')
 		));
 
-		$scriptInfo = $this->db->GetRow("SELECT * FROM scripts WHERE id=? AND {$this->getFilterSql()}", array($this->getParam('scriptId')));
-		if (!$scriptInfo)
-			throw new Exception("Script not found");
+		$script = new Scalr_Script();
+		$script->loadById($this->getParam('scriptId'));
+		if ($script->accountId)
+			$this->user->getPermissions()->validate($script);
 
-		$content = $this->db->GetOne("SELECT script FROM script_revisions WHERE scriptid = ? AND revision =?", array(
-			$this->getParam('scriptId'), $this->getParam('version')
-		));
+		$rev = $script->getRevision($this->getParam('version'));
 
 		$this->response->data(array(
-			'scriptContents' => $content
+			'script' => $rev['script']
 		));
 	}
 
 	public function xRemoveAction()
 	{
 		$this->request->defineParams(array(
-			'scriptId' => array('type' => 'int')
+			'scripts' => array('type' => 'json')
 		));
+		$errors = array();
 
-		// Get template infor from database
-		$script = $this->db->GetRow("SELECT * FROM scripts WHERE id=? AND {$this->getFilterSql()}", array($this->getParam('scriptId')));
-		if (!$script)
-			throw new Exception(_("You don't have permissions to remove this script"));
+		foreach ($this->getParam('scripts') as $scriptId) {
+			try {
+				$script = new Scalr_Script();
+				$script->loadById($scriptId);
 
-		// Check template usage
-		$rolesCount = $this->db->GetOne("SELECT COUNT(*) FROM farm_role_scripts WHERE scriptid=? AND event_name NOT LIKE 'CustomEvent-%'",
-			array($this->getParam('scriptId'))
-		);
+				if ($script->accountId)
+					$this->user->getPermissions()->validate($script);
+				elseif ($this->user->getType() != Scalr_Account_User::TYPE_SCALR_ADMIN)
+					throw new Scalr_Exception_InsufficientPermissions();
 
-		// If script used redirect and show error
-		if ($rolesCount > 0)
-			throw new Exception(_("This script being used and can't be deleted"));
+				$script->delete();
+			} catch (Exception $e) {
+				$errors[] = $e->getMessage();
+			}
+		}
 
-		$this->db->BeginTrans();
-
-		// Delete template and all revisions
-		$this->db->Execute("DELETE FROM farm_role_scripts WHERE scriptid=?", array($this->getParam('scriptId')));
-		$this->db->Execute("DELETE FROM scripts WHERE id=?", array($this->getParam('scriptId')));
-		$this->db->Execute("DELETE FROM script_revisions WHERE scriptid=?", array($this->getParam('scriptId')));
-
-		$this->db->CommitTrans();
-
-		$this->response->success('Script successfully removed');
+		if (count($errors))
+			$this->response->warning('Script(s) successfully removed, but some errors were occured:<br>' . implode('<br>', $errors));
+		else
+			$this->response->success('Script(s) successfully removed');
 	}
 
 	public function xSaveAction()
 	{
 		$this->request->defineParams(array(
-			'scriptId' => array('type' => 'int'),
-			'scriptName', 'scriptDescription', 'scriptContents',
+			'id' => array('type' => 'int'),
+			'name' => array('type' => 'string', 'validator' => array(
+				Scalr_Validator::REQUIRED => true
+			)),
+			'isSync' => array('type' => 'int'),
+			'saveCurrentRevision' => array('type' => 'int'),
 			'version' => array('type' => 'int'),
-			'saveCurrentRevision' => array('type' => 'int')
+			'description', 'script'
 		));
 
-		$content = str_replace("\r\n", "\n", $this->getParam('scriptContents'));
-		
-		$nonascii = array();
+		if (! $this->request->validate()->isValid()) {
+			$this->response->failure();
+			$this->response->data($this->request->getValidationErrors());
+			return;
+		}
+
+		$scriptText = str_replace("\r\n", "\n", $this->getParam('script'));
+
 		/*
+		$nonascii = array();
 		$lines = explode("\n", $content);
 		foreach ($lines as $i => $line) {
 			$lineNum = $i+1;
@@ -145,84 +124,25 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 				$nonascii[] = "line: {$lineNum} position: {$pos}";
 			}
 		}
-		*/
-		
 		if (count($nonascii) > 0)
 			throw new Exception("Found non ASCII symbols in the script at ".implode(", ", $nonascii).". Please remove them.");
-		
-		
-		if (!$this->getParam('scriptId')) {
-			// Add new script
-			$this->db->Execute("INSERT INTO scripts SET
-				name = ?,
-				description = ?,
-				origin = ?,
-				dtadded = NOW(),
-				clientid = ?,
-				approval_state = ?
-			", array(
-				htmlspecialchars($this->getParam('scriptName')),
-				htmlspecialchars($this->getParam('scriptDescription')),
-				($this->user->getType() == Scalr_Account_User::TYPE_SCALR_ADMIN) ? SCRIPT_ORIGIN_TYPE::SHARED : SCRIPT_ORIGIN_TYPE::CUSTOM,
-				$this->user->getAccountId(),
-				APPROVAL_STATE::APPROVED
-			));
+		*/
 
-			$scriptId = $this->db->Insert_ID();
-		} else {
+		$script = new Scalr_Script();
+		if ($this->getParam('id')) {
+			$script->loadById($this->getParam('id'));
 
-			$scriptInfo = $this->db->GetRow("SELECT * FROM scripts WHERE id=? AND {$this->getFilterSql()}", array($this->getParam('scriptId')));
-			if (!$scriptInfo)
-				throw new Exception("Script not found");
-
-			$this->db->Execute("UPDATE scripts SET
-				name = ?,
-				description = ?
-				WHERE id = ?
-			", array(
-				htmlspecialchars($this->getParam('scriptName')),
-				htmlspecialchars($this->getParam('scriptDescription')),
-				$this->getParam('scriptId')
-			));
-
-			$scriptId = $this->getParam('scriptId');
+			if ($script->accountId)
+				$this->user->getPermissions()->validate($script);
+			elseif ($this->user->getType() != Scalr_Account_User::TYPE_SCALR_ADMIN)
+				throw new Scalr_Exception_InsufficientPermissions();
 		}
 
-		foreach ((array)self::getCustomVariables($this->getParam('scriptContents')) as $var) {
-			if (! in_array($var, array_keys(CONFIG::getScriptingBuiltinVariables())))
-				$vars[$var] = ucwords(str_replace("_", " ", $var));
-		}
-		
-		if (!$this->getParam('saveCurrentRevision')) {
-			$revision = $this->db->GetOne("SELECT IF(MAX(revision), MAX(revision), 0) FROM script_revisions WHERE scriptid=?",
-				array($scriptId)
-			);
-
-			$this->db->Execute("INSERT INTO script_revisions SET
-				scriptid	= ?,
-				revision    = ?,
-				script      = ?,
-				dtcreated   = NOW(),
-				approval_state = ?,
-				`variables` = ?
-			", array(
-				$scriptId,
-				$revision+1,
-				$content,
-				APPROVAL_STATE::APPROVED,
-				serialize($vars)
-			));
-		} else {
-			$this->db->Execute("UPDATE script_revisions SET
-				script      = ?, dtcreated = NOW(), `variables` = ?
-				WHERE scriptId = ? AND revision = ?
-			", array(
-				$content,
-				serialize($vars),
-				$scriptId,
-				$this->getParam('scriptVersion')
-			));
-		}
+		$script->name = htmlspecialchars($this->getParam('name'));
+		$script->description = htmlspecialchars($this->getParam('description'));
+		$script->accountId = $this->user->getAccountId();
+		$script->save();
+		$script->setRevision($scriptText, $this->getParam('saveCurrentRevision') == '1' ? $this->getParam('version') : NULL);
 
 		$this->response->success('Script successfully saved');
 	}
@@ -233,45 +153,16 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 			'scriptId' => array('type' => 'int')
 		));
 
-		$scriptInfo = $this->db->GetRow("SELECT * FROM scripts WHERE id=? AND {$this->getFilterSql()}", array($this->getParam('scriptId')));
-		if (!$scriptInfo)
-			throw new Exception("Script not found");
+		if (! $this->getParam('newName'))
+			throw new Scalr_Exception_Core('Name cannot be null');
 
-		$this->db->Execute("INSERT INTO scripts SET
-			name = ?,
-			description = ?,
-			origin = ?,
-			dtadded = NOW(),
-			clientid = ?,
-			approval_state = ?
-		", array(
-			'Custom ' . $scriptInfo['name'],
-			$scriptInfo['description'],
-			SCRIPT_ORIGIN_TYPE::CUSTOM,
-			$this->user->getAccountId(),
-			APPROVAL_STATE::APPROVED
-		));
+		$script = new Scalr_Script();
+		$script->loadById($this->getParam('scriptId'));
 
-		$s = $this->db->GetRow("SELECT script, variables FROM script_revisions WHERE scriptid = ? ORDER BY id DESC LIMIT 0,1", array($this->getParam('scriptId')));
-		$content = $s['script'];
-		$variables = $s['variables'];
-		$scriptId = $this->db->Insert_ID();
+		if ($script->accountId)
+			$this->user->getPermissions()->validate($script);
 
-		$this->db->Execute("INSERT INTO script_revisions SET
-			scriptid	= ?,
-			revision    = ?,
-			script      = ?,
-			dtcreated   = NOW(),
-			approval_state = ?,
-			variables 	= ?
-		", array(
-			$scriptId,
-			1,
-			$content,
-			APPROVAL_STATE::APPROVED,
-			$variables
-		));
-
+		$script->fork(htmlspecialchars($this->getParam('newName')), $this->user->getAccountId());
 		$this->response->success('Script successfully forked');
 	}
 
@@ -284,25 +175,29 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 
 		$vars = CONFIG::getScriptingBuiltinVariables();
 
-		$scriptInfo = $this->db->GetRow("SELECT * FROM scripts WHERE id=? AND {$this->getFilterSql()}", array($this->getParam('scriptId')));
-		if (!$scriptInfo)
-			throw new Exception("Script not found");
+		$script = new Scalr_Script();
+		$script->loadById($this->getParam('scriptId'));
+		if ($script->accountId)
+			$this->user->getPermissions()->validate($script);
+		elseif ($this->user->getType() != Scalr_Account_User::TYPE_SCALR_ADMIN)
+			throw new Scalr_Exception_InsufficientPermissions();
 
-		$latestRevision = $this->db->GetRow("SELECT MAX(revision) as rev FROM script_revisions WHERE scriptid=? GROUP BY scriptid", array($this->getParam('scriptId')));
-		if ($this->getParam('version'))
-			$rev = $this->db->GetRow("SELECT revision as rev, script FROM script_revisions WHERE scriptid=? AND revision=?", array($this->getParam('scriptId'), $this->getParam('version')));
-		else
-			$rev = $latestRevision;
+		$revision = $script->getRevision($this->getParam('version'));
 
 		$this->response->page('ui/scripts/create.js', array(
-			'scriptName'	=> $scriptInfo['name'],
-			'scriptId'		=> $scriptInfo['id'],
-			'description'	=> $scriptInfo['description'],
-			'scriptContents'=> $this->db->GetOne("SELECT script FROM script_revisions WHERE scriptid=? AND revision=?", array($this->getParam('scriptId'), $rev['rev'])),
-			'latestVersion'=> $latestRevision['rev'],
-			'version'		=> $rev['rev'],
-			'versions'		=> range(1, $latestRevision['rev']),
-			'variables'		=> "%" . implode("%, %", array_keys($vars)) . "%"
+			'script' => array(
+				'id' => $script->id,
+				'name' => $script->name,
+				'description' => $script->description,
+				'isSync' => $script->isSync,
+				'script' => $revision['script'],
+				'version' => $revision['revision']
+			),
+
+			'versions' => range(1, $script->getLatestRevision()),
+			'latestVersion' => $script->getLatestRevision(),
+			'variables' => "%" . implode("%, %", array_keys($vars)) . "%"
+
 		), array('codemirror/codemirror.js'), array('codemirror/codemirror.css'));
 	}
 
@@ -311,12 +206,8 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 		$vars = CONFIG::getScriptingBuiltinVariables();
 
 		$this->response->page('ui/scripts/create.js', array(
-			'scriptName'	=> '',
-			'scriptId'		=> 0,
-			'description'	=> '',
-			'scriptContents'=> '',
-			'version'		=> 1,
 			'versions'		=> array(1),
+			'latestVersion' => 0,
 			'variables'		=> "%" . implode("%, %", array_keys($vars)) . "%"
 		), array('codemirror/codemirror.js'), array('codemirror/codemirror.css'));
 	}
@@ -324,48 +215,38 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 	public function xListScriptsAction()
 	{
 		$this->request->defineParams(array(
-			'scriptId', 'origin', 'approvalState',
-			'sort' => array('type' => 'json', 'default' => array('property' => 'id', 'direction' => 'desc'))
+			'scriptId', 'origin',
+			'sort' => array('type' => 'json', 'default' => array('property' => 'name', 'direction' => 'desc'))
 		));
-
-		if ($this->user->getType() != Scalr_Account_User::TYPE_SCALR_ADMIN) {
-			$filterSql = $this->getFilterSql();
-		}
-		else {
-			$filterSql = " (origin='".SCRIPT_ORIGIN_TYPE::SHARED."' OR origin='".SCRIPT_ORIGIN_TYPE::USER_CONTRIBUTED."')";
-		}
 
 		$args = array();
 		$sql = "SELECT
-			scripts.id,
-			scripts.name,
-			scripts.description,
-			scripts.origin,
-			scripts.clientid,
-			scripts.approval_state,
-			MAX(script_revisions.dtcreated) as dtupdated, MAX(script_revisions.revision) AS version FROM scripts
-		INNER JOIN script_revisions ON script_revisions.scriptid = scripts.id
-		WHERE {$filterSql} AND :FILTER:";
+				scripts.id,
+				scripts.name,
+				scripts.description,
+				scripts.clientid as accountId,
+				MAX(script_revisions.dtcreated) as dtUpdated, MAX(script_revisions.revision) AS version FROM scripts
+			INNER JOIN script_revisions ON script_revisions.scriptid = scripts.id
+			WHERE :FILTER:";
 
-		if ($this->getParam('origin'))
-			$sql .= " AND origin=".$this->db->qstr($this->getParam('origin'));
-
-		if ($this->getParam('approvalState'))
-			$sql .= " AND scripts.approval_state=".$this->db->qstr($this->getParam('approvalState'));
+		if ($this->user->getType() != Scalr_Account_User::TYPE_SCALR_ADMIN) {
+			if ($this->getParam('origin') == 'Shared') {
+				$sql .= ' AND (clientid = 0)';
+			} else if ($this->getParam('origin') == 'Custom') {
+				$sql .= ' AND (clientid = ?)';
+				$args[] = $this->user->getAccountId();
+			} else {
+				$sql .= ' AND (clientid = 0 OR clientid = ?)';
+				$args[] = $this->user->getAccountId();
+			}
+		} else {
+			$sql .= ' AND clientid = 0';
+		}
 
 		$sql .= ' GROUP BY script_revisions.scriptid';
-
-		$response = $this->buildResponseFromSql($sql, array('id', 'name', 'description', 'dtupdated'), array('scripts.name', 'scripts.description'));
-
+		$response = $this->buildResponseFromSql2($sql, array('id', 'name', 'description', 'dtUpdated'), array('scripts.name', 'scripts.description'), $args);
 		foreach ($response['data'] as &$row) {
-			if ($row['clientid'] != 0) {
-				if ($row['clientid'] == $this->user->getAccountId())
-					$row["client_name"] = $this->user->fullname;
-				else 
-					$row['client_name'] = 'User Contribution';
-			}
-
-			$row['dtupdated'] = Scalr_Util_DateTime::convertTz($row["dtupdated"]);
+			$row['dtUpdated'] = Scalr_Util_DateTime::convertTz($row["dtUpdated"]);
 		}
 
 		$this->response->data($response);
@@ -374,14 +255,10 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 	public function getList()
 	{
 		$scripts = array();
+		$sql = "SELECT id, name, description, issync FROM scripts WHERE clientid = 0 OR clientid = ? ORDER BY name ASC";
 
-		$sql = "SELECT scripts.*, MAX(script_revisions.dtcreated) as dtupdated from scripts INNER JOIN script_revisions
-			ON script_revisions.scriptid = scripts.id WHERE {$this->getFilterSql()} GROUP BY script_revisions.scriptid ORDER BY name ASC";
-
-		foreach ($this->db->GetAll($sql) as $script) {
-			$dbVersions = $this->db->Execute("SELECT * FROM script_revisions WHERE scriptid=? AND (approval_state=? OR (SELECT clientid FROM scripts WHERE scripts.id=script_revisions.scriptid) = '".$this->user->getAccountId()."')",
-				array($script['id'], APPROVAL_STATE::APPROVED)
-			);
+		foreach ($this->db->GetAll($sql, array($this->user->getAccountId())) as $script) {
+			$dbVersions = $this->db->Execute("SELECT * FROM script_revisions WHERE scriptid=? ORDER BY revision ASC", array($script['id']));
 
 			if ($dbVersions->RecordCount() > 0) {
 				$revisions = array();
@@ -406,7 +283,7 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 	public function getScriptingData()
 	{
 		$retval = array('events' => EVENT_TYPE::getScriptingEvents(), 'scripts' => $this->getList());
-		
+
 		try {
 			$envId = $this->getEnvironmentId();
 			if ($envId) {
@@ -416,13 +293,8 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 				}
 			}
 		} catch (Exception $e) {}
-		
-		return $retval;
-	}
 
-	public function xGetScriptingDataAction()
-	{
-		$this->response->data($this->getScriptingData());
+		return $retval;
 	}
 
 	// TODO: remove
@@ -455,7 +327,7 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 		$dbFarmRole = DBFarmRole::LoadByID($this->getParam('farmRoleId'));
 		$dbFarm = DBFarm::LoadById($dbFarmRole->FarmID);
 		$servers = array();
-		
+
 		$this->user->getPermissions()->validate($dbFarm);
 
 		foreach ($dbFarmRole->GetServersByFilter(array('status' => SERVER_STATUS::RUNNING)) as $key => $value)
@@ -556,29 +428,32 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 		}
 
 		if (! $this->getParam('eventName')) {
-			$this->db->Execute("INSERT INTO farm_role_scripts SET
-				scriptid	= ?,
-				farmid		= ?,
-				farm_roleid	= ?,
-				params		= ?,
-				event_name	= ?,
-				target		= ?,
-				version		= ?,
-				timeout		= ?,
-				issync		= ?,
-				ismenuitem	= ?
-			", array(
-				$this->getParam('scriptId'),
-				(int)$farmId,
-				(int)$farmRoleId,
-				serialize($this->getParam('scriptOptions')),
-				$eventName,
-				$target,
-				$this->getParam('scriptVersion'),
-				$this->getParam('scriptTimeout'),
-				$this->getParam('scriptIsSync'),
-				$this->getParam('createMenuLink')
-			));
+
+            if ($this->getParam('createMenuLink')) {
+    			$this->db->Execute("INSERT INTO farm_role_scripts SET
+    				scriptid	= ?,
+    				farmid		= ?,
+    				farm_roleid	= ?,
+    				params		= ?,
+    				event_name	= ?,
+    				target		= ?,
+    				version		= ?,
+    				timeout		= ?,
+    				issync		= ?,
+    				ismenuitem	= ?
+    			", array(
+    				$this->getParam('scriptId'),
+    				(int)$farmId,
+    				(int)$farmRoleId,
+    				serialize($this->getParam('scriptOptions')),
+    				$eventName,
+    				$target,
+    				$this->getParam('scriptVersion'),
+    				$this->getParam('scriptTimeout'),
+    				$this->getParam('scriptIsSync'),
+    				$this->getParam('createMenuLink')
+    			));
+            }
 
 			$farmScriptId = $this->db->Insert_ID();
 
@@ -589,26 +464,28 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 			if ($info['farmid'] != $dbFarm->ID)
 				throw new Exception("You cannot change farm for script shortcut");
 
-			$this->db->Execute("UPDATE farm_role_scripts SET
-				scriptid	= ?,
-				farm_roleid	= ?,
-				params		= ?,
-				target		= ?,
-				version		= ?,
-				timeout		= ?,
-				issync		= ?
-			WHERE event_name = ? AND farmid = ?
-			", array(
-				$this->getParam('scriptId'),
-				(int)$farmRoleId,
-				serialize($this->getParam('scriptOptions')),
-				$target,
-				$this->getParam('scriptVersion'),
-				$this->getParam('scriptTimeout'),
-				$this->getParam('scriptIsSync'),
-				$this->getParam('eventName'),
-				$farmId
-			));
+            if ($this->getParam('isShortcut')) {
+    			$this->db->Execute("UPDATE farm_role_scripts SET
+    				scriptid	= ?,
+    				farm_roleid	= ?,
+    				params		= ?,
+    				target		= ?,
+    				version		= ?,
+    				timeout		= ?,
+    				issync		= ?
+    			WHERE event_name = ? AND farmid = ?
+    			", array(
+    				$this->getParam('scriptId'),
+    				(int)$farmRoleId,
+    				serialize($this->getParam('scriptOptions')),
+    				$target,
+    				$this->getParam('scriptVersion'),
+    				$this->getParam('scriptTimeout'),
+    				$this->getParam('scriptIsSync'),
+    				$this->getParam('eventName'),
+    				$farmId
+    			));
+            }
 
 			if (!$this->getParam('isShortcut'))
 				$executeScript = true;
@@ -633,39 +510,46 @@ class Scalr_UI_Controller_Scripts extends Scalr_UI_Controller
 					break;
 			}
 
+            $scriptSettings = array(
+                'version' => $this->getParam('scriptVersion'),
+                'scriptid' => $this->getParam('scriptId'),
+                'timeout' => $this->getParam('scriptTimeout'),
+                'issync' => $this->getParam('scriptIsSync'),
+                'params' => serialize($this->getParam('scriptOptions'))
+            );
+
+            // send message to start executing task (starts script)
 			if (count($servers) > 0) {
 				foreach ($servers as $server) {
 					$DBServer = DBServer::LoadByID($server['server_id']);
-					$message = new Scalr_Messaging_Msg_ExecScript($eventName);
-					$message->meta[Scalr_Messaging_MsgMeta::EVENT_ID] = "FRSID-{$farmScriptId}";
-					
-					/*****/
-					$message = Scalr_Scripting_Manager::extendMessage($message, $DBServer);
-					/*****/
-					
-					$DBServer->SendMessage($message, false, true);
+
+                    $msg = new Scalr_Messaging_Msg_ExecScript("Manual");
+
+                    $script = Scalr_Scripting_Manager::prepareScript($scriptSettings, $DBServer);
+
+                    $itm = new stdClass();
+                    // Script
+                    $itm->asynchronous = ($script['issync'] == 1) ? '0' : '1';
+                    $itm->timeout = $script['timeout'];
+                    $itm->name = $script['name'];
+                    $itm->body = $script['body'];
+
+                    $msg->scripts = array($itm);
+                    
+                    try {
+                        $msg->globalVariables = array();
+                        $globalVariables = new Scalr_Scripting_GlobalVariables($DBServer->envId);
+                        $vars = $globalVariables->listVariables($DBServer->roleId, $DBServer->farmId, $DBServer->farmRoleId);
+                        foreach ($vars as $k => $v)
+                            $msg->globalVariables[] = (object)array('name' => $k, 'value' => $v);
+                        
+                    } catch (Exception $e) {}
+
+                    $DBServer->SendMessage($msg, false, true);
 				}
 			}
 		}
 
 		$this->response->success('Script execution has been queued. Script will be executed on selected instance(s) within couple of minutes.');
-	}
-	
-	private function getScripts(Event $event, DBServer $eventServer, DBServer $targetServer) 
-	{
-		$retval = array();
-		
-		try {
-			$scripts = Scalr_Scripting_Manager::getEventScriptList($event, $eventServer, $targetServer);
-			if (count($scripts) > 0)
-			{
-				foreach ($scripts as $script)
-				{						
-					$retval[] = $itm;
-				}
-			}
-		} catch (Exception $e) {}
-		
-		return $retval;
 	}
 }

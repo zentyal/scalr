@@ -1,10 +1,12 @@
 <?php
 namespace Scalr\Service;
 
+use Scalr\Service\Aws\EntityManager;
 use Scalr\Service\Aws\CloudWatch;
 use Scalr\Service\Aws\Sqs;
 use Scalr\Service\Aws\S3;
 use Scalr\Service\Aws\Iam;
+use Scalr\Service\Aws\Ec2;
 use Scalr\DependencyInjection\Container;
 use Scalr\Service\Aws\Elb;
 use Scalr\Service\Aws\ServiceInterface;
@@ -22,9 +24,16 @@ use Scalr\Service\Aws\Client\ClientInterface;
  * @property-read  \Scalr\Service\Aws\Sqs        $sqs        Amazon Simple Queue Service (SQS) interface instance
  * @property-read  \Scalr\Service\Aws\S3         $s3         Amazon Simple Storage Service (S3) interface instance
  * @property-read  \Scalr\Service\Aws\Iam        $iam        Amazon Identity and Access Management Service (IAM) interface instance
+ * @property-read  \Scalr\Service\Aws\Ec2        $ec2        Amazon Elastic Compute Cloud (EC2) service interface instance
+ * @property-read  \Scalr\Service\Aws\CloudFront $cloudFront Amazon CloudFront service interface instance
+ * @property-read  \Scalr\Service\Aws\Rds        $rds        Amazon Relational Database Service (RDS) interface instance
  */
 class Aws
 {
+
+	const CLIENT_QUERY = 'Query';
+
+	const CLIENT_SOAP  = 'Soap';
 
 	/**
 	 * Access Key Id
@@ -37,6 +46,31 @@ class Aws
 	 * @var string
 	 */
 	private $secretAccessKey;
+
+	/**
+	 * X.509 certificate
+	 * @var string
+	 */
+	private $certificate;
+
+	/**
+	 * Private key for certificate
+	 * @var string
+	 */
+	private $privateKey;
+
+	/**
+	 * AWS Entity Manager
+	 * @var EntityManager
+	 */
+	private $entityManager;
+
+	/**
+	 * Whether debug is enabled or not.
+	 *
+	 * @var bool
+	 */
+	private $debug = false;
 
 	/**
 	 * United States East (Northern Virginia) Region.
@@ -104,6 +138,21 @@ class Aws
 	const SERVICE_INTERFACE_IAM = 'iam';
 
 	/**
+	 * Amazon Elastic Compute Cloud service interface
+	 */
+	const SERVICE_INTERFACE_EC2 = 'ec2';
+
+	/**
+	 * Amazon CloudFront service interface
+	 */
+	const SERVICE_INTERFACE_CLOUD_FRONT = 'cloudFront';
+
+	/**
+	 * Amazon RDS service interface
+	 */
+	const SERVICE_INTERFACE_RDS = 'rds';
+
+	/**
 	 * Region for AWS
 	 *
 	 * @var string
@@ -135,13 +184,18 @@ class Aws
 	 * @param   string     $accessKeyId      AWS access key id
 	 * @param   string     $secretAccessKey  AWS secret access key
 	 * @param   string     $region           optional An AWS region. (Aws::REGION_US_EAST_1)
+	 * @param   string     $certificate      optional AWS x.509 certificate (It's used only for Soap API)
+	 * @param   string     $privateKey       optional Private Key (It's used only for Soap API)
 	 */
-	public function __construct($accessKeyId, $secretAccessKey, $region = null)
+	public function __construct($accessKeyId, $secretAccessKey, $region = null, $certificate = null, $privateKey = null)
 	{
 		$this->container = Container::getInstance();
 		$this->region = $region;
 		$this->accessKeyId = $accessKeyId;
 		$this->secretAccessKey = $secretAccessKey;
+		$this->entityManager = new EntityManager();
+		$this->certificate = $certificate;
+		$this->privateKey = $privateKey;
 	}
 
 	/**
@@ -174,9 +228,12 @@ class Aws
 		return array(
 			self::SERVICE_INTERFACE_ELB,
 			self::SERVICE_INTERFACE_CLOUD_WATCH,
+			self::SERVICE_INTERFACE_CLOUD_FRONT,
 			self::SERVICE_INTERFACE_SQS,
 			self::SERVICE_INTERFACE_S3,
 			self::SERVICE_INTERFACE_IAM,
+			self::SERVICE_INTERFACE_EC2,
+			self::SERVICE_INTERFACE_RDS,
 		);
 	}
 
@@ -240,7 +297,7 @@ class Aws
 		if (in_array(($n = lcfirst($name)), $this->getAvailableServiceInterfaces())) {
 			if (!isset($this->serviceInterfaces[$n])) {
 				//It validates region only for the services which it is necessary for.
-				if (!in_array($n, array(self::SERVICE_INTERFACE_IAM, self::SERVICE_INTERFACE_S3))) {
+				if (!in_array($n, array(self::SERVICE_INTERFACE_IAM, self::SERVICE_INTERFACE_S3, self::SERVICE_INTERFACE_CLOUD_FRONT))) {
 					if (!self::isValidRegion($this->region)) {
 						throw new AwsException(sprintf('Invalid region "%s" for the service "%s"', $this->region, $n));
 					}
@@ -301,5 +358,92 @@ class Aws
 	public static function getMd5Base64DigestFile ($file)
 	{
 		return base64_encode(pack('H*', md5_file($file)));
+	}
+
+	/**
+	 * Gets an AWS Entity Manager
+	 *
+	 * This manager helps manipulate with retrieved from AWS objects.
+	 * These object are stored in the cache.
+	 *
+	 * @return  EntityManager Returns an AWS Entity Manager object.
+	 */
+	public function getEntityManager()
+	{
+		return $this->entityManager;
+	}
+
+	/**
+	 * Get x.509 certificate
+	 *
+	 * @return  string Returns x.509 certificate
+	 */
+	public function getCertificate()
+	{
+		return $this->certificate;
+	}
+
+	/**
+	 * Get private key
+	 *
+	 * @return  string Returns private key from certificate
+	 */
+	public function getPrivateKey()
+	{
+		return $this->privateKey;
+	}
+
+	/**
+	 * Validates certificate and privatekey making AWS SOAP request
+	 *
+	 * @return  bool      Returns true on success or throws an exception
+	 * @throws  \Exception
+	 */
+	public function validateCertificateAndPrivateKey()
+	{
+		$prevClient = $this->ec2->getApiClientType();
+		$this->ec2->setApiClientType(self::CLIENT_SOAP);
+		try {
+			$this->ec2->availabilityZone->describe();
+		} catch (\Exception $e) {
+			$exc = $e;
+		}
+		$this->ec2->setApiClientType($prevClient);
+		if (isset($exc)) throw $exc;
+
+		return true;
+	}
+
+	/**
+	 * Sets debug flag
+	 *
+	 * @param   bool     $debug optional If true it will enable debug mode
+	 * @return  Aws
+	 */
+	public function setDebug($debug = true)
+	{
+		$this->debug = (bool) $debug;
+		return $this;
+	}
+
+	/**
+	 * Gets debug flag value
+	 *
+	 * @return  bool Returns true if debug is enabled.
+	 */
+	public function getDebug()
+	{
+		return $this->debug;
+	}
+
+	/**
+	 * Resets debug
+	 *
+	 * @return  Aws
+	 */
+	public function resetDebug()
+	{
+		$this->debug = false;
+		return $this;
 	}
 }

@@ -178,17 +178,15 @@ abstract class Scalr_Db_Msr_Info
 			$volumeConfig->snapPv->type = 'ebs';
 			$volumeConfig->snapPv->size = 1;
 			
-		} else if ($volumeConfig->type != MYSQL_STORAGE_ENGINE::EPH && $volumeConfig->type != MYSQL_STORAGE_ENGINE::RAID_EBS) {
-			$volumeConfig->size = $this->dbFarmRole->GetSetting(Scalr_Db_Msr::DATA_STORAGE_EBS_SIZE);
-			
-			if ($this->dbFarmRole->GetSetting(Scalr_Db_Msr::DATA_STORAGE_EBS_TYPE) == 'io1') {
-				$volumeConfig->volumeType = 'io1';
-				$volumeConfig->iops = $this->dbFarmRole->GetSetting(Scalr_Db_Msr::DATA_STORAGE_EBS_IOPS);
-			}
-		}
-		// For RackSpace
-		//TODO:
-		else if ($volumeConfig->type == MYSQL_STORAGE_ENGINE::EPH) {
+		} else if ($volumeConfig->type == MYSQL_STORAGE_ENGINE::CINDER) {
+		    
+            $volumeConfig->size = $this->dbFarmRole->GetSetting(Scalr_Db_Msr::DATA_STORAGE_CINDER_SIZE);
+            
+        } else if ($volumeConfig->type == MYSQL_STORAGE_ENGINE::GCE_PERSISTENT) {
+            
+            $volumeConfig->size = $this->dbFarmRole->GetSetting(Scalr_Db_Msr::DATA_STORAGE_GCED_SIZE);
+            
+        } else if ($volumeConfig->type == MYSQL_STORAGE_ENGINE::EPH) {
 			
 			if ($this->dbFarmRole->Platform == SERVER_PLATFORMS::RACKSPACE) {
 				$volumeConfig->snap_backend = sprintf("cf://scalr-%s-%s/data-bundles/%s/%s",
@@ -201,7 +199,18 @@ abstract class Scalr_Db_Msr_Info
 				$volumeConfig->disk = new stdClass();
 				$volumeConfig->disk->type = 'loop';
 				$volumeConfig->disk->size = '75%root';
-			} elseif ($this->dbFarmRole->Platform == SERVER_PLATFORMS::GCE) {
+			} elseif (in_array($this->dbFarmRole->Platform, array(SERVER_PLATFORMS::OPENSTACK, SERVER_PLATFORMS::RACKSPACENG_UK, SERVER_PLATFORMS::RACKSPACENG_US))) {
+                $volumeConfig->snap_backend = sprintf("swift://scalr-%s-%s/data-bundles/%s/%s",
+                    $this->dbFarmRole->GetFarmObject()->EnvID,
+                    $this->dbFarmRole->CloudLocation,
+                    $this->dbFarmRole->FarmID,
+                    $this->databaseType
+                );
+                $volumeConfig->vg = $this->databaseType;
+                $volumeConfig->disk = new stdClass();
+                $volumeConfig->disk->type = 'loop';
+                $volumeConfig->disk->size = '75%root';
+            } elseif ($this->dbFarmRole->Platform == SERVER_PLATFORMS::GCE) {
 				$volumeConfig->snap_backend = sprintf("gcs://scalr-%s-%s/data-bundles/%s/%s",
 					$this->dbFarmRole->GetFarmObject()->EnvID,
 					$this->dbFarmRole->CloudLocation,
@@ -209,6 +218,7 @@ abstract class Scalr_Db_Msr_Info
 					$this->databaseType
 				);
 				$volumeConfig->vg = $this->databaseType;
+				
 				$volumeConfig->disk = array(
 					'type' => 'gce_ephemeral',
 					'name' => 'ephemeral-disk-0'
@@ -225,7 +235,14 @@ abstract class Scalr_Db_Msr_Info
 				$volumeConfig->disk = $this->dbFarmRole->GetSetting(Scalr_Db_Msr::DATA_STORAGE_EPH_DISK);
 				$volumeConfig->size = "80%";
 			}
-		}
+		} else {
+            $volumeConfig->size = $this->dbFarmRole->GetSetting(Scalr_Db_Msr::DATA_STORAGE_EBS_SIZE);
+            
+            if ($this->dbFarmRole->GetSetting(Scalr_Db_Msr::DATA_STORAGE_EBS_TYPE) == 'io1') {
+                $volumeConfig->volumeType = 'io1';
+                $volumeConfig->iops = $this->dbFarmRole->GetSetting(Scalr_Db_Msr::DATA_STORAGE_EBS_IOPS);
+            }
+        }
 		
 		return $volumeConfig;
 	}

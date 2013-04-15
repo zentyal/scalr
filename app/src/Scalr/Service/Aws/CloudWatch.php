@@ -20,63 +20,63 @@ use Scalr\Service\Aws;
 class CloudWatch extends AbstractService implements ServiceInterface
 {
 
-	/**
-	 * API Version 20100801
-	 */
-	const API_VERSION_20100801 = '20100801';
+    /**
+     * API Version 20100801
+     */
+    const API_VERSION_20100801 = '20100801';
 
-	/**
-	 * Current version of the API
-	 */
-	const API_VERSION_CURRENT = self::API_VERSION_20100801;
+    /**
+     * Current version of the API
+     */
+    const API_VERSION_CURRENT = self::API_VERSION_20100801;
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractService::getCurrentApiVersion()
-	 */
-	public function getCurrentApiVersion()
-	{
-		return self::API_VERSION_CURRENT;
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractService::getCurrentApiVersion()
+     */
+    public function getCurrentApiVersion()
+    {
+        return self::API_VERSION_CURRENT;
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractService::getAvailableApiVersions()
-	 */
-	public function getAvailableApiVersions()
-	{
-		return array(
-			self::API_VERSION_20100801
-		);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractService::getAvailableApiVersions()
+     */
+    public function getAvailableApiVersions()
+    {
+        return array(
+            self::API_VERSION_20100801
+        );
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractService::getUrl()
-	 */
-	public function getUrl()
-	{
-		return 'monitoring.' . $this->getAws()->getRegion() . '.amazonaws.com';
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractService::getUrl()
+     */
+    public function getUrl()
+    {
+        return 'monitoring.' . $this->getAws()->getRegion() . '.amazonaws.com';
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractService::getAllowedEntities()
-	 */
-	public function getAllowedEntities()
-	{
-		return array('metric', 'alarm');
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractService::getAllowedEntities()
+     */
+    public function getAllowedEntities()
+    {
+        return array('metric', 'alarm');
+    }
 }
 
-/* TODO Implement folowing API methods:
-	- DeleteAlarms
-	- DescribeAlarmHistory
-	- DescribeAlarms
-	- DescribeAlarmsForMetric
-	- DisableAlarmActions
-	- EnableAlarmActions
-	- PutMetricAlarm
-	- PutMetricData
-	- SetAlarmState
+/* TODO [postponed] Implement folowing API methods:
+    - DeleteAlarms
+    - DescribeAlarmHistory
+    - DescribeAlarms
+    - DescribeAlarmsForMetric
+    - DisableAlarmActions
+    - EnableAlarmActions
+    - PutMetricAlarm
+    - PutMetricData
+    - SetAlarmState
 */

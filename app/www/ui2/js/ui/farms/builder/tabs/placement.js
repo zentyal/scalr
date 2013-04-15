@@ -60,7 +60,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.placement', function (moduleTabParams
 				typeValue = (settings['aws.instance_type'] || 'm1.large');
 				
 				if (tagsString.indexOf('ec2.ebs') != -1 || settings['aws.instance_type'] == 't1.micro') {
-					if (tagsString.indexOf('ec2.hvm') != -1 && record.get('os') != '2008Server') {
+					if (tagsString.indexOf('ec2.hvm') != -1 && record.get('os') != '2008Server' && record.get('os') != '2008ServerR2') {
 						typeArray = ['cc1.4xlarge', 'cc2.8xlarge', 'cg1.4xlarge', 'hi1.4xlarge'];
 						
 						if (settings['aws.instance_type'] != 'm1.large')
@@ -70,9 +70,9 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.placement', function (moduleTabParams
 						
 					} else {
 						if (record.get('behaviors').match('cf_cloud_controller'))
-							typeArray = ['m1.small', 'c1.medium', 'm1.medium', 'm1.large', 'm1.xlarge', 'c1.xlarge', 'm2.xlarge', 'm2.2xlarge', 'm2.4xlarge', 'm3.xlarge', 'm3.2xlarge', 'hi1.4xlarge'];
+							typeArray = ['m1.small', 'c1.medium', 'm1.medium', 'm1.large', 'm1.xlarge', 'c1.xlarge', 'm2.xlarge', 'm2.2xlarge', 'm2.4xlarge', 'm3.xlarge', 'm3.2xlarge', 'hi1.4xlarge', 'hs1.8xlarge'];
 						else
-							typeArray = ['t1.micro', 'm1.small', 'c1.medium', 'm1.medium', 'm1.large', 'm1.xlarge', 'c1.xlarge', 'm2.xlarge', 'm2.2xlarge', 'm2.4xlarge', 'm3.xlarge', 'm3.2xlarge', 'hi1.4xlarge'];
+							typeArray = ['t1.micro', 'm1.small', 'c1.medium', 'm1.medium', 'm1.large', 'm1.xlarge', 'c1.xlarge', 'm2.xlarge', 'm2.2xlarge', 'm2.4xlarge', 'm3.xlarge', 'm3.2xlarge', 'hi1.4xlarge', 'hs1.8xlarge'];
 						typeValue = (settings['aws.instance_type'] || 'm1.small');
 					}
 				} else {

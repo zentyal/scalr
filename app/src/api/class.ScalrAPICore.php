@@ -249,7 +249,31 @@
 						if (!$this->IPAccessCheck($ips) && $_SERVER['REMOTE_ADDR'] != API_SERVER_IP)
 							throw new Exception(sprintf(_("Access to the API is not allowed from your IP '%s'"), $_SERVER['REMOTE_ADDR']));
 					}
-						
+				    
+                    //Check limit
+                    if ($this->Environment->getPlatformConfigValue(ENVIRONMENT_SETTINGS::API_LIMIT_ENABLED, false) == 1) {
+                        $hour = $this->Environment->getPlatformConfigValue(ENVIRONMENT_SETTINGS::API_LIMIT_HOUR, false);
+                        $limit = $this->Environment->getPlatformConfigValue(ENVIRONMENT_SETTINGS::API_LIMIT_REQPERHOUR, false);
+                        $usage = $this->Environment->getPlatformConfigValue(ENVIRONMENT_SETTINGS::API_LIMIT_USAGE, false);
+                        if ($usage >= $limit && $hour == date("YmdH")) {
+                            $reset = 60 - (int)date("i");
+                            
+                            header("HTTP/1.0 429 Too Many Requests");
+                            exit();
+                            
+                            //throw new Exception(sprintf("Hourly API requests limit (%s) exceeded. Limit will be reset within %s minutes", $limit, $reset));
+                        }
+                        
+                        if (date("YmdH") > $hour) {
+                            $hour = date("YmdH");
+                            $usage = 0;
+                        }
+                        
+                        $this->Environment->setPlatformConfig(array(
+                            ENVIRONMENT_SETTINGS::API_LIMIT_USAGE => $usage+1,
+                            ENVIRONMENT_SETTINGS::API_LIMIT_HOUR => $hour
+                        ), false);
+                    }
 						
 					//Execute API call
 					$ReflectMethod = $Reflect->getMethod($request['Action']);

@@ -14,42 +14,42 @@ use Scalr\Service\Aws\Elb\AbstractElbDataType;
 class InstanceStateData extends AbstractElbDataType
 {
 
-	/**
-	 * List of external identifier names.
-	 *
-	 * @var array
-	 */
-	protected $_externalKeys = array(
-		'loadBalancerName'
-	);
+    /**
+     * List of external identifier names.
+     *
+     * @var array
+     */
+    protected $_externalKeys = array(
+        'loadBalancerName'
+    );
 
-	/**
-	 * Provides a description of the instance.
-	 *
-	 * @var string
-	 */
-	public $description;
+    /**
+     * Provides a description of the instance.
+     *
+     * @var string
+     */
+    public $description;
 
-	/**
-	 * Provides an EC2 instance ID.
-	 *
-	 * @var string
-	 */
-	public $instanceId;
+    /**
+     * Provides an EC2 instance ID.
+     *
+     * @var string
+     */
+    public $instanceId;
 
-	/**
-	 * Provides information about the cause of OutOfService instances. Specifically, it
-	 * indicates whether the cause is Elastic Load Balancing or the instance behind the
-	 * LoadBalancer.
-	 *
-	 * @var string
-	 */
-	public $reasonCode;
+    /**
+     * Provides information about the cause of OutOfService instances. Specifically, it
+     * indicates whether the cause is Elastic Load Balancing or the instance behind the
+     * LoadBalancer.
+     *
+     * @var string
+     */
+    public $reasonCode;
 
-	/**
-	 * Specifies the current status of the instance.
-	 *
-	 * @var string
-	 */
-	public $state;
+    /**
+     * Specifies the current status of the instance.
+     *
+     * @var string
+     */
+    public $state;
 }

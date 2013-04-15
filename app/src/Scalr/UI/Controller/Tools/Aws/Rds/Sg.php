@@ -1,153 +1,133 @@
 <?php
 
+use Scalr\Service\Aws\Rds\DataType\DBSecurityGroupIngressRequestData;
+
 class Scalr_UI_Controller_Tools_Aws_Rds_Sg extends Scalr_UI_Controller
 {
+	/**
+	 * Gets AWS Client for the current environment
+	 *
+	 * @return \Scalr\Service\Aws Returns Aws client for current environment
+	 */
+	protected function getAwsClient()
+	{
+		return $this->getEnvironment()->aws($this->getParam('cloudLocation'));
+	}
+
 	public function viewAction()
 	{
 		$this->response->page('ui/tools/aws/rds/sg/view.js', array(
 			'locations'	=> self::loadController('Platforms')->getCloudLocations(SERVER_PLATFORMS::EC2, false)
 		));
 	}
-	
+
 	public function xListAction()
 	{
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-			$this->getParam('cloudLocation')
-		);
-		
-		// Rows		
-		$aws_response = $amazonRDSClient->DescribeDBSecurityGroups();
-		$result = json_decode(json_encode($aws_response->DescribeDBSecurityGroupsResult), true);
-		$sGroups = $result['DBSecurityGroups']['DBSecurityGroup'];
-		if ($sGroups['DBSecurityGroupName'])
-			$sGroups = array($sGroups);
-		
+		$sGroups = $this->getAwsClient()->rds->dbSecurityGroup->describe()->toArray(true);
 		$response = $this->buildResponseFromData($sGroups, array('DBSecurityGroupDescription', 'DBSecurityGroupName'));
-		
 		$this->response->data($response);
 	}
 
 	public function xCreateAction()
 	{
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-			$this->getParam('cloudLocation')
+		$this->getAwsClient()->rds->dbSecurityGroup->create(
+			$this->getParam('dbSecurityGroupName'), $this->getParam('dbSecurityGroupDescription')
 		);
-		
-		$amazonRDSClient->CreateDBSecurityGroup($this->getParam('dbSecurityGroupName'), $this->getParam('dbSecurityGroupDescription'));
-		
 		$this->response->success("DB security group successfully created");
 	}
 
 	public function xDeleteAction()
 	{
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-			$this->getParam('cloudLocation')
-		);
-			
-		$amazonRDSClient->DeleteDBSecurityGroup($this->getParam('dbSgName'));
+		$this->getAwsClient()->rds->dbSecurityGroup->delete($this->getParam('dbSgName'));
 		$this->response->success("DB security group successfully removed");
 	}
-	
+
 	public function editAction()
 	{
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-			$this->getParam('cloudLocation')
-		);
-		
-		$response = $amazonRDSClient->DescribeDBSecurityGroups($this->getParam('dbSgName'));	
-		$result = json_decode(json_encode($response->DescribeDBSecurityGroupsResult), true);
-		$group = $result['DBSecurityGroups']['DBSecurityGroup'];
-		
-		if ($group)
-		{
-			if ($group['IPRanges']['IPRange']['CIDRIP'])
-				$group['IPRanges']['IPRange'] = array($group['IPRanges']['IPRange']);
-				
-			foreach ($group['IPRanges']['IPRange'] as $r)
-				$ipRules[] = $r;
-							
-			if ($group['EC2SecurityGroups']['EC2SecurityGroup']['EC2SecurityGroupOwnerId'])
-				$group['EC2SecurityGroups']['EC2SecurityGroup'] = array($group['EC2SecurityGroups']['EC2SecurityGroup']);
-				
-			foreach ($group['EC2SecurityGroups']['EC2SecurityGroup'] as $r)
-				$groupRules[] = $r;
+		$aws = $this->getAwsClient();
+
+		/* @var $group \Scalr\Service\Aws\Rds\DataType\DBSecurityGroupData */
+		$group = $aws->rds->dbSecurityGroup->describe($this->getParam('dbSgName'))->get(0);
+
+		$ipRules = array();
+		$groupRules = array();
+		if (!empty($group->iPRanges) && count($group->iPRanges)) {
+			$ipRules = $group->iPRanges->toArray(true);
 		}
-		
+		if (!empty($group->eC2SecurityGroups) && count($group->eC2SecurityGroups)) {
+			$groupRules = $group->eC2SecurityGroups->toArray(true);
+		}
+
 		$rules = array('ipRules' => $ipRules, 'groupRules' => $groupRules);
-		
+
 		$this->response->page('ui/tools/aws/rds/sg/edit.js', array('rules' => $rules));
 	}
-	
+
 	public function xSaveAction()
 	{
 		$this->request->defineParams(array(
 			'rules' => array('type' => 'json')
 		));
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-			$this->getParam('cloudLocation')
-		);			
-		
-		$response = $amazonRDSClient->DescribeDBSecurityGroups($this->getParam('dbSgName'));	
-		$result = json_decode(json_encode($response->DescribeDBSecurityGroupsResult), true);
-		$group = $result['DBSecurityGroups']['DBSecurityGroup'];
-		
+
+		$aws = $this->getAwsClient();
+
+		/* @var $group \Scalr\Service\Aws\Rds\DataType\DBSecurityGroupData */
+		$group = $aws->rds->dbSecurityGroup->describe($this->getParam('dbSgName'))->get(0);
+
 		$rules = array();
-		if ($group)
-		{
-			if ($group['IPRanges']['IPRange']['CIDRIP'])
-				$group['IPRanges']['IPRange'] = array($group['IPRanges']['IPRange']);
-				
-			foreach ($group['IPRanges']['IPRange'] as $r) {
+
+		if (!empty($group->iPRanges)) {
+			foreach ($group->iPRanges as $r) {
+				$r = $r->toArray(true);
 				$r['id'] = md5($r['CIDRIP']);
 				$rules[$r['id']] = $r;
 			}
-							
-			if ($group['EC2SecurityGroups']['EC2SecurityGroup']['EC2SecurityGroupOwnerId'])
-				$group['EC2SecurityGroups']['EC2SecurityGroup'] = array($group['EC2SecurityGroups']['EC2SecurityGroup']);
-				
-			foreach ($group['EC2SecurityGroups']['EC2SecurityGroup'] as $r) {
-				$r['id'] = md5($r['EC2SecurityGroupName'].$r['EC2SecurityGroupOwnerId']);
+		}
+		if (!empty($group->eC2SecurityGroups)) {
+			foreach ($group->eC2SecurityGroups as $r) {
+				$r = $r->toArray(true);
+				$r['id'] = md5($r['EC2SecurityGroupName'] . $r['EC2SecurityGroupOwnerId']);
 				$rules[$r['id']] = $r;
 			}
 		}
-		
+
 		foreach ($rules as $id => $r) {
 			$found = false;
-			foreach ($this->getParam('rules') as $rule){
+			foreach ($this->getParam('rules') as $rule) {
 				if ($rule['Type'] == 'CIDR IP')
 					$rid = md5($rule['CIDRIP']);
-				else 
-					$rid = md5($rule['EC2SecurityGroupName'].$rule['EC2SecurityGroupOwnerId']);
-					
-				if ($id == $rid)
-					$found = true;
-			}
-			
-			if (!$found) {
-				if ($r['CIDRIP'])
-					$amazonRDSClient->RevokeDBSecurityGroupIngress($this->getParam('dbSgName'), $r['CIDRIP']);
 				else
-					$amazonRDSClient->RevokeDBSecurityGroupIngress($this->getParam('dbSgName'), null, $r['EC2SecurityGroupName'], $r['EC2SecurityGroupOwnerId']);
+					$rid = md5($rule['EC2SecurityGroupName'] . $rule['EC2SecurityGroupOwnerId']);
+
+				if ($id == $rid) {
+					$found = true;
+				}
+			}
+
+			if (!$found) {
+				$request = new DBSecurityGroupIngressRequestData($this->getParam('dbSgName'));
+				if ($r['CIDRIP']) {
+					$request->cIDRIP = $r['CIDRIP'];
+				} else {
+					$request->eC2SecurityGroupName = $r['EC2SecurityGroupName'];
+					$request->eC2SecurityGroupOwnerId = $r['EC2SecurityGroupOwnerId'];
+				}
+				$aws->rds->dbSecurityGroup->revokeIngress($request);
+				unset($request);
 			}
 		}
-		
+
 		foreach ($this->getParam('rules') as $rule){
-			
-			if($rule['Status'] == 'new'){
-				if ($rule['Type'] == 'CIDR IP')
-					$amazonRDSClient->AuthorizeDBSecurityGroupIngress($this->getParam('dbSgName'), $rule['CIDRIP']);
-				else
-			    	$amazonRDSClient->AuthorizeDBSecurityGroupIngress($this->getParam('dbSgName'), null, $rule['EC2SecurityGroupName'], $rule['EC2SecurityGroupOwnerId']);
+			if ($rule['Status'] == 'new') {
+				$request = new DBSecurityGroupIngressRequestData($this->getParam('dbSgName'));
+				if ($rule['Type'] == 'CIDR IP') {
+					$request->cIDRIP = $rule['CIDRIP'];
+				} else {
+					$request->eC2SecurityGroupName = $r['EC2SecurityGroupName'];
+					$request->eC2SecurityGroupOwnerId = $r['EC2SecurityGroupOwnerId'];
+				}
+				$aws->rds->dbSecurityGroup->authorizeIngress($request);
+				unset($request);
 			}
 		}
 		$this->response->success("DB security group successfully updated");

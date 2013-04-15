@@ -85,7 +85,7 @@ Scalr.regPage('Scalr.ui.services.configurations.manage', function (loadParams, m
 				text: 'Save',
 				handler: function() {
 					
-					var results = {};
+					var results = [];
 					var configFields = form.child('#optionsSet').query('configfield');
 					for (var i = 0; i < configFields.length; i++) {
 						item = configFields[i];
@@ -111,8 +111,7 @@ Scalr.regPage('Scalr.ui.services.configurations.manage', function (loadParams, m
 							'config': Ext.encode(results) 
 						},
 						success: function () {
-							//Scalr.event.fireEvent('close');
-							console.log("OK");
+							Scalr.event.fireEvent('refresh');
 						}
 					});
 				}

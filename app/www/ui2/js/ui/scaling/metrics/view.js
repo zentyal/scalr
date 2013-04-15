@@ -41,7 +41,7 @@ Scalr.regPage('Scalr.ui.scaling.metrics.view', function (loadParams, moduleParam
 		columns: [
 			{ header: "ID", width: 40, dataIndex: 'id', sortable: true },
 			{ header: "Name", flex: 1, dataIndex: 'name', sortable:true },
-			{ header: "File path", flex: 1, dataIndex: 'file_path', sortable: false },
+			{ header: "File path", flex: 1, dataIndex: 'file_path', sortable: true },
 			{ header: "Retrieve method", flex: 1, dataIndex: 'retrieve_method', sortable: false, xtype: 'templatecolumn', tpl:
 				'<tpl if="retrieve_method == \'read\'">File-Read</tpl>' +
 				'<tpl if="retrieve_method == \'execute\'">File-Execute</tpl>'
@@ -61,36 +61,18 @@ Scalr.regPage('Scalr.ui.scaling.metrics.view', function (loadParams, moduleParam
 			}
 		],
 
+
 		multiSelect: true,
 		selModel: {
 			selType: 'selectedmodel',
-			selectedMenu: [{
-				text: 'Delete',
-				iconCls: 'x-menu-icon-delete',
-				request: {
-					confirmBox: {
-						msg: 'Remove selected metric(s): %s ?',
-						type: 'delete'
-					},
-					processBox: {
-						msg: 'Removing selected metric(s) ...',
-						type: 'delete'
-					},
-					url: '/scaling/metrics/xRemove/',
-					dataHandler: function (records) {
-						var metrics = [];
-						this.confirmBox.objects = [];
-						for (var i = 0, len = records.length; i < len; i++) {
-							metrics.push(records[i].get('id'));
-							this.confirmBox.objects.push(records[i].get('name'))
-						}
-
-						return { metrics: Ext.encode(metrics) };
-					}
-				}
-			}],
 			getVisibility: function (record) {
 				return (record.get('env_id') != 0);
+			}
+		},
+
+		listeners: {
+			selectionchange: function(selModel, selections) {
+				this.down('scalrpagingtoolbar').down('#delete').setDisabled(!selections.length);
 			}
 		},
 
@@ -98,11 +80,42 @@ Scalr.regPage('Scalr.ui.scaling.metrics.view', function (loadParams, moduleParam
 			xtype: 'scalrpagingtoolbar',
 			store: store,
 			dock: 'top',
-			afterItems: [{
+			beforeItems: [{
 				ui: 'paging',
 				iconCls: 'x-tbar-add',
 				handler: function() {
 					Scalr.event.fireEvent('redirect', '#/scaling/metrics/create');
+				}
+			}],
+			afterItems: [{
+				ui: 'paging',
+				itemId: 'delete',
+				iconCls: 'x-tbar-delete',
+				tooltip: 'Select one or more metrics to delete them',
+				disabled: true,
+				handler: function() {
+					var request = {
+						confirmBox: {
+							msg: 'Remove selected metric(s): %s ?',
+							type: 'delete'
+						},
+						processBox: {
+							msg: 'Removing selected metric(s) ...',
+							type: 'delete'
+						},
+						url: '/scaling/metrics/xRemove/',
+						success: function() {
+							store.load();
+						}
+					}, records = this.up('grid').getSelectionModel().getSelection(), metrics = [];
+
+					request.confirmBox.objects = [];
+					for (var i = 0, len = records.length; i < len; i++) {
+						metrics.push(records[i].get('id'));
+						request.confirmBox.objects.push(records[i].get('name'));
+					}
+					request.params = { metrics: Ext.encode(metrics) };
+					Scalr.Request(request);
 				}
 			}]
 		}]

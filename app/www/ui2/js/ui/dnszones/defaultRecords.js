@@ -3,6 +3,9 @@ Scalr.regPage('Scalr.ui.dnszones.defaultRecords', function (loadParams, modulePa
 	var form = Ext.create('Ext.form.Panel', {
 		bodyCls: 'x-panel-body-frame',
 		title: 'Default DNS records',
+		plugins: [{
+			ptype: 'panelscrollfix'
+		}],
 		items: [{
 			xtype: 'displayfield',
 			fieldCls: 'x-form-field-info',

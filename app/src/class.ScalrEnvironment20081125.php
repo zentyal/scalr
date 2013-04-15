@@ -545,6 +545,7 @@
     					$HostDOMNode->setAttribute('external-ip', $DBServer->remoteIp);
     					$HostDOMNode->setAttribute('index', $DBServer->index);
     					$HostDOMNode->setAttribute('status', $DBServer->status);
+                        $HostDOMNode->setAttribute('cloud-location', $DBServer->GetCloudLocation());
     					
     					if ($DBFarmRole->GetRoleObject()->hasBehavior(ROLE_BEHAVIORS::MONGODB))
     					{

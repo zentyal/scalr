@@ -528,7 +528,7 @@ Scalr.regPage('Scalr.ui.account.teams.view', function (loadParams, moduleParams)
 				}
 			}],
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}, '->', {
 				xtype: 'tbswitchfield',

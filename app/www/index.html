@@ -46,6 +46,9 @@
         var head = document.head || document.getElementsByTagName('head')[0];
         var script = document.createElement('script');
         var debugMode = document.location.search.indexOf('debug') != -1 ? true : false;
+        var beta42Mode = document.location.search.indexOf('beta42') != -1 ? true : false;
+        var betaUsers = document.location.search.indexOf('betaUsers') != -1 ? true : false;
+
         var errorMessage = 'The browser you are currently using is not supported by <a href="https://my.scalr.net/">my.scalr.net</a>. Please use one of the following ones: Safari, Firefox or Chrome.';
 
         var updateProgress = function (percent) {
@@ -72,11 +75,13 @@
             var css = document.createElement('link');
             css.type = 'text/css';
             css.rel = 'stylesheet';
-            css.href = '/ui2/js/extjs-4.1/theme/ext-scalr-1.css';
+            css.href = '/ui2/js/extjs-4.1/theme/ext-scalr-2.css';
             head.appendChild(css);
             
             script.type = 'text/javascript';
-            script.src = debugMode ? '/ui2/js/extjs-4.1/ext-all-debug-2.js' : '/ui2/js/extjs-4.1/ext-all-2.js';
+            var p = beta42Mode ? 'extjs-4.2' : 'extjs-4.1';
+            var t = 4; // timestamp
+            script.src = debugMode || beta42Mode ? '/ui2/js/' + p + '/ext-all-debug-' + t + '.js' : '/ui2/js/' + p + '/ext-all-' + t + '.js';
             script.onload = function () {
                 try {
                     updateProgress(30);
@@ -128,8 +133,26 @@
                                                     // loading js
                                                     // from 50 to 100
                                                     updateProgress(50);
+                                                    var len = Scalr.InitParams.extjs.length, js = Scalr.InitParams.extjs;
+                                                    /* remove denepdency in js (create Scalr.Application on Scalr.Init) to enable this code
+                                                    for (var i = 0; i < len; i++) {
+                                                        var j = js[i];
+														(function(j){
+                                                        Ext.Loader.injectScriptElement(j, function() {
+                                                            var ind = Scalr.InitParams.extjs.indexOf(j);
+                                                            Scalr.InitParams.extjs.splice(ind, 1);
 
-                                                    var len = Scalr.InitParams.extjs.length;
+                                                            if (! Scalr.InitParams.extjs.length) {
+                                                                updateProgress(100);
+                                                                Scalr.Init(Scalr.InitParams.context);
+                                                            } else {
+                                                                var p = Math.ceil((1 - Scalr.InitParams.extjs.length / len) * 50) + 50;
+                                                                updateProgress(p);
+                                                            }
+                                                        });
+														})(j)
+                                                    }*/
+                                                    
                                                     (function () {
                                                         var onloadJs = function () {
                                                             if (Scalr.InitParams.extjs.length > 0) {

@@ -21,18 +21,18 @@ use Scalr\Service\Aws\S3\AbstractS3DataType;
 class AccessControlGrantData extends AbstractS3DataType
 {
 
-	/**
-	 * List of external identifier names.
-	 *
-	 * @var array
-	 */
-	protected $_externalKeys = array('bucketName');
+    /**
+     * List of external identifier names.
+     *
+     * @var array
+     */
+    protected $_externalKeys = array('bucketName');
 
-	/**
-	 * List of the public properties
-	 * which is managed by magic getter and setters internally.
-	 *
-	 * @var  array
-	 */
-	protected $_properties = array('grantee', 'permission');
+    /**
+     * List of the public properties
+     * which is managed by magic getter and setters internally.
+     *
+     * @var  array
+     */
+    protected $_properties = array('grantee', 'permission');
 }

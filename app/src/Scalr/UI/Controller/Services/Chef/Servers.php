@@ -68,17 +68,20 @@ class Scalr_UI_Controller_Services_Chef_Servers extends Scalr_UI_Controller
 	
 	public function xSaveServerAction()
 	{
-		$chef = Scalr_Service_Chef_Client::getChef($this->getParam('url'), $this->getParam('userName'), $this->getParam('authKey'));
+		$key = str_replace("\r\n", "\n", $this->getParam('authKey'));
+        $vKey = str_replace("\r\n", "\n", $this->getParam('authVKey'));
+            
+		$chef = Scalr_Service_Chef_Client::getChef($this->getParam('url'), $this->getParam('userName'), $key);
 		$response = $chef->listCookbooks();
-		$chef = Scalr_Service_Chef_Client::getChef($this->getParam('url'), $this->getParam('userVName'), $this->getParam('authVKey'));
+		$chef = Scalr_Service_Chef_Client::getChef($this->getParam('url'), $this->getParam('userVName'), $vKey);
 		$response = $chef->getClient($this->getParam('userVName'));
 		if ($this->getParam('servId')) {
 			$this->db->Execute('UPDATE services_chef_servers SET  `url` = ?, `username` = ?, `auth_key` = ?, `v_username` = ?, `v_auth_key` = ? WHERE `id` = ? AND env_id = ?', array(
 				$this->getParam('url'),
 				$this->getParam('userName'),
-				$this->getCrypto()->encrypt($this->getParam('authKey'), $this->cryptoKey),
+				$this->getCrypto()->encrypt($key, $this->cryptoKey),
 				$this->getParam('userVName'),
-				$this->getCrypto()->encrypt($this->getParam('authVKey'), $this->cryptoKey),
+				$this->getCrypto()->encrypt($vKey, $this->cryptoKey),
 				$this->getParam('servId'),
 				$this->getEnvironmentId()
 			));
@@ -88,9 +91,9 @@ class Scalr_UI_Controller_Services_Chef_Servers extends Scalr_UI_Controller
 				$this->getEnvironmentId(),
 				$this->getParam('url'),
 				$this->getParam('userName'),
-				$this->getCrypto()->encrypt($this->getParam('authKey'), $this->cryptoKey), 
+				$this->getCrypto()->encrypt($key, $this->cryptoKey), 
 				$this->getParam('userVName'),
-				$this->getCrypto()->encrypt($this->getParam('authVKey'), $this->cryptoKey),
+				$this->getCrypto()->encrypt($vKey, $this->cryptoKey),
 			));
 			$this->response->success('Server successfully added');
 		}

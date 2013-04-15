@@ -26,6 +26,8 @@
 
 			Scalr::AttachObserver(new Modules_Platforms_Ec2_Observers_Eip());
 			Scalr::AttachObserver(new Modules_Platforms_Ec2_Observers_Elb());
+            
+            Scalr::AttachObserver(new Modules_Platforms_Openstack_Observers_Openstack());
 		
 			Scalr::AttachObserver(new Modules_Platforms_Rds_Observers_Rds());
 			
@@ -269,6 +271,8 @@
 			if (!self::$observersSetuped)
 				self::setupObservers();
 			
+            $startTime = microtime(true);
+			
 			try
 			{
 				$event->SetFarmID($farmid);
@@ -297,9 +301,11 @@
 					));
 				throw new Exception($e->getMessage());
 			}
+            
+            $eventTime = microtime(true) - $startTime;
 			
 			// invoke StoreEvent method
-			self::StoreEvent($farmid, $event);
+			self::StoreEvent($farmid, $event, $eventTime);
 		}
 		
 		/**
@@ -308,7 +314,7 @@
 		 * @param integer $farmid
 		 * @param string $event_name
 		 */
-		public static function StoreEvent($farmid, Event $event)
+		public static function StoreEvent($farmid, Event $event, $eventTime = null)
 		{
 			try
 			{
@@ -327,6 +333,7 @@
 				if ($event->DBServer)
 					$eventServerId = $event->DBServer->serverId;
 				
+                //short_message temporary used for time tracking
 				// Store event in database
 				$DB->Execute("INSERT INTO events SET 
 					farmid	= ?, 
@@ -335,9 +342,10 @@
 					message	= ?,
 					event_object = ?,
 					event_id	 = ?,
-					event_server_id = ?
+					event_server_id = ?,
+					short_message = ?
 					",
-					array($farmid, $event->GetName(), $message, $eventStr, $event->GetEventID(), $eventServerId)
+					array($farmid, $event->GetName(), $message, $eventStr, $event->GetEventID(), $eventServerId, $eventTime)
 				);
 			}
 			catch(Exception $e)

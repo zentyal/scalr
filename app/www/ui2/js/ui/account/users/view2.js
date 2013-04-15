@@ -1,244 +1,32 @@
 Scalr.regPage('Scalr.ui.account.users.view2', function (loadParams, moduleParams) {
 	
-	Ext.define('Scalr.ui.models.User', {
-		extend: 'Ext.data.Model',
-		fields: [
-			'id', 'status', 'email', 'fullname', 'dtcreated', 'dtlastlogin', 'type', 'comments', 'teams', 'type', 'is2FaEnabled'
-		]
-	});
-
 	var store = Ext.create('store.store', {
-		model:'Scalr.ui.models.User',
+		fields: [
+			'id', 'status', 'email', 'fullname', 'dtcreated', 'dtlastlogin', 'type', 'comments', 'teams', 'type', 'is2FaEnabled', 'password'
+		],
 		data: moduleParams['usersList'],
 		proxy: {
 			type: 'object'
-		}
+		},
+		filterOnLoad: true
 	});
 	
-	var form = 	Ext.create('Ext.form.Panel', {
-		hidden: true,
-		fieldDefaults: {
-			anchor: '100%'
-		},
-		activeRecord: null, 
-		
-		setActiveRecord: function(record){
-			var form = this.getForm();
-			form.reset();
-			this.setMode(record?'edit':'create');
-			this.activeRecord = record || new Scalr.ui.models.User();
-			form.loadRecord(this.activeRecord);
-			this.setVisible(true);
-		},
-		setMode: function(mode) {
-			var form = this.getForm()
-				,visible = mode=='edit'?true:false;
-			form.findField('id').setVisible(visible);
-			form.findField('dtcreated').setVisible(visible);
-			form.findField('dtlastlogin').setVisible(visible);
-			form.findField('teams').setVisible(visible);
-			this.down('#delete').setVisible(visible);
-			this.down('#settings').setTitle((mode=='edit'?'Edit':'Add') + ' user');
-		},
-		items: [{
-			itemId: 'settings',
-			xtype: 'fieldset',
-			title: 'Settings',
-			items: [{
-				xtype: 'displayfield',
-				fieldLabel: 'ID'
-			},{
-				xtype: 'textfield',
-				name: 'fullname',
-				fieldLabel: 'Full name'
-			},{
-				xtype: 'textfield',
-				name: 'email',
-				fieldLabel: 'Email',
-				allowBlank: false,
-				vtype: 'email'
-			}, {
-				xtype: 'textfield',
-				name: 'password',
-				inputType: 'password',
-				fieldLabel: 'Password',
-				emptyText: 'Leave blank to let user specify password by himself',
-				value: '',
-				allowBlank: true
-			},{
-				xtype: 'displayfield',
-				name: 'teams',
-				fieldLabel: 'Teams',
-				valueToRaw: function(value) {
-					var teams = [];
-					if (value) {
-						Ext.each(value, function(team) {
-							teams.push(team.name);
-						});
-					}
-					return teams.join(', ');
-				}
-			}/*,{
-				xtype: 'buttongroup',
-				fieldLabel: 'Status',
-				allowBlank: false,
-				items: [{
-					name: 'status',
-					text: 'Active',
-					value: 'Active',
-					pressed: true
-				}, {
-					name: 'status',
-					text: 'Inactive',
-					value: 'Inactive'
-				}]
-			},{
-				xtype: 'radiogroup',
-				fieldLabel: 'Status',
-				allowBlank: false,
-
-				items: [{
-					name: 'status',
-					inputValue: 'Active',
-					boxLabel: 'Active',
-					checked: true
-				}, {
-					name: 'status',
-					inputValue: 'Inactive',
-					boxLabel: 'Inactive'
-				}]
-			}*/,{
-				xtype: 'displayfield',
-				name: 'dtcreated',
-				fieldLabel: 'User added'
-			},{
-				xtype: 'displayfield',
-				name: 'dtlastlogin',
-				fieldLabel: 'Last login'
-			}, {
-				xtype: 'textarea',
-				name: 'comments',
-				fieldLabel: 'Comments',
-				labelAlign: 'top',
-				grow: true,
-				growMax: 400,
-				anchor: '100%'
-			}, {
-				xtype: 'hidden',
-				name: 'id'
-			}]
-		}],
-		dockedItems: [{
-			xtype: 'container',
-			dock: 'bottom',
-			cls: 'x-toolbar',
-			layout: {
-				type: 'hbox',
-				pack: 'center'
-			},
-			defaults: {
-				margin: '0 5 0 5'
-			},
-			items: [{
-				itemId: 'save',
-				xtype: 'button',
-				text: 'Save',
-				handler: function () {
-					var form = this.up('form').getForm();
-					if (form.isValid()) {
-						console.log(form);
-						Scalr.Request({
-							processBox: {
-								type: 'save'
-							},
-							url: '/account/users/xSave',
-							form: form,
-							success: function (data) {
-								form.updateRecord();
-							}
-						});
-					}
-				}
-			}, {
-				itemId: 'cancel',
-				xtype: 'button',
-				text: 'Cancel',
-				handler: function() {
-					this.up('form').setVisible(false);
-				}
-			}, {
-				itemId: 'delete',
-				xtype: 'button',
-				cls: 'x-btn-default-small-red',
-				text: 'Delete',
-				handler: function() {
-					var record = this.up('form').activeRecord;
-					Scalr.Request({
-						confirmBox: {
-							msg: 'Delete user #' + record.get('id') + ' ?',
-							type: 'delete'
-						},
-						processBox: {
-							msg: 'Deleting...',
-							type: 'delete'
-						},
-						scope: this,
-						url: '/account/users/xRemove',
-						params: {userId: record.get('id')},
-						success: function (data) {
-							store.remove(record);
-						}
-					});
-				}
-			}]
-		}]
-	});
-
 	var grid = Ext.create('Ext.grid.Panel', {
-		cls: 'scalr-ui-panel-columned-grid',
+		cls: 'scalr-ui-panel-columned-leftcol',
 		flex: 1,
-		//scalrReconfigureParams: {teamId : '', userId: '', groupPermissionId: ''},
 		multiSelect: true,
-		updatePointerPosition: function() {
-			var record = this.getSelectionModel().lastFocused
-				,offset;
-			if (record) {
-				offset = Ext.get(this.view.getNode(record)).getOffsetsTo(this.el)[1];
-				offset = offset<50?-20:offset;
-			} else {
-				offset = -20;
-			}
-			this.el.setStyle('background-position','100% '+offset+'px');
-		},
-		selModel: {
-			selType: 'selectedmodel',
-			listeners: {
-				focuschange: function(selModel) {
-					if (selModel.lastFocused) {
-						if (form.activeRecord != selModel.lastFocused) {
-							form.setActiveRecord(selModel.lastFocused);
-							grid.updatePointerPosition();
-						}
-					} else {
-						form.setVisible(false);
-						grid.updatePointerPosition();
-					}
-				}
-			}
-		},
+		selType: 'selectedmodel',
 		store: store,
 		stateId: 'grid-account-users-view',
-		//stateful: true,
-		//forceFit: true,
-		plugins: {
-			ptype: 'gridstore'
-		},
+		plugins: [
+			'gridstore',
+			'rowpointer'
+		],
 		listeners: {
-			afterrender: function(){
-				this.view.el.dom.onscroll = function(){grid.updatePointerPosition();};
-			},
 			selectionchange: function(selModel, selected) {
 				this.down('#delete').setDisabled(!selected.length);
+				this.down('#activate').setDisabled(!selected.length);
+				this.down('#deactivate').setDisabled(!selected.length);
 			}
 		},
 		viewConfig: {
@@ -260,51 +48,302 @@ Scalr.regPage('Scalr.ui.account.users.view2', function (loadParams, moduleParams
 		],
 		dockedItems: [{
 			dock: 'top',
-			cls: 'x-toolbar',
-			layout: {
-				type: 'hbox',
-				pack: 'end'
+			layout: 'hbox',
+			defaults: {
+				margin: '0 0 0 10',
+				handler: function() {
+					var action = this.getItemId(),
+						actionMessages = {
+							'delete': ['Delete selected user(s): %s ?', 'Deleting selected users(s) ...'],
+							activate: ['Activate selected user(s): %s ?', 'Activating selected users(s) ...'],
+							deactivate: ['Deactivate selected user(s): %s ?', 'Deactivating selected users(s) ...']
+						},
+						selModel = grid.getSelectionModel(),
+						ids = [], 
+						emails = [],
+						request = {};
+					for (var i=0, records = selModel.getSelection(), len=records.length; i<len; i++) {
+						ids.push(records[i].get('id'));
+						emails.push(records[i].get('email'));
+					}
+					
+					request = {
+						confirmBox: {
+							msg: actionMessages[action][0],
+							type: action,
+							objects: emails
+						},
+						processBox: {
+							msg: actionMessages[action][1],
+							type: action
+						},
+						params: {ids: ids, action: action},
+						success: function (data) {
+							if (data.processed) {
+								if (data.processed.length) {
+									switch (action) {
+										case 'activate':
+										case 'deactivate':
+											for (var i=0,len=data.processed.length; i<len; i++) {
+												var record = store.getById(data.processed[i]);
+												record.set('status', action=='deactivate'?'Inactive':'Active');
+												selModel.deselect(record);
+											}
+										break;
+										case 'delete':
+											var recordsToDelete = [];
+											for (var i=0,len=data.processed.length; i<len; i++) {
+												recordsToDelete[i] = store.getById(data.processed[i]);
+												selModel.deselect(recordsToDelete[i]);
+											}
+											store.remove(recordsToDelete);
+										break;
+									}
+								}
+							}
+							selModel.refreshLastFocused();
+						}
+					};
+					request.url = '/account/users/xGroupActionHandler';
+					request.params.ids = Ext.encode(ids);
+					
+					Scalr.Request(request);
+				}
 			},
 			items: [{
-				xtype: 'textfield',
-				name: 'searchField',
-				hideLabel: true,
-				width: 200,
-				listeners: {
-					change: {
-						fn: function(me, value){
-							store.filterBy(function(record, id){
-								value= Ext.String.trim(value);
-								return value=='' ? true : record.get('fullname').match(new RegExp(Ext.String.escapeRegex(value), 'i'))
-							})							 
-						},
-						scope: this,
-						buffer: 100
-					}
-				}
-			},{ 
+				xtype: 'livesearch',
+				margin: 0,
+				fields: ['fullname', 'email'],
+				store: store
+			},{
 				xtype: 'tbfill' 
+			},{
+				itemId: 'activate',
+				xtype: 'button',
+				iconCls: 'x-btn-groupacton-activate',
+				ui: 'action',
+				disabled: true,
+				tooltip: 'Activate selected users'
+			},{
+				itemId: 'deactivate',
+				xtype: 'button',
+				iconCls: 'x-btn-groupacton-deactivate',
+				ui: 'action',
+				disabled: true,
+				tooltip: 'Deactivate selected users'
 			},{
 				itemId: 'delete',
 				xtype: 'button',
-				margin: '0 10 0 0',
+				iconCls: 'x-btn-groupacton-delete',
+				ui: 'action',
 				disabled: true,
-				cls: 'x-btn-default-small-red',
-				text: 'Delete',
-				handler: function(){
+				tooltip: 'Delete selected users'
+			},{
+				itemId: 'refresh',
+				xtype: 'button',
+				iconCls: 'x-btn-groupacton-refresh',
+				ui: 'action',
+				tooltip: 'Refresh',
+				handler: function() {
+					Scalr.Request({
+						processBox: {
+							type: 'action'
+						},
+						url: '/account/users/xGetList',
+						success: function(data) {
+							store.loadData(data['usersList']);
+						}
+					});
 				}
 			},{
 				itemId: 'add',
 				xtype: 'button',
-				text: 'Add',
-				handler: function(){
+				iconCls: 'x-btn-groupacton-add',
+				ui: 'action',
+				tooltip: 'Add user',
+				handler: function() {
 					grid.getSelectionModel().setLastFocused(null);
-					grid.updatePointerPosition();
-					form.setActiveRecord(null);
+					form.loadRecord(store.createModel({password:  false}));
 				}
 			}]
 		}]
 	});
+	
+	var form = 	Ext.create('Ext.form.Panel', {
+		hidden: true,
+		fieldDefaults: {
+			anchor: '100%'
+		},
+		listeners: {
+			afterrender: function() {
+				var me = this;
+				grid.getSelectionModel().on('focuschange', function(gridSelModel){
+					if (gridSelModel.lastFocused) {
+						me.loadRecord(gridSelModel.lastFocused);
+					} else {
+						me.setVisible(false);
+					}
+				});
+			},
+			beforeloadrecord: function(record) {
+				var form = this.getForm();
+
+				form.reset();
+				var c = this.query('component[cls~=hideonedit], #delete');
+				for (var i=0, len=c.length; i<len; i++) {
+					c[i].setVisible(!record.phantom);
+				}
+				this.down('#settings').setTitle((!record.phantom?'Edit':'Add') + ' user');
+			},
+			loadrecord: function(record) {
+				if (!this.isVisible()) {
+					this.setVisible(true);
+				}			
+			}
+		},
+		items: [{
+			itemId: 'settings',
+			xtype: 'fieldset',
+			title: 'Settings',
+			items: [{
+				xtype: 'displayfield',
+				cls: 'hideonedit',
+				fieldLabel: 'ID',
+				name: 'id',
+				submitValue: true
+			},{
+				xtype: 'textfield',
+				name: 'fullname',
+				fieldLabel: 'Full name'
+			},{
+				xtype: 'textfield',
+				name: 'email',
+				fieldLabel: 'Email',
+				allowBlank: false,
+				vtype: 'email'
+			}, {
+				xtype: 'passwordfield',
+				name: 'password',
+				fieldLabel: 'Password',
+				emptyText: 'Leave blank to let user specify password by himself',
+				allowBlank: true
+			},{
+				xtype: 'displayfield',
+				cls: 'hideonedit',
+				name: 'teams',
+				fieldLabel: 'Teams',
+				fieldStyle: 'color:#0055cc',
+				valueToRaw: function(value) {
+					var teams = [];
+					if (value) {
+						Ext.each(value, function(team) {
+							teams.push(team.name);
+						});
+					}
+					return teams.join(', ');
+				}
+			},{
+				xtype: 'displayfield',
+				cls: 'hideonedit',
+				name: 'dtcreated',
+				fieldLabel: 'User added'
+			},{
+				xtype: 'displayfield',
+				cls: 'hideonedit',
+				name: 'dtlastlogin',
+				fieldLabel: 'Last login'
+			},{
+				xtype: 'buttongroupfield',
+				fieldLabel: 'Status',
+				name: 'status',
+				value: 'Active',
+				items: [{
+					text: 'Active',
+					value: 'Active'
+				}, {
+					text: 'Inactive',
+					value: 'Inactive'
+				}]
+			}, {
+				xtype: 'textarea',
+				name: 'comments',
+				fieldLabel: 'Comments',
+				labelAlign: 'top',
+				grow: true,
+				growMax: 400,
+				anchor: '100%'
+			}]
+		}],
+		dockedItems: [{
+			xtype: 'container',
+			dock: 'bottom',
+			cls: 'x-toolbar',
+			layout: {
+				type: 'hbox',
+				pack: 'center'
+			},
+			items: [{
+				itemId: 'save',
+				xtype: 'button',
+				text: 'Save',
+				handler: function () {
+					var frm = form.getForm(),
+						record = frm.getRecord();
+					if (frm.isValid()) {
+						Scalr.Request({
+							processBox: {
+								type: 'save'
+							},
+							url: '/account/users/xxxSave',
+							form: frm,
+							success: function (data) {
+								if (record.phantom) {
+									store.add(data.user);
+								} else {
+									frm.updateRecord();
+								}
+								grid.getSelectionModel().setLastFocused(null);
+							}
+						});
+					}
+				}
+			}, {
+				itemId: 'cancel',
+				xtype: 'button',
+				text: 'Cancel',
+				handler: function() {
+					grid.getSelectionModel().setLastFocused(null);
+					form.setVisible(false);
+				}
+			}, {
+				itemId: 'delete',
+				xtype: 'button',
+				cls: 'x-btn-default-small-red',
+				text: 'Delete',
+				handler: function() {
+					var record = form.getForm().getRecord();
+					Scalr.Request({
+						confirmBox: {
+							msg: 'Delete user ' + record.get('email') + ' ?',
+							type: 'delete'
+						},
+						processBox: {
+							msg: 'Deleting...',
+							type: 'delete'
+						},
+						scope: this,
+						url: '/account/users/xRemove',
+						params: {userId: record.get('id')},
+						success: function (data) {
+							record.store.remove(record);
+							grid.getSelectionModel().setLastFocused(null);
+						}
+					});
+				}
+			}]
+		}]
+	});
+
 
 	var panel = Ext.create('Ext.panel.Panel', {
 		cls: 'scalr-ui-panel-columned',
@@ -323,7 +362,7 @@ Scalr.regPage('Scalr.ui.account.users.view2', function (loadParams, moduleParams
 		items: [
 			grid
 		,{
-			cls: 'scalr-ui-panel-columned-form-wrapper',
+			cls: 'scalr-ui-panel-columned-rightcol',
 			flex: 1,
 			maxWidth: 580,
 			items: [

@@ -14,31 +14,31 @@ use Scalr\Service\Aws\Iam\AbstractIamDataType;
  */
 class AccessKeyMetadataData extends AbstractIamDataType
 {
-	/**
-	 * List of external identifier names.
-	 *
-	 * @var array
-	 */
-	protected $_externalKeys = array();
+    /**
+     * List of external identifier names.
+     *
+     * @var array
+     */
+    protected $_externalKeys = array();
 
-	/**
-	 * @var string
-	 */
-	public $userName;
+    /**
+     * @var string
+     */
+    public $userName;
 
-	/**
-	 * @var string
-	 */
-	public $accessKeyId;
+    /**
+     * @var string
+     */
+    public $accessKeyId;
 
-	/**
-	 * @var \DateTime
-	 */
-	public $createDate;
+    /**
+     * @var \DateTime
+     */
+    public $createDate;
 
-	/**
-	 * Active | Inactive
-	 * @var string
-	 */
-	public $status;
+    /**
+     * Active | Inactive
+     * @var string
+     */
+    public $status;
 }

@@ -14,34 +14,34 @@ use Scalr\Service\Aws\S3\AbstractS3ListDataType;
 class BucketList extends AbstractS3ListDataType
 {
 
-	/**
-	 * List of the public properties
-	 * which is managed by magic getter and setters internally.
-	 *
-	 * @var  array
-	 */
-	protected $_properties = array('owner');
+    /**
+     * List of the public properties
+     * which is managed by magic getter and setters internally.
+     *
+     * @var  array
+     */
+    protected $_properties = array('owner');
 
-	/**
-	 * Constructor
-	 *
-	 * @param array|BucketData  $aListData  BucketData List
-	 */
-	public function __construct ($aListData = null)
-	{
-		parent::__construct(
-			$aListData,
-			'bucketName',
-			'Scalr\\Service\\Aws\\S3\\DataType\\BucketData'
-		);
-	}
+    /**
+     * Constructor
+     *
+     * @param array|BucketData  $aListData  BucketData List
+     */
+    public function __construct ($aListData = null)
+    {
+        parent::__construct(
+            $aListData,
+            'bucketName',
+            'Scalr\\Service\\Aws\\S3\\DataType\\BucketData'
+        );
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
-	 */
-	public function getQueryArray($uriParameterName = 'BucketName')
-	{
-		return parent::getQueryArray($uriParameterName);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
+     */
+    public function getQueryArray($uriParameterName = 'BucketName', $member = true)
+    {
+        return parent::getQueryArray($uriParameterName);
+    }
 }

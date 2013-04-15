@@ -79,37 +79,50 @@ Scalr.regPage('Scalr.ui.tools.cloudstack.snapshots.view', function (loadParams, 
 
 		multiSelect: true,
 		selModel: {
-			selType: 'selectedmodel',
-			selectedMenu: [{
-				text: 'Delete',
-				iconCls: 'x-menu-icon-delete',
-				request: {
-					confirmBox: {
-						msg: 'Delete selected Snapshot(s): %s ?',
-						type: 'delete'
-					},
-					processBox: {
-						msg: 'Deleting snapshot(s) ...',
-						type: 'delete'
-					},
-					url: '/tools/cloudstack/snapshots/xRemove/',
-					dataHandler: function (records) {
-						var data = [];
-						this.confirmBox.objects = [];
-						for (var i = 0, len = records.length; i < len; i++) {
-							data.push(records[i].get('snapshotId'));
-							this.confirmBox.objects.push(records[i].get('snapshotId'));
-						}
-						return { snapshotId: Ext.encode(data), cloudLocation: store.proxy.extraParams.cloudLocation };
-					}
-				}
-			}]
+			selType: 'selectedmodel'
+		},
+
+		listeners: {
+			selectionchange: function(selModel, selections) {
+				this.down('scalrpagingtoolbar').down('#delete').setDisabled(!selections.length);
+			}
 		},
 
 		dockedItems: [{
 			xtype: 'scalrpagingtoolbar',
 			store: store,
 			dock: 'top',
+			afterItems: [{
+				ui: 'paging',
+				itemId: 'delete',
+				iconCls: 'x-tbar-delete',
+				tooltip: 'Select one or more events to delete them',
+				disabled: true,
+				handler: function() {
+					var request = {
+						confirmBox: {
+							msg: 'Delete selected snapshot(s): %s ?',
+							type: 'delete'
+						},
+						processBox: {
+							msg: 'Deleting snapshot(s) ...',
+							type: 'delete'
+						},
+						url: '/tools/cloudstack/snapshots/xRemove/',
+						success: function() {
+							store.load();
+						}
+					}, records = this.up('grid').getSelectionModel().getSelection(), data = [];
+
+					request.confirmBox.objects = [];
+					for (var i = 0, len = records.length; i < len; i++) {
+						data.push(records[i].get('snapshotId'));
+						request.confirmBox.objects.push(records[i].get('snapshotId'));
+					}
+					request.params = { snapshotId: Ext.encode(data), cloudLocation: store.proxy.extraParams.cloudLocation };
+					Scalr.Request(request);
+				}
+			}],
 			items: [{
 				xtype: 'fieldcloudlocation',
 				itemId: 'cloudLocation',

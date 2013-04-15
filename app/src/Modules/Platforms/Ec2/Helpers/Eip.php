@@ -95,6 +95,9 @@
 					
 					// Remove old association
 					$db->Execute("DELETE FROM elastic_ips WHERE farm_roleid = ? AND instance_index=?", array($DBFarmRole->ID, $serverIndex));
+                    
+                    //Remove old IP association
+                    $db->Execute("DELETE FROM elastic_ips WHERE ipaddress=?", array($ipAddress));
 					
 					// Associate IP with server in our db
 					$db->Execute("INSERT INTO elastic_ips SET env_id=?, farmid=?, farm_roleid=?, ipaddress=?, state='0', instance_id='', clientid=?, instance_index=?",

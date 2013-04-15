@@ -1,30 +1,24 @@
 <?php
 
+use Scalr\Service\Aws\Ec2\DataType\SnapshotFilterNameType;
+use Scalr\Service\Aws\Ec2\DataType\SnapshotData;
+
 class Scalr_UI_Controller_Platforms_Ec2 extends Scalr_UI_Controller
 {
 	public function xGetAvailZonesAction()
 	{
-		$amazonEC2Client = Scalr_Service_Cloud_Aws::newEc2(
-			$this->getParam('cloudLocation'),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::PRIVATE_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::CERTIFICATE)
-		);
-
+		$aws = $this->getEnvironment()->aws($this->getParam('cloudLocation'));
 		// Get Avail zones
-		$response = $amazonEC2Client->DescribeAvailabilityZones();
-		
-		if ($response->availabilityZoneInfo->item instanceOf stdClass)
-			$response->availabilityZoneInfo->item = array($response->availabilityZoneInfo->item);
-
+		$response = $aws->ec2->availabilityZone->describe();
 		$data = array();
-		foreach ($response->availabilityZoneInfo->item as $zone) {
+		/* @var $zone \Scalr\Service\Aws\Ec2\DataType\AvailabilityZoneData */
+		foreach ($response as $zone) {
 			$data[] = array(
-				'id' => (string)$zone->zoneName,
-				'name' => (string)$zone->zoneName,
-				'state' => (string)$zone->zoneState
+				'id'    => (string)$zone->zoneName,
+				'name'  => (string)$zone->zoneName,
+				'state' => (string)$zone->zoneState,
 			);
 		}
-		
 		/*
 		if ($this->getParam('roleId')) {
 			$dbRole = DBRole::loadById($this->getParam('roleId'));
@@ -32,17 +26,12 @@ class Scalr_UI_Controller_Platforms_Ec2 extends Scalr_UI_Controller
 			$data['locations'] = $locations;
 		}
 		*/
-
 		$this->response->data(array('data' => $data));
 	}
 
 	public function xGetFarmRoleElasicIpsAction()
 	{
-		$amazonEC2Client = Scalr_Service_Cloud_Aws::newEc2(
-			$this->getParam('cloudLocation'),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::PRIVATE_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::CERTIFICATE)
-		);
+		$aws = $this->getEnvironment()->aws($this->getParam('cloudLocation'));
 
 		$map = array();
 		if ($this->getParam('farmRoleId')) {
@@ -70,19 +59,20 @@ class Scalr_UI_Controller_Platforms_Ec2 extends Scalr_UI_Controller
 			}
 		}
 
-		$response = $amazonEC2Client->DescribeAddresses();
-		
-		if ($response->addressesSet->item instanceof stdClass)
-			$response->addressesSet->item = array($response->addressesSet->item);
+		$response = $aws->ec2->address->describe();
 
 		$ips = array();
-		foreach($response->addressesSet->item as $ip) {
+		/* @var $ip \Scalr\Service\Aws\Ec2\DataType\AddressData */
+		foreach ($response as $ip) {
 			$itm = array(
-				'ipAddress' => $ip->publicIp,
-				'instanceId' => $ip->instanceId
+				'ipAddress'  => $ip->publicIp,
+				'instanceId' => $ip->instanceId,
 			);
-			
-			$info = $this->db->GetRow("SELECT * FROM elastic_ips WHERE ipaddress = ?", array($itm['ipAddress']));
+
+			$info = $this->db->GetRow("
+				SELECT * FROM elastic_ips WHERE ipaddress = ?
+			", array($itm['ipAddress']));
+
 			if ($info) {
 				try {
 					if ($info['server_id'] && $itm['instanceId']) {
@@ -105,93 +95,60 @@ class Scalr_UI_Controller_Platforms_Ec2 extends Scalr_UI_Controller
 			}
 			$ips[] = $itm;
 		}
-		
+
 		$this->response->data(array('data' => array(
 			'map' => $map,
 			'ips' => $ips
 		)));
 	}
 
-	public function xGetFarmRoleEBSSettingsAction()
-	{
-		$amazonEC2Client = Scalr_Service_Cloud_Aws::newEc2(
-			$this->getParam('cloudLocation'),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::PRIVATE_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::CERTIFICATE)
-		);
-
-		$response = $amazonEC2Client->DescribeSnapshots();
-		if ($response->snapshotSet->item instanceOf stdClass)
-			$response->snapshotSet->item = array($response->snapshotSet->item);
-
-		$data = array();
-		
-		// Snapshots list
-		foreach ($response->snapshotSet->item as $pk => $pv) {
-			if ($pv->ownerId != $this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCOUNT_ID))
-				continue;
-
-			if ($pv->status == 'completed')
-				$data[] = array(
-					'snapid' 	=> (string)$pv->snapshotId,
-					'createdat'	=> Scalr_Util_DateTime::convertTz($pv->startTime),
-					'size'		=> (string)$pv->volumeSize
-				);
-		}
-		
-		//Current EBS mapping
-		
-		//Current EBS usage
-		$usage = array();
-		$ebs = $this->db->GetAll("SELECT * FROM ec2_ebs WHERE farm_roleid = ? AND ismanual = '0' ORDER BY id ASC", array($this->getParam('farmRoleId')));
-		foreach ($ebs as $volume) {
-			
-			if (!$usage[$volume['server_index']]) {
-				$usage[$volume['server_index']] = array(
-					'volumes' => array(),
-					'server' => $this->db->GetOne("SELECT server_id FROM servers WHERE farm_roleid = ? AND `index` = ?", array(
-						$this->getParam('farmRoleId'),
-						$volume['server_index']
-					))
-				);
-			}
-			
-			$usage[$volume['server_index']]['volumes'][] = array(
-				'volume_id' => $volume['volume_id']
-			);
-		}
-		
-
-		$this->response->data(array('data' => array(
-			'usage' => $usage
-		)));
-	}
-	
 	public function xGetSnapshotsAction()
 	{
-		$amazonEC2Client = Scalr_Service_Cloud_Aws::newEc2(
-			$this->getParam('cloudLocation'),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::PRIVATE_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::CERTIFICATE)
-		);
+		$aws = $this->getEnvironment()->aws($this->getParam('cloudLocation'));
 
-		$response = $amazonEC2Client->DescribeSnapshots();
-		if ($response->snapshotSet->item instanceOf stdClass)
-			$response->snapshotSet->item = array($response->snapshotSet->item);
+		$response = $aws->ec2->snapshot->describe(null, null, array(array(
+			'name'  => SnapshotFilterNameType::ownerId(),
+			'value' => $this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCOUNT_ID),
+		)));
 
 		$data = array();
-		foreach ($response->snapshotSet->item as $pk => $pv) {
-			if ($pv->ownerId != $this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::ACCOUNT_ID))
-				continue;
-
-			if ($pv->status == 'completed')
+		/* @var $pv \Scalr\Service\Aws\Ec2\DataType\SnapshotData */
+		foreach ($response as $pv) {
+			if ($pv->status == SnapshotData::STATUS_COMPLETED) {
 				$data[] = array(
-					'snapid' 	=> (string)$pv->snapshotId,
-					'createdat'	=> Scalr_Util_DateTime::convertTz($pv->startTime),
-					'size'		=> (string)$pv->volumeSize
+					// old format
+					'snapid'        => $pv->snapshotId,
+					'createdat'     => Scalr_Util_DateTime::convertTz($pv->startTime),
+					'size'          => $pv->volumeSize,
+					// new format
+					'snapshotId'    => $pv->snapshotId,
+					'createdDate'   => Scalr_Util_DateTime::convertTz($pv->startTime),
+					'size'          => $pv->volumeSize,
+					'volumeId'      => $pv->volumeId,
+					'description'   => (string)$pv->description,
 				);
+			}
 		}
 
 		$this->response->data(array('data' => $data));
+	}
+
+	public function xGetVpcListAction()
+	{
+		$aws = $this->getEnvironment()->aws($this->getParam('cloudLocation'));
+
+		$vpcList = $aws->ec2->vpc->describe();
+		$rows = array();
+		/* @var $vpcData Scalr\Service\Aws\Ec2\DataType\VpcData */
+		foreach ($vpcList as $vpcData) {
+			$rows[] = array(
+				'id'   => $vpcData->vpcId,
+				'name' => 'test - ' . $vpcData->vpcId,
+			);
+		}
+
+		$this->response->data(array(
+			'vpc' => $rows,
+		));
 	}
 }

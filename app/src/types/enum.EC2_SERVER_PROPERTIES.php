@@ -8,5 +8,9 @@
 		const AVAIL_ZONE	= 'ec2.avail-zone';
 		const REGION		= 'ec2.region';
 		const INSTANCE_TYPE	= 'ec2.instance_type';
+		
+		
+		const VPC_ID	= 'ec2.vpc-id';
+		const SUBNET_ID = 'ec2.subnet-id';
 	}
 ?>

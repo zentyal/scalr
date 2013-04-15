@@ -182,7 +182,7 @@
 			$this->httpRequest->setOptions(array(
 				"redirect" 		=> 2, 
 				"useragent" 	=> "Scalr",
-				'timeout'		=> 10,
+				'timeout'		=> 20,
 				'connecttimeout'=> 5
 			));
   

@@ -10,9 +10,6 @@ class Scalr_Messaging_Msg {
 	
 	public $forecastVars = array();
 	
-	//public $scripts = array();
-	
-	
 	function __construct () {
 		$this->messageId = Scalr::GenerateUID();
 		$this->meta[Scalr_Messaging_MsgMeta::SCALR_VERSION] = SCALR_VERSION;

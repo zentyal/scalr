@@ -54,7 +54,7 @@ class Scalr_Messaging_Service_LogQueueHandler implements Scalr_Messaging_Service
 					DBServer::LoadByID($message->getServerId())->SetProperty(SERVER_PROPERTIES::SZR_VESION, $message->meta[Scalr_Messaging_MsgMeta::SZR_VERSION]);
 				
 			} catch (Exception $e) {
-				$this->logger->warn($e->getMessage());
+				$this->logger->fatal($e->getMessage());
 			}
 			
 		} elseif ($message instanceof Scalr_Messaging_Msg_Log) {

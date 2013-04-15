@@ -115,6 +115,8 @@
 		
 		public function handleMessage(Scalr_Messaging_Msg $message, DBServer $dbServer)
 		{
+			parent::handleMessage($message, $dbServer);
+                
 			if (!$message->chef)
 				return;
 			

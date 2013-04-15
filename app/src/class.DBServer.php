@@ -32,7 +32,7 @@
 			$flavor,
 			$Db,
 			$dbId,
-			$propsCache,
+			$propsCache = array(),
 			$environment,
 			$client,
 			$dbFarmRole,
@@ -41,14 +41,19 @@
 		public static $platformPropsClasses = array(
 			SERVER_PLATFORMS::EC2 => 'EC2_SERVER_PROPERTIES',
 			SERVER_PLATFORMS::RACKSPACE => 'RACKSPACE_SERVER_PROPERTIES',
-			SERVER_PLATFORMS::OPENSTACK => 'OPENSTACK_SERVER_PROPERTIES',
 			SERVER_PLATFORMS::RDS => 'RDS_SERVER_PROPERTIES',
 			SERVER_PLATFORMS::EUCALYPTUS => 'EUCA_SERVER_PROPERTIES',
 			SERVER_PLATFORMS::NIMBULA => 'NIMBULA_SERVER_PROPERTIES',
+
 			SERVER_PLATFORMS::CLOUDSTACK => 'CLOUDSTACK_SERVER_PROPERTIES',
 			SERVER_PLATFORMS::IDCF => 'CLOUDSTACK_SERVER_PROPERTIES',
 			SERVER_PLATFORMS::UCLOUD => 'CLOUDSTACK_SERVER_PROPERTIES',
-			SERVER_PLATFORMS::GCE => 'GCE_SERVER_PROPERTIES'
+
+			SERVER_PLATFORMS::GCE => 'GCE_SERVER_PROPERTIES',
+
+            SERVER_PLATFORMS::OPENSTACK => 'OPENSTACK_SERVER_PROPERTIES',
+			SERVER_PLATFORMS::RACKSPACENG_UK => 'OPENSTACK_SERVER_PROPERTIES',
+			SERVER_PLATFORMS::RACKSPACENG_US => 'OPENSTACK_SERVER_PROPERTIES'
 		);
 
 		private static $FieldPropertyMap = array(
@@ -71,6 +76,11 @@
 			'replace_server_id' => 'replaceServerID'
 		);
 
+		const PORT_API = SERVER_PROPERTIES::SZR_API_PORT;
+		const PORT_CTRL = SERVER_PROPERTIES::SZR_CTRL_PORT;
+		const PORT_SNMP = SERVER_PROPERTIES::SZR_SNMP_PORT;
+		const PORT_UPDC = SERVER_PROPERTIES::SZR_UPDC_PORT;
+		
 		public function __sleep()
 	    {
 	        return array_values(self::$FieldPropertyMap);
@@ -82,6 +92,29 @@
 			$this->Db = Core::GetDBInstance();
 		}
 
+		public function getPort($portType) {
+			
+			$port = $this->GetProperty($portType);
+			if (!$port) {
+				switch ($portType) {
+					case self::PORT_API:
+						$port = 8010;
+						break;
+					case self::PORT_CTRL:
+						$port = 8013;
+						break;
+					case self::PORT_SNMP:
+						$port = 8014;
+						break;
+					case self::PORT_UPDC:
+						$port = 8008;
+						break;
+				}
+			}
+			
+			return $port;
+		}
+		
 		/**
 		 * @return Scalr_Net_Ssh2_Client
 		 * Enter description here ...
@@ -91,6 +124,13 @@
 			$ssh2Client = new Scalr_Net_Ssh2_Client();
 
 			switch($this->platform) {
+			    
+                case SERVER_PLATFORMS::RACKSPACENG_US:
+                    $ssh2Client->addPassword(
+                        'root',
+                        $this->GetProperty(OPENSTACK_SERVER_PROPERTIES::ADMIN_PASS)
+                    );
+                    
 				case SERVER_PLATFORMS::RACKSPACE:
 					$ssh2Client->addPassword(
 						'root',
@@ -100,9 +140,9 @@
          		break;
 
          		case SERVER_PLATFORMS::GCE:
-					
+
 					$userName = 'scalr';
-					
+
          			if ($this->status == SERVER_STATUS::TEMPORARY) {
 						$keyName = 'SCALR-ROLESBUILDER-'.SCALR_ID;
 					}
@@ -226,7 +266,30 @@
 	        		$retval["cloud_storage_path"] = "cf://scalr-{$this->GetFarmObject()->Hash}";
 
 	        		break;
+                    
+                case SERVER_PLATFORMS::GCE:
+
+                    $retval["cloud_storage_path"] = "gcs://";
+
+                    break;
+                    
+                case SERVER_PLATFORMS::OPENSTACK:
+                case SERVER_PLATFORMS::RACKSPACENG_UK:
+                case SERVER_PLATFORMS::RACKSPACENG_US:
+
+                    $retval["cloud_storage_path"] = "swift://";
+
+                    break;
 	        }
+	        
+	        /*
+	        if ($this->farmId == 13841) {
+	        	$retval['p2p_producer_endpoint'] = "http://10.0.0.79/messaging";
+	        	$retval['queryenv_url'] = "http://10.0.0.79/query-env";
+	        	$retval['httpproto'] = "http";
+	        	$retval['eventhandlerurl'] = "10.0.0.79";
+	        }
+	        */
 
 	        // Custom settings
 	        foreach ($dbFarmRole->GetSettingsByFilter("user-data") as $k=>$v)
@@ -387,9 +450,12 @@
 		 */
 		public function GetProperty($propertyName, $ignoreCache = false)
 		{
-			if (!$this->propsCache[$propertyName] || $ignoreCache)
-			{
-				$this->propsCache[$propertyName] = $this->Db->GetOne("SELECT value FROM server_properties WHERE server_id=? AND name=?", array(
+			if (!array_key_exists($propertyName, $this->propsCache) || $ignoreCache) {
+				$this->propsCache[$propertyName] = $this->Db->GetOne("
+					SELECT value
+					FROM server_properties
+					WHERE server_id=? AND name=?
+				", array(
 					$this->serverId,
 					$propertyName
 				));
@@ -540,7 +606,58 @@
 			return $DBServer;
 		}
 
+		
+		
 		public function GetFreeDeviceName()
+		{
+			if (!$this->IsSupported('0.11.0'))
+				return $this->GetFreeDeviceNameSNMP();
+			
+			$szrClient = Scalr_Net_Scalarizr_Client::getClient(
+				$this, 
+				Scalr_Net_Scalarizr_Client::NAMESPACE_SYSTEM, 
+				$this->getPort(self::PORT_API)
+			);
+
+			$list = $szrClient->blockDevices();
+
+			$map = array("f", "g", "h", "i", "j", "k", "l", "m", "n", "p");
+			$n_map = array("1", "2", "3", "4", "5", "6", "7", "8", "9");
+			$mapUsed = array();
+		
+			
+			foreach ($list as $deviceName)
+			{
+				preg_match("/(sd|xvd)([a-z][0-9]*)/", $deviceName, $matches);
+				
+				if (!in_array($mapUsed, $matches[0][2]))
+					array_push($mapUsed, $matches[0][2]);
+			}
+		
+			$deviceL = false;
+			foreach ($n_map as $v) {
+				foreach ($map as $letter) {
+					if (in_array($letter, $mapUsed))
+						continue;
+		
+					$deviceL = "{$letter}{$v}";
+					if (!in_array($deviceL, $mapUsed)) {
+						break;
+					} else
+						$mapUsed = false;
+				}
+		
+				if ($deviceL)
+					break;
+			}
+		
+			if (!$deviceL)
+				throw new Exception(_("There is no available device letter on instance for attaching EBS"));
+		
+			return "/dev/sd{$deviceL}";
+		}
+		
+		public function GetFreeDeviceNameSNMP()
 		{
 			$DBFarm = $this->GetFarmObject();
 
@@ -726,12 +843,22 @@
 
 
 		private function GetVersionInfo($v) {
+		    
+            // For SVN: 0.7.11 or 0.9.r565 or 0.2-151
 			if (preg_match("/^([0-9]+)\.([0-9]+)[-\.]?[r]*([0-9]+)?$/si", $v, $matches)) {
 				$verInfo = array_map("intval", array_slice($matches, 1));
 				while (count($verInfo) < 3) {
 					$verInfo[] = 0;
 				}
 				return $verInfo;
+                
+            // For GIT: 0.13.b500.57a5ab9
+			} elseif (preg_match("/^([0-9]+)\.([0-9]+)\.b([0-9]+)\.[a-z0-9]+$/si", $v, $matches)) { 
+                $verInfo = array_map("intval", array_slice($matches, 1));
+                while (count($verInfo) < 3) {
+                    $verInfo[] = 0;
+                }
+                return $verInfo;
 			} else {
 				return array(0, 0, 0);
 			}
@@ -763,17 +890,35 @@
 				}
 			}
 
+            // Ignore OLD messages (ami-scripts)
+            if (!$this->IsSupported("0.5"))
+                return;
+            
+            // Put access data and reserialize message
+            $pl = PlatformFactory::NewPlatform($this->platform);
+            $pl->PutAccessData($this, $message);
+
 			$logger = Logger::getLogger('DBServer');
 			$serializer = Scalr_Messaging_XmlSerializer::getInstance();
 			$cryptoTool = Scalr_Messaging_CryptoTool::getInstance();
 
-			$rawMessage = $serializer->serialize($message);
+            if ($this->farmRoleId && $this->GetFarmRoleObject()->GetSetting('user-data.scm_branch') == 'branches/feature-json-messaging') {
+                $serializer = Scalr_Messaging_JsonSerializer::getInstance();
+                $rawMessage = null;
+                $rawJsonMessage = $serializer->serialize($message);
+            } else {
+                $rawMessage = $serializer->serialize($message);
+                $rawJsonMessage = null;
+            }
+            
+            //$rawJsonMessage = @json_encode($message);
 
 			// Add message to database
 			$this->Db->Execute("INSERT INTO messages SET
 				`messageid`	= ?,
 				`server_id`	= ?,
 				`message`	= ?,
+				`json_message` = ?,
 				`type`		= 'out',
 				`message_name` = ?,
 				`handle_attempts` = ?,
@@ -784,6 +929,7 @@
 				$message->messageId,
 				$this->serverId,
 				$rawMessage,
+				$rawJsonMessage,
 				$message->getName(),
 				($delayed) ? '0' : '1',
 				($this->IsSupported("0.5")) ? 2 : 1
@@ -798,17 +944,14 @@
 				return $message;
 			}
 
-			if ($delayed)
+			if ($delayed || $rawJsonMessage)
 				return $message;
 
 			if ($this->IsSupported("0.5") && !$isEventNotice)
 			{
-				if (!$this->remoteIp)
+				if (!$this->remoteIp && $this->farmId != 13841)
 					return;
 
-				// Put access data and reserialize message
-				$pl = PlatformFactory::NewPlatform($this->platform);
-				$pl->PutAccessData($this, $message);
 				$rawMessage = $serializer->serialize($message);
 
 				$cryptoKey = $this->GetKey(true);
@@ -821,8 +964,13 @@
 					if (!$ctrlPort)
 						$ctrlPort = 8013;
 
+					$requestHost = "{$this->remoteIp}:{$ctrlPort}"; 
+					if ($this->farmId == 13841) {
+						$requestHost = "54.241.163.212:{$ctrlPort}";
+					}
+					
 					// Prepare request
-				  	$request = new HttpRequest("http://{$this->remoteIp}:{$ctrlPort}/control", HTTP_METH_POST);
+				  	$request = new HttpRequest("http://{$requestHost}/control", HTTP_METH_POST);
 				  	$request->setOptions(array(
 				  		'timeout'	=> 4,
 				  		'connecttimeout' => 4
@@ -831,6 +979,13 @@
 						"Date" =>  $timestamp,
 						"X-Signature" => $signature
 				  	));
+				  	
+				  	if ($this->farmId == 13841) {
+				  		$request->setHeaders(array(
+			  				"X-Receiver-Addr" =>  $this->localIp
+				  		));
+				  	}
+				  	
 					$request->setRawPostData($encMessage);
 
 					// Send request

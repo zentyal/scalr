@@ -15,12 +15,12 @@ use Scalr\Service\Aws\DataType\ListDataType;
 abstract class AbstractCloudWatchListDataType extends ListDataType
 {
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractDataType::getServiceNames()
-	 */
-	public function getServiceNames()
-	{
-		return array(Aws::SERVICE_INTERFACE_CLOUD_WATCH);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractDataType::getServiceNames()
+     */
+    public function getServiceNames()
+    {
+        return array(Aws::SERVICE_INTERFACE_CLOUD_WATCH);
+    }
 }

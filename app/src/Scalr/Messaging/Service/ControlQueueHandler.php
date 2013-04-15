@@ -15,23 +15,27 @@ class Scalr_Messaging_Service_ControlQueueHandler implements Scalr_Messaging_Ser
 		return $queue == "control";
 	}
 	
-	function handle($queue, Scalr_Messaging_Msg $message, $rawMessage) {
+	function handle($queue, Scalr_Messaging_Msg $message, $rawMessage = null, $rawJsonMessage = null) {
 		$this->logger->info(sprintf("Received message '%s' from server '%s'", 
 				$message->getName(), $message->getServerId()));
 		try {
 			$this->db->Execute("INSERT INTO messages SET
 				messageid = ?,
 				message = ?,
+				json_message = ?,
 				server_id = ?,
 				dtlasthandleattempt = NOW(),
 				type = ?,
-				isszr = ?
+				isszr = ?,
+				ipaddress = ?
 			", array(
 				$message->messageId,
 				$rawMessage,
+				$rawJsonMessage,
 				$message->getServerId(),
 				"in",
-				1
+				1,
+				$_SERVER['REMOTE_ADDR']
 			));
 		} catch (Exception $e) {
 			// Message may be already delivered.

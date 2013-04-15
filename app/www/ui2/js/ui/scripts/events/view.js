@@ -57,33 +57,14 @@ Scalr.regPage('Scalr.ui.scripts.events.view', function (loadParams, moduleParams
 		multiSelect: true,
 		selModel: {
 			selType: 'selectedmodel',
-			selectedMenu: [{
-				text: 'Delete',
-				iconCls: 'x-menu-icon-delete',
-				request: {
-					confirmBox: {
-						msg: 'Remove selected event(s): %s ?',
-						type: 'delete'
-					},
-					processBox: {
-						msg: 'Removing selected event(s) ...',
-						type: 'delete'
-					},
-					url: '/scripts/events/xRemove/',
-					dataHandler: function (records) {
-						var events = [];
-						this.confirmBox.objects = [];
-						for (var i = 0, len = records.length; i < len; i++) {
-							events.push(records[i].get('id'));
-							this.confirmBox.objects.push(records[i].get('name'))
-						}
-
-						return { events: Ext.encode(events) };
-					}
-				}
-			}],
 			getVisibility: function (record) {
 				return (record.get('env_id') != 0);
+			}
+		},
+
+		listeners: {
+			selectionchange: function(selModel, selections) {
+				this.down('scalrpagingtoolbar').down('#delete').setDisabled(!selections.length);
 			}
 		},
 
@@ -91,11 +72,42 @@ Scalr.regPage('Scalr.ui.scripts.events.view', function (loadParams, moduleParams
 			xtype: 'scalrpagingtoolbar',
 			store: store,
 			dock: 'top',
-			afterItems: [{
+			beforeItems: [{
 				ui: 'paging',
 				iconCls: 'x-tbar-add',
 				handler: function() {
 					Scalr.event.fireEvent('redirect', '#/scripts/events/create');
+				}
+			}],
+			afterItems: [{
+				ui: 'paging',
+				itemId: 'delete',
+				iconCls: 'x-tbar-delete',
+				tooltip: 'Select one or more events to delete them',
+				disabled: true,
+				handler: function() {
+					var request = {
+						confirmBox: {
+							msg: 'Remove selected event(s): %s ?',
+							type: 'delete'
+						},
+						processBox: {
+							msg: 'Removing selected event(s) ...',
+							type: 'delete'
+						},
+						url: '/scripts/events/xRemove/',
+						success: function() {
+							store.load();
+						}
+					}, records = this.up('grid').getSelectionModel().getSelection(), data = [];
+
+					request.confirmBox.objects = [];
+					for (var i = 0, len = records.length; i < len; i++) {
+						data.push(records[i].get('id'));
+						request.confirmBox.objects.push(records[i].get('name'));
+					}
+					request.params = { events: Ext.encode(data) };
+					Scalr.Request(request);
 				}
 			}]
 		}]

@@ -95,11 +95,44 @@
             //
             // Collect information from database
             //			
-                        
-            // Check data folder for farm
             $lastDigit = substr("{$farmId}", -1);
-			$farm_rrddb_dir = CONFIG::$RRD_DB_DIR."/{$lastDigit}/{$farmId}";
-            //$farm_rrddb_dir = CONFIG::$RRD_DB_DIR."/{$farmId}";
+			
+			/*
+			/mnt/rrddata/x1x6
+			/mnt/rrddata/x2x7
+			/mnt/rrddata/x3x8
+			/mnt/rrddata/x4x9
+			/mnt/rrddata/x5x0
+			 */
+			
+			switch ($lastDigit) {
+				case 1:
+				case 6:
+					$folder = "x1x6";
+					break;
+					
+				case 2:
+				case 7:
+					$folder = "x2x7";
+					break;
+				
+				case 3:
+				case 8:
+					$folder = "x3x8";
+					break;
+					
+				case 4:
+				case 9:
+					$folder = "x4x9";
+					break;
+					
+				case 5:
+				case 0:
+					$folder = "x5x0";
+					break;
+			}
+			
+	    	$farm_rrddb_dir = CONFIG::$STATISTICS_RRD_DB_DIR."/{$folder}/{$farmId}";
 			
             if (!file_exists($farm_rrddb_dir))
             {

@@ -75,8 +75,7 @@ class Scalr_UI_Controller_Monitoring extends Scalr_UI_Controller
 			$children[] = $item;
 			$hasRoles = false;
 		}
-		//$enabled = $this->user->getSetting(Scalr_Account_User::SETTING_DASHBOARD_ENABLED);
-		$this->response->page('ui/monitoring/view.js', array('children' => $children/*, 'dashboard_enabled' => $enabled*/), array('ui/monitoring/window.js'));
+		$this->response->page('ui/monitoring/view.js', array('children' => $children), array('ui/monitoring/window.js'));
 	}
 }
 

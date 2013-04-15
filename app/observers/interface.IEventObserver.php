@@ -2,6 +2,10 @@
 
 	interface IEventObserver
 	{
+	    public function OnCheckFailed(CheckFailedEvent $event);
+        
+        public function OnCheckRecovered(CheckRecoveredEvent $event);
+            
 		public function OnHostInit(HostInitEvent $event);
 		
 		public function OnHostUp(HostUpEvent $event);

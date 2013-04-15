@@ -2,117 +2,125 @@
 
 namespace Scalr\Logger\AuditLog\Documents;
 
+use \ArrayObject;
 use \MongoDate;
 
 /**
- * abstract document
+ * Abstract audit log document
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    31.10.2012
  */
-abstract class AbstractAuditLogDocument
+class AbstractAuditLogDocument extends ArrayObject
 {
 
-	/**
-	 * @var string
-	 */
-	protected $datatype;
+    /**
+     * @var string
+     */
+    public $datatype;
 
-	/**
-	 * Constructor
-	 */
-	public function __construct()
-	{
-		//It's required to nested objects support
-		$this->datatype = preg_replace('#^(.+\\\\)?([^\\\\]+)Document$#', '\\2', get_class($this));
-	}
+    /**
+     * Constructor
+     * @param   mixed    $input
+     */
+    public function __construct($input = null)
+    {
+        parent::__construct((isset($input) ? $input : array()), ArrayObject::ARRAY_AS_PROPS);
+        $class = get_class($this);
+        if (($pos = strrpos($class, '\\')) !== false) {
+            //It's required to nested objects support
+            $this->datatype = substr($class, $pos + 1, -8);
+        } else {
+            $this->datatype = '';
+        }
+    }
 
-	/**
-	 * Gets an datatype
-	 *
-	 * @return string Returns data type
-	 */
-	public function getDatatype()
-	{
-		return $this->datatype;
-	}
+    /**
+     * Gets properties for the current document.
+     *
+     * It can be reflection propreties as well as magic proprties
+     *
+     * @return   array Returns array of the available propreties
+     */
+    public static function getDocumentProperties()
+    {
+        static $ret = array();
+        $class = get_called_class();
+        if (!isset($ret[$class])) {
+            $reflectionClass = new \ReflectionClass($class);
+            foreach ($reflectionClass->getProperties() as $prop) {
+                $ret[$class][$prop->getName()] = null;
+            }
+        }
+        return $ret[$class];
+    }
 
-	/**
-	 * Transforms object to array an returns its value.
-	 *
-	 * @return   array Returns object as array.
-	 */
-	public function toArray()
-	{
-		$result = array();
-		$reflectionClass = new \ReflectionClass($this);
-		/* @var $refProperty \ReflectionProperty */
-		foreach ($reflectionClass->getProperties() as $refProperty) {
-			$propertyname = $refProperty->getName();
-			$getfn = 'get' . ucfirst($propertyname);
-			/* @var $reflectionMethod \ReflectionMethod */
-			if ($refProperty->isPublic()) {
-				$r = $refProperty->getValue($this);
-			} elseif (method_exists($this, $getfn) &&
-				      ($reflectionMethod = $reflectionClass->getMethod($getfn)) &&
-				       $reflectionMethod->isPublic()) {
-				$r = $reflectionMethod->invoke($this);
-				unset($reflectionMethod);
-			} else continue;
-			if ($r instanceof AbstractAuditLogDocument) {
-				$r = $r->toArray();
-			} elseif ($r instanceof \DateTime) {
-				$r = $r->getTimestamp();
-			} elseif (is_object($r)) {
-				$r = (array) $r;
-			}
-			$result[$propertyname] = $r;
-			unset($r);
-		}
-		return $result;
-	}
+    /**
+     * Gets an datatype
+     *
+     * @return string Returns data type
+     */
+    public function getDatatype()
+    {
+        return $this->datatype;
+    }
 
-	/**
-	 * Creates document from given array
-	 *
-	 * @param   array    $data
-	 * @return  AbstractAuditLogDocument Returns new document
-	 */
-	public static function createFromArray(array $data)
-	{
-		$class = get_called_class();
-		$document = new $class;
-		$refclass = new \ReflectionClass($document);
-		foreach ($data as $k => $v) {
-			$setm = 'set' . ucfirst($k);
-			if (method_exists($document, $setm) &&
-				($refmethod = $refclass->getMethod($setm)) !== null &&
-				$refmethod->isPublic()) {
-				$pars = $refmethod->getParameters();
-				//It also supports nested objects
-				if (isset($pars[0]) && $pars[0]->getClass() !== null) {
-					if (is_a($pars[0]->getClass()->getName(), __CLASS__) && isset($v['datatype'])) {
-						$dclass = __NAMESPACE__ . '\\' . $v['datatype'] . 'Document';
-						$v = $dclass::createFromArray($v);
-					} else if ($pars[0]->getClass()->getName() == 'DateTime') {
-						if ($v instanceof MongoDate) {
-							$t = $v->sec;
-						} elseif (!is_numeric($v)) {
-							$t = strtotime($v);
-						} else {
-							$t = $v;
-						}
-						$v = new \DateTime(null, new \DateTimeZone('UTC'));
-						$v->setTimestamp($t);
-						unset($t);
-					}
-				}
-				$document->$setm($v);
-				unset($refmethod);
-			} elseif (property_exists($document, $k) && $refclass->getProperty($k)->isPublic()) {
-				$document->$k = $v;
-			}
-		}
-		return $document;
-	}
+    /**
+     * This allows to load Document object from source object using property mapping array.
+     *
+     * @param   object     $srcObject   Source object to load from.
+     * @param   array      $mapping     optional Properties mapping array.
+     *                                  It looks like array(documentProperty => srcPropertyOrMethodName).
+     *                                  If all properties in the document object have the same names as
+     *                                  in the soruce object it can be avoided.
+     * @return  AbstractAuditLogDocument Returns new Document in which all properties are loaded from source object.
+     */
+    protected static function loadFrom($srcObject, array $mapping = null)
+    {
+        $class = get_called_class();
+        $result = new $class;
+        $srcRef = new \ReflectionClass(get_class($srcObject));
+        foreach ($mapping as $prop => $srcProperty) {
+            if (property_exists($srcObject, $srcProperty) &&
+                ($refsrcprop = $srcRef->getProperty($srcProperty)) &&
+                $refsrcprop->isPublic()) {
+                $value = $refsrcprop->getValue($srcObject);
+                unset($refsrcprop);
+            } else if (method_exists($srcObject, $srcProperty) &&
+                      ($reflectionMethod = $srcRef->getMethod($srcProperty)) &&
+                       $reflectionMethod->isPublic()) {
+                $value = $reflectionMethod->invoke($srcObject);
+                unset($reflectionMethod);
+            } else if (method_exists($srcObject, 'get' . ucfirst($srcProperty)) &&
+                      ($reflectionMethod = $srcRef->getMethod('get' . ucfirst($srcProperty))) &&
+                       $reflectionMethod->isPublic()) {
+                $value = $reflectionMethod->invoke($srcObject);
+                unset($reflectionMethod);
+            } else {
+                //It supposes magic properties
+                if (method_exists($srcObject, '__get')) {
+                    try {
+                        $mgetter = true;
+                        $value = $srcObject->$srcProperty;
+                    } catch (\Exception $e) {
+                        $exeptionThrown = true;
+                    }
+                }
+                //By the end we check magic getter
+                if (isset($exeptionThrown) || !isset($mgetter)) {
+                    $exeptionThrown = null;
+                    $mgetter = null;
+                    if (method_exists($srcObject, '__call')) {
+                        try {
+                            $value = $srcObject->$srcProperty();
+                        } catch (\Exception $e) {
+                            $value = null;
+                        }
+                    } else $value = null;
+                }
+            }
+            $result[$prop] = $value;
+        }
+        return $result;
+    }
 }

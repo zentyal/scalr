@@ -22,19 +22,27 @@
     			$role_name = "FR_{$role_name}";
     	}
     	
-    	$farminfo = $db->GetRow("SELECT status, id, env_id FROM farms WHERE id=?", array($farmid));
+    	$farminfo = $db->GetRow("SELECT status, id, env_id, clientid FROM farms WHERE id=?", array($farmid));
     	if ($farminfo["status"] != FARM_STATUS::RUNNING)
     		$result = array("success" => false, "msg" => _("Statistics not available for terminated farm"));
     	else
     	{
 	    	if ($farminfo['clientid'] != 0)
 	    	{
-	    		define("SCALR_SERVER_TZ", date("T"));
+	    		if (!SCALR_SERVER_TZ)
+                    define("SCALR_SERVER_TZ", date("T"));
 	    		
 	    		$env = Scalr_Model::init(Scalr_Model::ENVIRONMENT)->loadById($farminfo['env_id']);
     			$tz = $env->getPlatformConfigValue(ENVIRONMENT_SETTINGS::TIMEZONE);
-	    		if ($tz)
+	    		if ($tz) {
 		    		date_default_timezone_set($tz);
+                    putenv(sprintf("TZ=%s", date_default_timezone_get()));
+                } else {
+                    if (SCALR_SERVER_TZ) {
+                        date_default_timezone_set(SCALR_SERVER_TZ);
+                        putenv(sprintf("TZ=%s", SCALR_SERVER_TZ));
+                    }
+                }
 	    	}
     		
     		$graph_info = GetGraphicInfo($graph_type);
@@ -84,8 +92,6 @@
 	    		$rrddbpath = "{$farm_rrddb_dir}/{$role_name}/SERVERS/db.rrd";
 	    	else
 	    		$rrddbpath = "{$farm_rrddb_dir}/{$role_name}/{$watchername}/db.rrd";
-			
-			var_dump($rrddbpath);
 			
 	    	if (file_exists($rrddbpath))
 	    	{

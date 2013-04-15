@@ -526,11 +526,17 @@ Ext.define('Scalr.ui.dashboard.Uservoice', {
 			url: '/dashboard/widget/uservoice/xGetContent',
 			scope: this,
 			success: function (content) {
+				if (this.isDestroyed)
+					return;
+
 				if (this.rendered)
 					this.body.unmask();
 				this.updateForm(content);
 			},
 			failure: function () {
+				if (this.isDestroyed)
+					return;
+
 				if (this.rendered)
 					this.body.unmask();
 			}
@@ -848,13 +854,82 @@ Ext.define('Scalr.ui.dashboard.Billing', {
 		items: [{
 			xtype: 'displayfield',
 			name: 'plan',
-			fieldLabel: 'Plan',
-			value: 'OpenSource'
+			fieldLabel: 'Plan'
+		}, {
+			xtype: 'displayfield',
+			fieldLabel: 'Status',
+			name: 'status'
+
+		}, {
+			xtype: 'displayfield',
+			fieldLabel: 'Next charge',
+			name: 'nextCharge'
+
+		}, {
+			xtype: 'displayfield',
+			fieldLabel: '<a href="http://scalr.net/emergency_support/" target="_blank">Emergency support</a>',
+			name: 'support',
+			listeners: {
+				boxready: function() {
+					this.inputEl.on('click', function(e, el) {
+						if (e.getTarget('a.dashed')) {
+							var action = el.getAttribute('type');
+							Scalr.Request({
+								confirmBox: {
+									type: 'action',
+									msg: (action == 'subscribe') ? 'Are you sure want to subscribe to Emergency Support for $300 / month?' : 'Are you sure want to unsubscribe from Emergency Support?'
+								},
+								processBox: {
+									type: 'action'
+								},
+								params: { action: action },
+								scope: this,
+								url: '/billing/xSetEmergSupport/',
+								success: function () {
+									Scalr.message.Success((action == 'subscribe') ? "You've successfully subscribed to Emergency support" : "You've successfully unsubscribed from emergency support");
+									this.up('form').loadContent();
+								}
+							});
+						}
+					}, this);
+				}
+			}
 		}]
 	}],
 	widgetType: 'nonlocal',
 	updateForm: function(data) {
-		
+		var values = {};
+		this.data = data;
+		values['plan'] = data['productName'] + ' ( ' + data['productPrice'] + ' / month ) [<a href = "#/billing/changePlan">Change Plan</a>]';
+
+		switch (data['state']) {
+			case 'Subscribed':
+				values['status'] = '<span style="color:green;font-weight:bold;">Subscribed</span>'; break;
+			case 'Trial':
+				values['status'] = '<span style="color:green;font-weight:bold;">Trial</span> (<b>' + data['trialDaysLeft'] + '</b> days left)'; break;
+			case 'Unsubscribed':
+				values['status'] = '<span style="color:red;font-weight:bold;">Unsubscribed</span> [<a href="#/billing/reactivate">Re-activate</a>]'; break;
+			case 'Behind on payment':
+				values['status'] = '<span style="color:red;font-weight:bold;">Behind on payment</span>'; break;
+			default:
+				values['status'] = data['state']; break;
+		}
+
+		if (data['ccType'])
+			values['nextCharge'] = '$' + data['nextAmount'] + ' on ' + data['nextAssessmentAt'] + ' on ' + data['ccType'] + ' ' + data['ccNumber'] + ' [<a href="#/billing/updateCreditCard">Change card</a>]';
+		else
+			values['nextCharge'] = '$' + data['nextAmount'] + ' on ' + (data['nextAssessmentAt'] ? data['nextAssessmentAt'] : 'unknown') + ' [<a href="#/billing/updateCreditCard" class="dashed">Set credit card</a>]';
+
+
+		if (data['emergSupport'] == 'included')
+			values['support'] = '<span style="color:green;">Subscribed as part of ' + data['productName'] + ' package</span><a type="" style="display:none;"></a> '+ data['emergPhone'];
+		else if (data['emergSupport'] == "enabled")
+			values['support'] = '<span style="color:green;">Subscribed</span> ($300 / month) [<a type="unsubscribe" class="dashed">Unsubscribe</a>] ' + data['emergPhone'];
+		else
+			values['support'] = 'Not subscribed [<a type="subscribe" class="dashed">Subscribe for $300 / month</a>]';
+
+
+		this.getForm().setValues(values);
 	},
 	listeners: {
 		boxready: function() {
@@ -870,7 +945,22 @@ Ext.define('Scalr.ui.dashboard.Billing', {
 		}
 	},
 	loadContent: function () {
-		return true;
+		if (this.rendered)
+			this.body.mask('Loading content ...');
+
+		Scalr.Request({
+			url: '/dashboard/widget/billing/xGetContent',
+			scope: this,
+			success: function (content) {
+				if (this.rendered)
+					this.body.unmask();
+				this.updateForm(content);
+			},
+			failure: function () {
+				if (this.rendered)
+					this.body.unmask();
+			}
+		});
 	}
 });
 
@@ -936,6 +1026,9 @@ Ext.define('Scalr.ui.dashboard.Status', {
 			scope: this,
 			params: { locations: this.params['locations'] },
 			success: function (content) {
+				if (this.isDestroyed)
+					return;
+
 				this.child('grid').store.load({
 					data: content['data'] ? content['data'] : []
 				});
@@ -1320,17 +1413,6 @@ Ext.define('Scalr.ui.dashboard.Cloudyn', {
 			sortable: false,
 			dataIndex: 'Metric',
 			renderer: function(value, metaData, record) {
-				var v, units = {
-					'Accounts Completed Processing': 'account',
-					'Accounts In Process': 'account',
-					'Active Instances': 'instance',
-					'Active Reservations': 'reserved instance',
-					'Active Volumes': 'volume',
-					'Unattached Volumes': 'volume',
-					'Unused Reservations': 'instance',
-					'Underutilized Instances': 'instance',
-					'Last Day Cost': '$'
-				};
 				if (record.get('DataIsReady') == 'true') {
 				    var s = '<span style="font-weight: bold">';
 					if (record.get('IsPrefixUnit')) {

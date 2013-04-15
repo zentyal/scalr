@@ -14,6 +14,7 @@ class Scalr_Scaling_Sensors_Sqs extends Scalr_Scaling_Sensor
 	{
 		$sqs = $dbFarmRole->GetFarmObject()->GetEnvironmentObject()->aws($dbFarmRole)->sqs;
 		try {
+			$sqs->enableEntityManager();
 			$queue = $sqs->queue->getAttributes($farmRoleMetric->getSetting(self::SETTING_QUEUE_NAME));
 			$retval = $queue->approximateNumberOfMessages;
 		} catch (Exception $e) {

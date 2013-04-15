@@ -21,7 +21,7 @@ Scalr.regPage('Scalr.ui.logs.system', function (loadParams, moduleParams) {
 			'reload': false,
 			'maximize': 'all'
 		},
-		scalrReconfigureParams: {farmId: ''},
+		scalrReconfigureParams: { serverId: '' },
 		store: store,
 		stateId: 'grid-logs-system-view',
 		stateful: true,
@@ -78,7 +78,7 @@ Scalr.regPage('Scalr.ui.logs.system', function (loadParams, moduleParams) {
 			store: store,
 			dock: 'top',
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}, ' ', {
 				xtype: 'combo',

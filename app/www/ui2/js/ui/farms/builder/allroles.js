@@ -39,7 +39,7 @@ Ext.define('Scalr.ui.FarmBuilderRoleAll', {
 					'<tpl for="records">',
 						'<li itemid="{role_id}" itemname="{name}">',
 							'<div class="fixed">',
-								'<div class="platforms"><tpl for="platforms.split(\',\')"><img src="/ui2/images/icons/platform/{.}.png"></tpl></div>',
+								'<div class="platforms"><tpl if="platforms.split(\',\').length &gt; 1"><img src="/ui2/images/icons/platform/multicloud.png"><tpl else><img src="/ui2/images/icons/platform/{platforms[0]}.png"></tpl></div>',
 								'<tpl if="arch"><div class="arch"><img src="/ui2/images/icons/arch/{arch}.png"></div></tpl>',
 							'</div>',
 							'<span class="name">{name}</span><br />',
@@ -99,6 +99,8 @@ Ext.define('Scalr.ui.FarmBuilderRoleAll', {
 					var fireAddEvent = function (platform, location, role) {
 						
 						var images = role.get('images');
+						if (!location)
+							location = '';
 						
 						this.ownerCt.fireEvent('addrole', {
 							role_id: role.get('role_id'),
@@ -167,14 +169,25 @@ Ext.define('Scalr.ui.FarmBuilderRoleAll', {
 							anchor: '100%',
 							listeners: {
 								change: function () {
-									var locations = [], plat = this.getValue();
+									var locations = [], plat = this.getValue(), lCount = 0;
 
 									loc = rLocations[plat][0];
-									for (var i = 0, len = rLocations[plat].length; i < len; i++)
-										locations[(rLocations[plat][i]).toString()] = me.platforms[plat]['locations'][rLocations[plat][i]];
+									for (var i = 0, len = rLocations[plat].length; i < len; i++) {
+										if ((rLocations[plat][i]).toString() != '')
+										{
+											locations[(rLocations[plat][i]).toString()] = me.platforms[plat]['locations'][rLocations[plat][i]] || (rLocations[plat][i]).toString();
+											lCount++;
+										}
+									}
 
-									this.next('[name="location"]').store.load({ data: locations });
-									this.next('[name="location"]').setValue(loc.toString());
+									if (lCount > 0) {
+										this.next('[name="location"]').store.load({ data: locations });
+										this.next('[name="location"]').setValue(loc.toString());
+										this.next('[name="location"]').enable();
+									} else {
+										this.next('[name="location"]').setValue('');
+										this.next('[name="location"]').disable();
+									}
 								}
 							}
 						}, {
@@ -194,7 +207,7 @@ Ext.define('Scalr.ui.FarmBuilderRoleAll', {
 							displayField: 'name',
 							queryMode: 'local',
 							anchor: '100%',
-							emptyText: 'Please select location'
+							emptyText: 'Role available in all regions'
 						}],
 						ok: 'Add',
 						title: 'Add role "' + l.getAttribute('itemname') + '"',
@@ -288,23 +301,23 @@ Ext.define('Scalr.ui.FarmBuilderRoleAll', {
 			text: 'Stable'
 		},*/ ' ', 'Role origin:', {
 			itemId: 'origin',
-			xtype: 'combobutton',
-			defaults: {
-				width: 60
-			},
+			xtype: 'buttongroupfield',
+			value: '',
 			items: [{
 				xtype: 'button',
 				text: 'All',
 				value: '',
-				pressed: true
+				width: 60
 			}, {
 				xtype: 'button',
 				text: 'Scalr',
-				value: 'SHARED'
+				value: 'SHARED',
+				width: 60
 			}, {
 				xtype: 'button',
 				text: 'Private',
-				value: 'CUSTOM'
+				value: 'CUSTOM',
+				width: 60
 			}]
 		}, ' ', {
 			text: 'Platform',
@@ -362,7 +375,7 @@ Ext.define('Scalr.ui.FarmBuilderRoleAll', {
 
 					//toolbar.down('#stable').on('checkchange', me.filterRoles, me);
 					toolbar.down('#filter').on('change', me.filterRoles, me);
-					toolbar.down('#origin').handler = Ext.Function.bind(me.filterRoles, me);
+					toolbar.down('#origin').on('change', me.filterRoles, me);
 
 					me.filterRoles();
 				}

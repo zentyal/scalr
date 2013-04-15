@@ -21,38 +21,151 @@ class Scalr_UI_Controller_Account_Users extends Scalr_UI_Controller
 		));
 	}
 
+	protected function fillUserInfo(&$row)
+	{
+		$user = Scalr_Account_User::init();
+		$user->loadById($row['id']);
+
+		$row['status'] = $user->status;
+		$row['email'] = $user->getEmail();
+		$row['fullname'] = $user->fullname;
+		$row['dtcreated'] = Scalr_Util_DateTime::convertTz($user->dtcreated);
+		$row['dtlastlogin'] = $user->dtlastlogin ? Scalr_Util_DateTime::convertTz($user->dtlastlogin) : 'Never';
+		$row['type'] = $user->type;
+		$row['comments'] = $user->comments;
+
+		$row['teams'] = $user->getTeams();
+		$row['is2FaEnabled'] = $user->getSetting(Scalr_Account_User::SETTING_SECURITY_2FA_GGL) == '1' ? true : false;
+		$row['password'] = $row['password'] ? true : false;
+
+		switch ($row['type']) {
+			case Scalr_Account_User::TYPE_ACCOUNT_OWNER:
+				$row['type'] = 'Account Owner';
+				break;
+			default:
+				$row['type'] = $user->isTeamOwner() ? 'Team Owner' : 'Team User';
+				break;
+		}
+	}
+
 	public function view2Action()
 	{
-		// TODO: refactor
-		$sql = "SELECT account_users.id, status, email, fullname, dtcreated, dtlastlogin, type, comments FROM account_users
-				LEFT JOIN account_team_users ON account_users.id = account_team_users.user_id
-				LEFT JOIN account_user_groups ON account_users.id = account_user_groups.user_id
-				WHERE account_id='" . $this->user->getAccountId() . "'";
+		$this->response->page('ui/account/users/view2.js', array(
+			'usersList' => $this->getList()
+		), array(), array('ui/account/users/view2.css'));
+	}
 
-		$usersList = $this->db->getAll($sql);
+	public function getList()
+	{
+		$sql = '';
+		$params = array();
+
+		// account owner, team owner
+		if ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER || $this->user->isTeamOwner()) {
+			$sql = 'SELECT account_users.id FROM account_users WHERE account_id = ?';
+			$params[] = $this->user->getAccountId();
+		} else {
+			// team user
+			$teams = $this->user->getTeams();
+			if (! count($teams))
+				throw new Exception('You are not belongs to any team');
+
+			$sql = 'SELECT account_users.id FROM account_users JOIN account_team_users ON account_users.id = account_team_users.user_id WHERE account_id= ?';
+			$params[] = $this->user->getAccountId();
+
+			foreach ($this->user->getTeams() as $team) {
+				$r[] = 'account_team_users.team_id = ?';
+				$params[] = $team['id'];
+			}
+
+			$sql .= ' AND (' . implode(' OR ', $r) . ')';
+		}
+
+		$usersList = $this->db->getAll($sql, $params);
 
 		foreach ($usersList as &$row) {
-			$user = Scalr_Account_User::init();
-			$user->loadById($row['id']);
+			$this->fillUserInfo($row);
+		}
 
-			$row['dtcreated'] = Scalr_Util_DateTime::convertTz($row["dtcreated"]);
-			$row['dtlastlogin'] = $row['dtlastlogin'] ? Scalr_Util_DateTime::convertTz($row["dtlastlogin"]) : 'Never';
-			$row['teams'] = $user->getTeams();
-			$row['is2FaEnabled'] = $user->getSetting(Scalr_Account_User::SETTING_SECURITY_2FA_GGL) == '1' ? true : false;
+		return $usersList;
+	}
 
-			switch ($row['type']) {
-				case Scalr_Account_User::TYPE_ACCOUNT_OWNER:
-					$row['type'] = 'Account Owner';
-					break;
-				default:
-					$row['type'] = $user->isTeamOwner() ? 'Team Owner' : 'Team User';
-					break;
+	public function xGetListAction()
+	{
+		$this->response->data(array('usersList' => $this->getList()));
+	}
+
+	public function xGroupActionHandlerAction()
+	{
+		$this->request->defineParams(array(
+			'ids' => array('type' => 'json'), 'action'
+		));
+
+		if (! ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER || $this->user->isTeamOwner()))
+			throw new Scalr_Exception_InsufficientPermissions(); // check permissions
+
+		$processed = array();
+		$errors = array();
+		foreach($this->getParam('ids') as $userId) {
+			try {
+				$user = Scalr_Account_User::init();
+				$user->loadById($userId);
+
+				if ($user->getAccountId() != $this->user->getAccountId())
+					continue; // check security
+
+				switch($this->getParam('action')) {
+					case 'delete':
+						if ($user->getType() == Scalr_Account_User::TYPE_TEAM_USER && !$user->isTeamOwner()) {
+							// could delete only simple user, not team owner
+							$user->delete();
+							$processed[] = $user->getId();
+						} else {
+							throw new Scalr_Exception_Core('You couldn\'t delete team owner or account owner');
+						}
+						break;
+
+					case 'activate':
+						// account owner could do everything (except himself), team owner - only simple users, not team owners
+						if ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER && $user->getType() != Scalr_Account_User::TYPE_ACCOUNT_OWNER ||
+							$this->user->isTeamOwner() && $user->getType() == Scalr_Account_User::TYPE_TEAM_USER && !$user->isTeamOwner()
+						) {
+							$user->status = Scalr_Account_User::STATUS_ACTIVE;
+							$user->save();
+							$processed[] = $user->getId();
+						} else {
+							throw new Scalr_Exception_Core('You couldn\'t change status of team owner or account owner');
+						}
+						break;
+
+					case 'deactivate':
+						// account owner could do everything (except himself), team owner - only simple users, not team owners
+						if ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER && $user->getType() != Scalr_Account_User::TYPE_ACCOUNT_OWNER ||
+							$this->user->isTeamOwner() && $user->getType() == Scalr_Account_User::TYPE_TEAM_USER && !$user->isTeamOwner()
+						) {
+							$user->status = Scalr_Account_User::STATUS_INACTIVE;
+							$user->save();
+							$processed[] = $user->getId();
+						} else {
+							throw new Scalr_Exception_Core('You couldn\'t change status of team owner or account owner');
+						}
+						break;
+				}
+			} catch (Exception $e) {
+				$errors[] = $e->getMessage();
 			}
 		}
 
-		$this->response->page('ui/account/users/view2.js', array(
-			'usersList' => $usersList
-		), array(), array('ui/account/users/view2.css'));
+		$num = count($this->getParam('ids'));
+
+		if (count($processed) == $num) {
+			$this->response->success('All users processed');
+		} else {
+			array_walk($errors, function(&$item) { $item = '- ' . $item; });
+			$this->response->warning(sprintf('Successfully processed only %d from %d users. <br>Such errors have occured:<br>%s', count($processed), $num, join($errors, '')));
+		}
+
+		$this->response->data(array('processed' => $processed));
 	}
 
 	public function xListUsersAction()

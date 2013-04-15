@@ -49,6 +49,11 @@ class Scalr_UI_Controller_Core extends Scalr_UI_Controller
 		$this->response->page('ui/core/disaster.js');
 	}
 
+	public function troubleshootAction()
+	{
+		$this->response->page('ui/core/troubleshoot.js');
+	}
+
 	public function xSaveApiSettingsAction()
 	{
 		$apiEnabled = $this->getParam(str_replace(".", "_", Scalr_Account_User::SETTING_API_ENABLED)) == 'on' ? true : false;
@@ -71,16 +76,21 @@ class Scalr_UI_Controller_Core extends Scalr_UI_Controller
 		$this->response->data(array('keys' => $keys));
 	}
 
-	public function profileAction()
+	public function securityAction()
 	{
-		$params = $this->db->GetRow("SELECT email, fullname FROM `account_users` WHERE id=?", array($this->user->getId()));
-		$this->response->page('ui/core/profile.js', $params);
+		$params = array(
+			'email' => $this->user->getEmail(),
+			'security_2fa' => $this->user->getAccount()->isFeatureEnabled(Scalr_Limits::FEATURE_2FA),
+			'security_2fa_ggl' => $this->user->getSetting(Scalr_Account_User::SETTING_SECURITY_2FA_GGL) ? '1' : '',
+			'security_ip_whitelist' => strval($this->user->getSetting(Scalr_Account_User::SETTING_SECURITY_IP_WHITELIST))
+		);
+
+		$this->response->page('ui/core/security.js', $params);
 	}
 
-	public function xProfileSaveAction()
+	public function xSecuritySaveAction()
 	{
 		$this->request->defineParams(array(
-			'fullname' => array('type' => 'string'),
 			'password' => array('type' => 'string'),
 			'cpassword' => array('type' => 'string')
 		));
@@ -99,13 +109,15 @@ class Scalr_UI_Controller_Core extends Scalr_UI_Controller
 				$updateSession = true;
 			}
 
+			$this->user->setSetting(Scalr_Account_User::SETTING_SECURITY_IP_WHITELIST, trim($this->getParam('security_ip_whitelist')));
+
 			$this->user->fullname = $this->getParam("fullname");
 			$this->user->save();
 
 			if ($updateSession)
 				Scalr_Session::create($this->user->getId());
 			
-			$this->response->success('Profile successfully updated');
+			$this->response->success('Secuity settings successfully updated');
 		}
 		else {
 			$this->response->failure();
@@ -113,26 +125,49 @@ class Scalr_UI_Controller_Core extends Scalr_UI_Controller
 		}
 	}
 
-	public function searchAction()
+	public function xSettingsDisable2FaGglAction()
 	{
+		$this->user->setSetting(Scalr_Account_User::SETTING_SECURITY_2FA_GGL, 0);
+		$this->user->setSetting(Scalr_Account_User::SETTING_SECURITY_2FA_GGL_KEY, '');
 
+		$this->response->success();
 	}
+
+	public function xSettingsEnable2FaGglAction()
+	{
+		if ($this->getParam('qr') && $this->getParam('code')) {
+			if (Scalr_Util_Google2FA::verifyKey($this->getParam('qr'), $this->getParam('code'))) {
+				$this->user->setSetting(Scalr_Account_User::SETTING_SECURITY_2FA_GGL, 1);
+				$this->user->setSetting(Scalr_Account_User::SETTING_SECURITY_2FA_GGL_KEY,
+					$this->getCrypto()->encrypt($this->getParam('qr'), $this->cryptoKey)
+				);
+
+				$this->response->success('Two-factor authentication enabled');
+			} else {
+				$this->response->data(array('errors' => array(
+					'code' => 'Invalid code'
+				)));
+				$this->response->failure();
+			}
+		} else {
+			$this->response->failure('Invalid data');
+		}
+	}
+
 
 	public function settingsAction()
 	{
 		$panel = $this->user->getDashboard($this->getEnvironmentId());
 
 		$params = array(
+			'gravatar_email' => $this->user->getSetting(Scalr_Account_User::SETTING_GRAVATAR_EMAIL) ? $this->user->getSetting(Scalr_Account_User::SETTING_GRAVATAR_EMAIL) : '',
+			'gravatar_hash' => $this->user->getGravatarHash(),
 			'rss_login' => $this->user->getSetting(Scalr_Account_User::SETTING_RSS_LOGIN),
 			'rss_pass' => $this->user->getSetting(Scalr_Account_User::SETTING_RSS_PASSWORD),
-			'default_environment' => $this->user->getSetting(Scalr_Account_User::SETTING_DEFAULT_ENVIRONMENT) ? $this->user->getSetting(Scalr_Account_User::SETTING_DEFAULT_ENVIRONMENT) : '',
-			'default_environment_list' => $this->user->getEnvironments(),
+			'timezone' => $this->user->getSetting(Scalr_Account_User::SETTING_UI_TIMEZONE),
+			'timezones_list' => Scalr_Util_DateTime::getTimezones(),
 			'user_email' => $this->user->getEmail(),
-			'settings' => array(
-				'security_2fa' => $this->user->getAccount()->isFeatureEnabled(Scalr_Limits::FEATURE_2FA),
-				'security_2fa_ggl' => $this->user->getSetting(Scalr_Account_User::SETTING_SECURITY_2FA_GGL)
-			),
-			'security_ip_whitelist' => $this->user->getSetting(Scalr_Account_User::SETTING_SECURITY_IP_WHITELIST),
+			'user_fullname' => $this->user->fullname,
 			'dashboard_columns' => count($panel['configuration'])
 		);
 
@@ -156,6 +191,12 @@ class Scalr_UI_Controller_Core extends Scalr_UI_Controller
 				$err['rss_pass'] = "RSS feed password must be 6 chars or more";
 		}
 
+		if (count($err)) {
+			$this->response->failure();
+			$this->response->data(array('errors' => $err));
+			return;
+		}
+
 		$panel = $this->user->getDashboard($this->getEnvironmentId());
 		if ($this->getParam('dashboard_columns') > count($panel['configuration'])) {
 			while ($this->getParam('dashboard_columns') > count($panel['configuration'])) {
@@ -173,45 +214,37 @@ class Scalr_UI_Controller_Core extends Scalr_UI_Controller
 		$this->user->setDashboard($this->getEnvironmentId(), $panel);
 
 		$panel = self::loadController('Dashboard')->fillDash($panel);
-		if (count($err) == 0) {
-			$this->user->setSetting(Scalr_Account_User::SETTING_RSS_LOGIN, $rssLogin);
-			$this->user->setSetting(Scalr_Account_User::SETTING_RSS_PASSWORD, $rssPass);
-			$this->user->setSetting(Scalr_Account_User::SETTING_DEFAULT_ENVIRONMENT, $this->getParam('default_environment'));
-			$this->user->setSetting(Scalr_Account_User::SETTING_SECURITY_IP_WHITELIST, trim($this->getParam('security_ip_whitelist')));
-			$this->user->setSetting(Scalr_Account_User::SETTING_DASHBOARD_ENABLED, $this->getParam('dashboard_enabled'));
 
-			$this->response->success('Settings successfully updated');
-			$this->response->data(array('panel' => $panel));
-		} else {
-			$this->response->failure();
-			$this->response->data(array('errors' => $err));
-		}
+		$this->user->setSetting(Scalr_Account_User::SETTING_RSS_LOGIN, $rssLogin);
+		$this->user->setSetting(Scalr_Account_User::SETTING_RSS_PASSWORD, $rssPass);
+		$this->user->setSetting(Scalr_Account_User::SETTING_UI_TIMEZONE, $this->getParam('timezone'));
+		
+		$gravatarEmail = htmlspecialchars($this->getParam('gravatar_email'));
+		$this->user->setSetting(Scalr_Account_User::SETTING_GRAVATAR_EMAIL, $gravatarEmail);
+
+		$this->user->fullname = htmlspecialchars($this->getParam('user_fullname'));
+		$this->user->save();
+
+		$this->response->success('Settings successfully updated');
+		$this->response->data(array('panel' => $panel, 'gravatarHash' => $this->user->getGravatarHash()));
 	}
 
-	public function xSettingsDisable2FaGglAction()
+	public function variablesAction()
 	{
-		$this->user->setSetting(Scalr_Account_User::SETTING_SECURITY_2FA_GGL, 0);
-		$this->user->setSetting(Scalr_Account_User::SETTING_SECURITY_2FA_GGL_KEY, '');
-
-		$this->response->success();
+		$vars = new Scalr_Scripting_GlobalVariables($this->getEnvironmentId());
+		$this->response->page('ui/core/variables.js', array('variables' => json_encode($vars->getValues())), array('ui/core/variablefield.js'), array('ui/core/variablefield.css'));
 	}
 
-	public function xSettingsEnable2FaGglAction()
+	public function xSaveVariablesAction()
 	{
-		if ($this->getParam('qr') && $this->getParam('code')) {
-			if (Scalr_Util_Google2FA::verifyKey($this->getParam('qr'), $this->getParam('code'))) {
-				$this->user->setSetting(Scalr_Account_User::SETTING_SECURITY_2FA_GGL, 1);
-				$this->user->setSetting(Scalr_Account_User::SETTING_SECURITY_2FA_GGL_KEY, 
-					$this->getCrypto()->encrypt($this->getParam('qr'), $this->cryptoKey)
-				);
+		$this->request->defineParams(array(
+			'variables' => array('type' => 'json')
+		));
 
-				$this->response->success();
-			} else {
-				$this->response->failure('Code is invalid. Please try again.');
-			}
-		} else {
-			$this->response->failure();
-		}
+		$vars = new Scalr_Scripting_GlobalVariables($this->getEnvironmentId());
+		$vars->setValues($this->getParam('variables'));
+
+		$this->response->success('Variables saved');
 	}
 
 	public function xChangeEnvironmentAction()
@@ -221,6 +254,10 @@ class Scalr_UI_Controller_Core extends Scalr_UI_Controller
 		foreach ($this->user->getEnvironments() as $e) {
 			if ($env->id == $e['id']) {
 				Scalr_Session::getInstance()->setEnvironmentId($e['id']);
+
+				if (! Scalr_Session::getInstance()->isVirtual())
+					$this->user->setSetting(Scalr_Account_User::SETTING_UI_ENVIRONMENT, $e['id']);
+
 				$this->response->success();
 				return;
 			}

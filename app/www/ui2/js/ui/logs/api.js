@@ -54,7 +54,7 @@ Scalr.regPage('Scalr.ui.logs.api', function (loadParams, moduleParams) {
 			store: store,
 			dock: 'top',
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}]
 		}]

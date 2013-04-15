@@ -85,7 +85,7 @@ Scalr.regPage('Scalr.ui.admin.users.view', function (loadParams, moduleParams) {
 				}
 			}],
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}]
 		}]

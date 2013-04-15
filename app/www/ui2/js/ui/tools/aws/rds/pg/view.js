@@ -96,9 +96,23 @@ Scalr.regPage('Scalr.ui.tools.aws.rds.pg.view', function (loadParams, modulePara
 							},{
 								xtype: 'combo',
 								name: 'Engine',
-								store: [['mysql5.1','MySQL 5.1']],
+								store: [
+								    ['mysql5.1','MySQL 5.1'],
+								    ['mysql5.5', 'MySQL 5.5'],
+								    ['oracle-ee-11.2', 'Oracle Database Server EE 11.2'],
+								    ['oracle-se-11.2', 'Oracle Database Server SE 11.2'],
+								    ['oracle-se1-11.2', 'Oracle Database Server SE1 11.2'],
+								    ['sqlserver-ee-10.5', 'MS SQL Server EE 10.5'],
+								    ['sqlserver-ee-11.0', 'MS SQL Server EE 11.0'],
+								    ['sqlserver-ex-10.5', 'MS SQL Server EX 10.5'],
+								    ['sqlserver-ex-11.0', 'MS SQL Server EX 11.0'],
+								    ['sqlserver-se-10.5', 'MS SQL Server SE 10.5'],
+								    ['sqlserver-se-11.0', 'MS SQL Server SE 11.0'],
+								    ['sqlserver-web-10.5', 'MS SQL Server WEB 10.5'],
+								    ['sqlserver-web-11.0', 'MS SQL Server WEB 11.0']
+							    ],
 								queryMode: 'local',
-								value: 'mysql5.1',
+								value: 'mysql5.5',
 								editable: false,
 								fieldLabel: 'Engine'
 							},{

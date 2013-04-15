@@ -16,24 +16,24 @@ use Scalr\Service\Aws\AbstractDataType;
 abstract class AbstractSqsDataType extends AbstractDataType
 {
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractDataType::getServiceNames()
-	 */
-	public function getServiceNames()
-	{
-		return array(Aws::SERVICE_INTERFACE_SQS);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractDataType::getServiceNames()
+     */
+    public function getServiceNames()
+    {
+        return array(Aws::SERVICE_INTERFACE_SQS);
+    }
 
-	/**
-	 * Throws an exception if this object was not initialized.
-	 *
-	 * @throws SqsException
-	 */
-	protected function throwExceptionIfNotInitialized()
-	{
-		if (!($this->getSqs() instanceof \Scalr\Service\Aws\Sqs)) {
-			throw new SqsException(get_class($this) . ' has not been initialized with Sqs yet.');
-		}
-	}
+    /**
+     * Throws an exception if this object was not initialized.
+     *
+     * @throws SqsException
+     */
+    protected function throwExceptionIfNotInitialized()
+    {
+        if (!($this->getSqs() instanceof \Scalr\Service\Aws\Sqs)) {
+            throw new SqsException(get_class($this) . ' has not been initialized with Sqs yet.');
+        }
+    }
 }

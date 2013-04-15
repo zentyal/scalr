@@ -412,47 +412,45 @@
 		public function setImage($imageId, $platform, $cloudLocation='', $agentVersion = '', $osFamily = '', $osName = '', $osVersion = '', $architecture = '')
 		{
 			if (!in_array($osFamily, array('ubuntu', 'fedora'))) {
-				$osVersion = strstr($osVersion, '.', true);
+				$nOsVersion = strstr($osVersion, '.', true);
+                if (!$nOsVersion)
+                    $nOsVersion = $osVersion;
+                
+                $osVersion = $nOsVersion;
 			}
 			
-			// @HACK for shared roles
-			if ($this->origin == ROLE_TYPE::SHARED || $this->isDevel == 1 || !$this->db->GetOne("SELECT id FROM role_images WHERE image_id = ? AND role_id != ?", array(trim($imageId), $this->id)))
-			{
-				$this->db->Execute("INSERT INTO role_images SET
-					`role_id`			= ?,
-					`cloud_location`	= ?,
-					`image_id`			= ?,
-					`platform`			= ?,
-					`agent_version`		= ?,
-					`os_family`			= ?,
-					`os_name`			= ?,
-					`os_version`		= ?,
-					`architecture`		= ?
-					ON DUPLICATE KEY UPDATE 
-					`image_id` = ?, 
-					`os_family`			= ?,
-					`os_name`			= ?,
-					`os_version`		= ?,
-					`architecture`		= ?
-				", array(
-					$this->id,
-					$cloudLocation,
-					trim($imageId),
-					$platform,
-					$agentVersion,
-					$osFamily,
-					$osName,
-					$osVersion,
-					$architecture,
-					trim($imageId),
-					$osFamily,
-					$osName,
-					$osVersion,
-					$architecture
-				));
-			}
-			else
-				throw new Exception("Role with such imageId already exists in database");
+			$this->db->Execute("INSERT INTO role_images SET
+				`role_id`			= ?,
+				`cloud_location`	= ?,
+				`image_id`			= ?,
+				`platform`			= ?,
+				`agent_version`		= ?,
+				`os_family`			= ?,
+				`os_name`			= ?,
+				`os_version`		= ?,
+				`architecture`		= ?
+				ON DUPLICATE KEY UPDATE 
+				`image_id` = ?, 
+				`os_family`			= ?,
+				`os_name`			= ?,
+				`os_version`		= ?,
+				`architecture`		= ?
+			", array(
+				$this->id,
+				$cloudLocation,
+				trim($imageId),
+				$platform,
+				$agentVersion,
+				$osFamily,
+				$osName,
+				$osVersion,
+				$architecture,
+				trim($imageId),
+				$osFamily,
+				$osName,
+				$osVersion,
+				$architecture
+			));
 		}
 
 		public function setTags(array $tags = array())
@@ -541,7 +539,8 @@
 					'timeout' => $script['timeout'],
 					'issync' => $script['issync'],
 					'params' => unserialize($script['params']),
-					'order_index' => $script['order_index']
+					'order_index' => $script['order_index'],
+					'hash' => $script['hash']
 				);
 			}
 
@@ -569,7 +568,8 @@
 						`timeout` = ?,
 						`issync` = ?,
 						`params` = ?,
-						`order_index` = ?
+						`order_index` = ?,
+						`hash` = ?
 					', array(
 						$this->id,
 						$script['event_name'],
@@ -579,7 +579,8 @@
 						$script['timeout'],
 						$script['issync'],
 						serialize($script['params']),
-						$script['order_index']
+						$script['order_index'],
+						(!$script['hash']) ? Scalr_Util_CryptoTool::sault(12) : $script['hash']
 					));
 					$ids[] = $this->db->Insert_ID();
 				} else {
@@ -609,9 +610,155 @@
 					$ids[] = $script['role_script_id'];
 				}
 			}
-
-			$this->db->Execute('DELETE FROM role_scripts WHERE role_id = ? AND id NOT IN (\'' . implode("','", $ids) . '\')', array($this->id));
+			
+			$toRemove = $this->db->Execute('SELECT id, hash FROM role_scripts WHERE role_id = ? AND id NOT IN (\'' . implode("','", $ids) . '\')', array($this->id));
+			while ($rScript = $toRemove->FetchRow()) {
+				$this->db->Execute("DELETE FROM farm_role_scripting_params WHERE hash = ? AND farm_role_id IN (SELECT id FROM farm_roles WHERE role_id = ?)", 
+					array($rScript['hash'], $this->id)
+				);
+				$this->db->Execute("DELETE FROM role_scripts WHERE id = ?", array($rScript['id']));
+			}
 		}
+
+        public function cloneRole($newRoleName, $accountId, $envId)
+        {
+            $this->db->BeginTrans();
+            try {
+                $this->db->Execute("INSERT INTO roles SET
+                    name            = ?,
+                    origin          = ?,
+                    client_id       = ?,
+                    env_id          = ?,
+                    description     = ?,
+                    behaviors       = ?,
+                    architecture    = ?,
+                    is_stable       = '1',
+                    history         = ?,
+                    approval_state  = ?,
+                    generation      = ?,
+                    os              = ?,
+                    szr_version     = ?
+                ", array(
+                    $newRoleName,
+                    ROLE_TYPE::CUSTOM,
+                    $accountId,
+                    $envId,
+                    $this->description,
+                    $this->behaviorsRaw,
+                    $this->architecture,
+                    "*cloned from {$this->name} ($this->id)*",
+                    APPROVAL_STATE::APPROVED,
+                    2,
+                    $this->os,
+                    $this->szrVersion
+                ));
+    
+                $newRoleId = $this->db->Insert_Id();
+                
+                //Set behaviors
+                foreach ($this->getBehaviors() as $behavior)
+                    $this->db->Execute("INSERT INTO role_behaviors SET role_id = ?, behavior = ?", array($newRoleId, $behavior));
+                
+                // Set images
+                $rsr7 = $this->db->Execute("SELECT * FROM role_images WHERE role_id = ?", array($this->id));
+                while ($r7 = $rsr7->FetchRow()) {
+                    $this->db->Execute("INSERT INTO role_images SET
+                        `role_id` = ?,
+                        `cloud_location` = ?,
+                        `image_id` = ?,
+                        `platform` = ?,
+                        `architecture` = ?, 
+                        `os_family`  = ?,
+                        `os_name`  = ?,
+                        `os_version`  = ?,
+                        `agent_version` = ?
+                    ", array($newRoleId, $r7['cloud_location'], $r7['image_id'], $r7['platform'], $r7['architecture'], $r7['os_family'], $r7['os_name'], $r7['os_version'], $r7['agent_version']));
+                }
+                
+                //Set tags
+                $rsr1 = $this->db->Execute("SELECT * FROM role_tags WHERE role_id = ?", array($this->id));
+                $tags = array();
+                while ($r1 = $rsr1->FetchRow()) {
+                    $this->db->Execute("INSERT INTO role_tags SET
+                        `role_id` = ?,
+                        `tag` = ?
+                    ", array($newRoleId, $r1['tag']));
+                }
+                
+                //Set software
+                $rsr2 = $this->db->Execute("SELECT * FROM role_software WHERE role_id = ?", array($this->id));
+                while ($r2 = $rsr2->FetchRow()) {
+                    $this->db->Execute("INSERT INTO role_software SET
+                        `role_id` = ?,
+                        `software_name` = ?,
+                        `software_version` = ?,
+                        `software_key` = ?
+                    ", array($newRoleId, $r2['software_name'], $r2['software_version'], $r2['software_key']));
+                }
+                
+                //Set security rules
+                $rsr3 = $this->db->Execute("SELECT * FROM role_security_rules WHERE role_id = ?", array($this->id));
+                while ($r3 = $rsr3->FetchRow()) {
+                    $this->db->Execute("INSERT INTO role_security_rules SET
+                        `role_id` = ?,
+                        `rule` = ?
+                    ", array($newRoleId, $r3['rule']));
+                }
+                
+                //Set properties
+                $rsr5 = $this->db->Execute("SELECT * FROM role_properties WHERE role_id = ?", array($this->id));
+                while ($r5 = $rsr5->FetchRow()) {
+                    $this->db->Execute("INSERT INTO role_properties SET
+                        `role_id` = ?,
+                        `name` = ?,
+                        `value` = ?
+                    ", array($newRoleId, $r5['name'], $r5['value']));
+                }
+                
+                //Set parameters
+                $rsr6 = $this->db->Execute("SELECT * FROM role_parameters WHERE role_id = ?", array($this->id));
+                while ($r6 = $rsr6->FetchRow()) {
+                    $this->db->Execute("INSERT INTO role_parameters SET
+                        `role_id` = ?,
+                        `name` = ?,
+                        `type` = ?,
+                        `isrequired` = ?,
+                        `defval` = ?,
+                        `allow_multiple_choice` = ?,
+                        `options` = ?,
+                        `hash` = ?,
+                        `issystem` = ?
+                    ", array($newRoleId, $r6['name'], $r6['type'], $r6['isrequired'], $r6['defval'], $r6['allow_multiple_choice'], $r6['options'], $r6['hash'], $r6['issystem']));
+                }
+                
+                //Set scripts
+                $rsr8 = $this->db->Execute("SELECT * FROM role_scripts WHERE role_id = ?", array($this->id));
+                while ($r8 = $rsr8->FetchRow()) {
+                    $this->db->Execute("INSERT INTO role_scripts SET
+                        role_id = ?,
+                        event_name = ?,
+                        target = ?,
+                        script_id = ?,
+                        version = ?,
+                        timeout = ?,
+                        issync = ?,
+                        params = ?,
+                        order_index = ?,
+                        hash = ?
+                    ", array(
+                        $newRoleId, $r8['event_name'], $r8['target'], $r8['script_id'], $r8['version'],
+                        $r8['timeout'], $r8['issync'], $r8['params'], $r8['order_index'], Scalr_Util_CryptoTool::sault(12)
+                    ));
+                }
+            } catch (Exception $e) {
+                $this->db->RollbackTrans();
+                throw $e;
+            }
+            
+            $this->db->CommitTrans();
+            
+            return $newRoleId;
+        }
 
 		public static function createFromBundleTask(BundleTask $BundleTask)
 		{
@@ -728,6 +875,12 @@
 				foreach ($props as $prop) {
 					$role->setProperty($prop['name'], $prop['value']);
 				}
+				
+				$scripts = $db->GetAll("SELECT * FROM role_scripts WHERE role_id=?", array($proto_role['id']));
+				foreach ($scripts as &$script)
+					$script['params'] = unserialize($script['params']);
+
+				$role->setScripts($scripts);
 			} else {
 				
 				if ($role->hasBehavior(ROLE_BEHAVIORS::NGINX)) {

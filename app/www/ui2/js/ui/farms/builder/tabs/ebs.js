@@ -100,39 +100,55 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.ebs', function (moduleTabParams) {
 		},
 
 		items: [{
+			xtype: 'displayfield',
+			fieldCls: 'x-form-field-warning',
+			value: 'This EBS manager is deprecated. Please use <a href="#">NEW STORAGE MANAGER</a> instead.',
+			listeners: {
+				afterrender: function() {
+					this.el.down('a').on('click', function(e) {
+						var ct = this.up('farmroleedit'), storage = ct.down('#storage');
+						ct.getDockedComponent('tabs').items.each(function(item) {
+							if (item.tabCmp == storage) {
+								item.toggle(true);
+								ct.layout.setActiveItem(storage);
+								return false;
+							}
+						});
+						e.preventDefault();
+					}, this);
+				}
+			}
+		}, {
 			xtype: 'fieldset',
 			name: 'aws.use_ebs',
 			checkboxToggle: true,
 			collapsed: true,
 			title: 'Automatically attach EBS volume with the following options:',
+			defaults: {
+				labelWidth: 70
+			},
 			items: [{
 				xtype: 'fieldcontainer',
 				layout: 'hbox',
-				hideLabel: true,
+				fieldLabel: 'Size',
 				items: [{
-					xtype: 'displayfield',
-					value: 'Size'
-				}, {
 					xtype: 'textfield',
 					name: 'aws.ebs_size',
-					margin: '0 0 0 3',
 					width: 40
 				}, {
 					xtype: 'displayfield',
-					margin: '0 0 0 3',
+					margin: '0 0 0 5',
 					value: 'GB'
 				}]
 			}, {
 				xtype: 'fieldcontainer',
 				layout: 'hbox',
 				name: 'aws.ebs_settings',
-				//hidden: (pageParameters['beta'] != 1),
 				fieldLabel: 'EBS type',
 				width: 600,
-				labelWidth: 100,
 				items: [{
 					xtype: 'combo',
-					store: [['standart', 'Standart'],['io1', 'Provisioned IOPS (1-1000): ']],
+					store: [['standard', 'Standard'],['io1', 'Provisioned IOPS (1-1000): ']],
 					valueField: 'id',
 					displayField: 'name',
 					editable: false,
@@ -154,7 +170,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.ebs', function (moduleTabParams) {
 					name: 'aws.ebs_iops',
 					hideLabel: true,
 					hidden: true,
-					margin: '0 0 0 2',
+					margin: '0 0 0 5',
 					width: 40,
 					value: '500'
 				}]
@@ -165,7 +181,6 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.ebs', function (moduleTabParams) {
 				editable: true,
 				forceSelection: false,
 				width: 500,
-				labelWidth: 60,
 				typeAhead: true,
 				allowBlank: true,
 				selectOnFocus: true,
@@ -198,11 +213,11 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.ebs', function (moduleTabParams) {
 					}
 				}, {
 					xtype: 'textfield',
-					margin: '0 0 0 3',
+					margin: '0 0 0 5',
 					name: 'aws.ebs_mountpoint'
 				}, {
 					xtype: 'displayfield',
-					margin: '0 0 0 3',
+					margin: '0 0 0 5',
 					value: 'mount point.'
 				}]
 			}]

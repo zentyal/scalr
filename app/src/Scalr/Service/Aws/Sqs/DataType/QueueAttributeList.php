@@ -12,27 +12,26 @@ use Scalr\Service\Aws\Sqs\AbstractSqsListDataType;
 class QueueAttributeList extends AbstractSqsListDataType
 {
 
-	/**
-	 * Constructor
-	 *
-	 * @param array|QueueAttributeData  $aListData  QueueAttributeData List
-	 */
-	public function __construct($aListData = null)
-	{
-		parent::__construct(
-			$aListData,
-			array('name', 'value'),
-			'Scalr\\Service\\Aws\\Sqs\\DataType\\QueueAttributeData'
-		);
-	}
+    /**
+     * Constructor
+     *
+     * @param array|QueueAttributeData  $aListData  QueueAttributeData List
+     */
+    public function __construct($aListData = null)
+    {
+        parent::__construct(
+            $aListData,
+            array('name', 'value'),
+            'Scalr\\Service\\Aws\\Sqs\\DataType\\QueueAttributeData'
+        );
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
-	 */
-	public function getQueryArray($uriParameterName = 'Attribute')
-	{
-		return parent::getQueryArray($uriParameterName);
-	}
-
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
+     */
+    public function getQueryArray($uriParameterName = 'Attribute', $member = true)
+    {
+        return parent::getQueryArray($uriParameterName, $member);
+    }
 }

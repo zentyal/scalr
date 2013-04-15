@@ -48,7 +48,7 @@ Scalr.regPage('Scalr.ui.admin.logs.view', function (loadParams, moduleParams) {
 			store: store,
 			dock: 'top',
 			items:[{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}, ' ', {
 				xtype: 'combo',

@@ -212,12 +212,6 @@ class Scalr_UI_Controller_Logs extends Scalr_UI_Controller
 				$row['event_server_index'] = $esInfo['index'];
 			}
 			
-			if (stristr($row['event'], "CustomEvent") !== false)
-				$row['event'] = 'Executed manually';
-			
-			if (stristr($row['event'], "APIEvent") !== false)
-				$row['event'] = 'Executed by API';
-			
 			$row['dtadded'] = Scalr_Util_DateTime::convertTz($row['dtadded']);
 			$row['message'] = nl2br(htmlspecialchars($row['message']));
 		}

@@ -1,0 +1,21 @@
+.scalr-ui-farmbuilder2-allroles .x-item{
+	background: #E8EAEE;
+	border-radius: 4px;
+	box-shadow: 0 -1px 2px 0px #3A597C inset;
+	cursor: pointer;
+	width:110px;
+	height:110px;
+	line-height:110px;
+	text-align:center;
+	float:left;
+	margin:0 12px 12px 0;
+}
+
+.scalr-ui-farmbuilder2-allroles .x-item-over{
+	background:#fff;
+}
+
+.scalr-ui-farmbuilder2-allroles .x-item-selected{
+	background: #75869B;
+	box-shadow: 0 1px 5px #2B303C inset, 0 1px 2px #DCE2E8;
+}

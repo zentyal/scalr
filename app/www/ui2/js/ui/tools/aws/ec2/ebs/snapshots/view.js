@@ -62,6 +62,72 @@ Scalr.regPage('Scalr.ui.tools.aws.ec2.ebs.snapshots.view', function (loadParams,
 						);
 					}
 				}, {
+					itemId: 'option.migrate',
+					iconCls: 'x-menu-icon-fork',
+					text: 'Copy to another EC2 region',
+					request: {
+						processBox: {
+							type:'action'
+						},
+						url: '/tools/aws/ec2/ebs/snapshots/xGetMigrateDetails/',
+						dataHandler: function (record) {
+							return { 
+								'snapshotId': record.get('snapshotId'),
+								'cloudLocation': store.proxy.extraParams.cloudLocation 
+							};
+						},
+						success: function (data) {
+							Scalr.Request({
+								confirmBox: {
+									type: 'action',
+									msg: 'Copying snapshots allows you to use them in additional regions',
+									formWidth: 700,
+									form: [{
+										xtype: 'fieldset',
+										title: 'Region copy',
+										items: [{
+											xtype: 'displayfield',
+											labelWidth: 120,
+											width: 500,
+											fieldLabel: 'Snpashot ID',
+											value: data['snapshotId']	
+										},{
+											xtype: 'displayfield',
+											labelWidth: 120,
+											width: 500,
+											fieldLabel: 'Source region',
+											value: data['sourceRegion']	
+										}, {
+											xtype: 'combo',
+											fieldLabel: 'Destination region',
+											store: {
+												fields: [ 'cloudLocation', 'name' ],
+												proxy: 'object',
+												data: data['availableDestinations']
+											},
+											autoSetValue: true,
+											valueField: 'cloudLocation',
+											displayField: 'name',
+											editable: false,
+											queryMode: 'local',
+											name: 'destinationRegion',
+											labelWidth: 120,
+											width: 500
+										}]
+									}]
+								},
+								processBox: {
+									type: 'action'
+								},
+								url: '/tools/aws/ec2/ebs/snapshots/xMigrate',
+								params: {snapshotId: data.snapshotId, sourceRegion: data.sourceRegion},
+								success: function (data) {
+									document.location.href = '#/tools/aws/ec2/ebs/snapshots/' + data.data.snapshotId + '/view?cloudLocation=' + data.data.cloudLocation;
+								}
+							});
+						}
+					}
+				}, {
 					xtype: 'menuseparator',
 					itemId: 'option.Sep'
 				}, {
@@ -90,44 +156,51 @@ Scalr.regPage('Scalr.ui.tools.aws.ec2.ebs.snapshots.view', function (loadParams,
 		],
 
 		multiSelect: true,
-		selModel: {
-			selType: 'selectedmodel',
-			selectedMenu: [{
-				text: 'Delete',
-				iconCls: 'x-menu-icon-delete',
-				request: {
-					confirmBox: {
-						msg: 'Delete selected EBS snapshot(s): %s ?',
-						type: 'delete'
-					},
-					processBox: {
-						msg: 'Deleting selected EBS snapshot(s) ...',
-						type: 'delete'
-					},
-					url: '/tools/aws/ec2/ebs/snapshots/xRemove/',
-					dataHandler: function (records) {
-						var data = [];
-						this.confirmBox.objects = [];
-						for (var i = 0, len = records.length; i < len; i++) {
-							data.push(records[i].get('snapshotId'));
-							this.confirmBox.objects.push(records[i].get('snapshotId'));
-						}
-
-						return { snapshotId: Ext.encode(data), cloudLocation: store.proxy.extraParams.cloudLocation };
-					},
-					success: function (data) {
-						store.load();
-					}
-				}
-			}]
+		selType: 'selectedmodel',
+		listeners: {
+			selectionchange: function(selModel, selections) {
+				var toolbar = this.down('scalrpagingtoolbar');
+				toolbar.down('#delete').setDisabled(!selections.length);
+			}
 		},
 
 		dockedItems: [{
 			xtype: 'scalrpagingtoolbar',
 			store: store,
 			dock: 'top',
+			afterItems: [{
+				ui: 'paging',
+				itemId: 'delete',
+				disabled: true,
+				iconCls: 'x-tbar-delete',
+				tooltip: 'Delete',
+				handler: function() {
+					var request = {
+						confirmBox: {
+							type: 'delete',
+							msg: 'Delete selected EBS snapshot(s): %s ?'
+						},
+						processBox: {
+							msg: 'Deleting EBS snapshot(s) ...',
+							type: 'delete'
+						},
+						url: '/tools/aws/ec2/ebs/snapshots/xRemove/',
+						success: function() {
+							store.load();
+						}
+					}, records = this.up('grid').getSelectionModel().getSelection(), data = [];
+
+					request.confirmBox.objects = [];
+					for (var i = 0, len = records.length; i < len; i++) {
+						data.push(records[i].get('snapshotId'));
+						request.confirmBox.objects.push(records[i].get('snapshotId'))
+					}
+					request.params = { snapshotId: Ext.encode(data), cloudLocation: store.proxy.extraParams.cloudLocation };
+					Scalr.Request(request);
+				}
+			}],
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}, ' ',{
 				xtype: 'fieldcloudlocation',
@@ -145,7 +218,7 @@ Scalr.regPage('Scalr.ui.tools.aws.ec2.ebs.snapshots.view', function (loadParams,
 				width: 220,
 				text: 'Show public (Shared) snapshots',
 				toggleHandler: function (field, checked) {
-					store.proxy.extraParams.showPublicSnapshots = checked ? 'true' : 'false';
+					store.proxy.extraParams.showPublicSnapshots = checked ? '1' : '';
 					store.loadPage(1);
 				}
 			}]

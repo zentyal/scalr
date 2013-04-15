@@ -2,7 +2,7 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 	var result = { behaviors: [], addons: [ 'chef' ] };
 
 	if (! Ext.isObject(moduleParams.platforms)) {
-		Scalr.message.Error('Roles builder supports only EC2 and Rackspace platforms');
+		Scalr.message.Error('Roles builder supports only EC2, Rackspace and GCE platforms');
 		Scalr.event.fireEvent('redirect', moduleParams['environment'], true);
 		return false;
 	}
@@ -31,6 +31,17 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 			toggleHandler: function () {
 				if (this.pressed) {
 					result['platform'] = this.platform;
+					
+					if (result['platform'] == 'rackspacengus' || result['platform'] == 'rackspacenguk' || result['platform'] == 'gce') {
+						form.down('[behavior="rabbitmq"]').hide();
+						form.down('[behavior="mongodb"]').hide();
+						form.down('[behavior="postgresql"]').hide();
+					} else {
+						form.down('[behavior="rabbitmq"]').show();
+						form.down('[behavior="mongodb"]').show();
+						form.down('[behavior="postgresql"]').show();
+					}
+					
 					form.down("#step1").setTitle('Step 1 - Choose platform [' + this.renderData.name + ']');
 					form.stepNext();
 				} else {
@@ -40,12 +51,14 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 		};
 
 	var checkboxBehaviorListener = function() {
+		/*
 		if (this.behavior == 'mysql') {
 			if (this.pressed) {
 				form.down('#softwareSet').show();
 			} else
 				form.down('#softwareSet').hide();
 		}
+		*/
 
 		if (this.behavior == 'app') {
 			if (this.pressed)
@@ -55,10 +68,12 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 		}
 
 		//moduleParams['images'][result['platform']][result['imageId']]['name'] == 'Ubuntu 12.04'
-		var isUbuntu12 = moduleParams['images'][result['platform']][result['imageId']]['name'] == 'Ubuntu 12.04';
+		var isUbuntu12 = moduleParams['images'][result['platform']][result['imageId']]['name'] == 'Ubuntu 12.04' || moduleParams['images'][result['platform']][result['imageId']]['name'] == 'GCEL 12.04';
 		var isCentOS6 = moduleParams['images'][result['platform']][result['imageId']]['name'] == 'CentOS 6.3';
 		
-		var dbBehaviors = ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2'];
+		var isCentOS = (result['os_dist'] == 'centos');
+		
+		var dbBehaviors = [/*'mysql', */'postgresql', 'redis', 'mongodb', 'percona', 'mysql2'];
 		if (Ext.Array.contains(dbBehaviors, this.behavior)) {
 			
 			Ext.Array.each(dbBehaviors, function(value){
@@ -66,6 +81,14 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 					if (this.pressed) {
 						form.down('[behavior="'+value+'"]').disable();
 					} else {
+						
+						if (isCentOS && value == 'rabbitmq') {
+							//NOT SUPPORTED ON CENTOS
+						} else {
+							form.down('[behavior="'+value+'"]').enable();
+						}
+							
+						/*
 						if (value == 'percona') {
 							if (isUbuntu12 || isCentOS6)
 							//if (isCentOS6)
@@ -80,6 +103,8 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 						}
 						else
 							form.down('[behavior="'+value+'"]').enable();
+						*/
+						//form.down('[behavior="'+value+'"]').enable();
 					}
 				}
 			}, this);
@@ -103,7 +128,7 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 		} else if (result.behaviors.length) {
 			var ar = {
 				'app': 'Application servers',
-				'mysql': 'Database servers',
+				//'mysql': 'Database servers',
 				'mysql2': 'Database servers',
 				'percona': 'Database servers',
 				'postgresql': 'Database servers',
@@ -198,9 +223,15 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 					listeners: {
 						change: function () {
 							var r = this.findRecord('name', this.getValue());
-							result['location'] = this.getValue();
-							result['location_description'] = r.get('description');
-							form.down('#step2').applyFilter();
+							if (r) {
+								result['location'] = this.getValue();
+								result['location_description'] = r.get('description');
+								form.down('#step2').applyFilter();
+							} else {
+								result['location'] = '';
+								result['location_description'] = '';
+								form.down('#step2').applyFilter();
+							}
 						}
 					}
 				}, {
@@ -238,7 +269,7 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 			}, {
 				xtype: 'fieldset',
 				style: 'margin: 10px',
-				hidden:!(loadParams['beta'] == 1),
+				hidden:!Scalr.flags['betaMode'],
 				title: 'OR Custom image',
 				items: [{
 					xtype: 'fieldcontainer',
@@ -277,7 +308,11 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 
 					if (this.pressed) {
 						result['imageId'] = this.imageId;
-						form.down('#step2').setTitle('Step 2 - Choose OS [' + this.renderData.name + ' (' + result['architecture'] + ') at ' + result['location_description'] + ']');
+						
+						if (result['location_description'])
+							form.down('#step2').setTitle('Step 2 - Choose OS [' + this.renderData.name + ' (' + result['architecture'] + ') at ' + result['location_description'] + ']');
+						else
+							form.down('#step2').setTitle('Step 2 - Choose OS [' + this.renderData.name + ' (' + result['architecture'] + ')]');
 					}
 
 					if (d) {
@@ -324,16 +359,26 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 								toggleHandler: function () {
 									if (this.pressed) {
 										result['imageId'] = this.imageId;
+										result['os_dist'] = this.renderData.osDist;
 										form.down('[name="imageId"]').setValue('');
 										form.stepNext();
-										form.down('#step2').setTitle('Step 2 - Choose OS [' + this.renderData.name + ' (' + result['architecture'] + ') at ' + result['location_description'] + ']');
-
-										if (this.renderData.osDist == 'centos')
-											form.down('[behavior="mysqlproxy"]').toggle(false).disable();
-										else
-											form.down('[behavior="mysqlproxy"]').enable();
 										
-										if (this.renderData.name == 'Ubuntu 12.04') {
+										if (result['location_description'])
+											form.down('#step2').setTitle('Step 2 - Choose OS [' + this.renderData.name + ' (' + result['architecture'] + ') at ' + result['location_description'] + ']');
+										else
+											form.down('#step2').setTitle('Step 2 - Choose OS [' + this.renderData.name + ' (' + result['architecture'] + ')]');
+
+										if (this.renderData.osDist == 'centos') {
+											form.down('[behavior="mysqlproxy"]').toggle(false).disable();
+											form.down('[behavior="rabbitmq"]').toggle(false).disable();
+										}
+										else {
+											form.down('[behavior="mysqlproxy"]').enable();
+											form.down('[behavior="rabbitmq"]').enable();
+										}
+										
+										/*
+										if (this.renderData.name == 'Ubuntu 12.04' || this.renderData.name == 'GCEL 12.04') {
 											form.down('[behavior="mysql"]').toggle(false).disable();
 											//form.down('[behavior="percona"]').toggle(false).disable();
 											
@@ -350,6 +395,7 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 											
 											form.down('[behavior="mysql"]').enable();
 										}
+										*/
 										
 									} else {
 										form.stepChanged();
@@ -371,15 +417,29 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 
 					for (var i in l)
 						k.push({ name: i, description: l[i]});
-
+					
 					var c = form.down('#location');
-					c.store.loadData(k);
-					c.store.sort('description', 'desc');
-					c.setValue(result['platform'] == 'ec2' ? 'us-east-1' : k[0]['name']);
-
-					var r = c.findRecord('name', c.getValue());
-					result['location'] = c.getValue();
-					result['location_description'] = r.get('description');
+					
+					if (result['platform'] == 'gce') {
+						
+						c.store.loadData([]);
+						c.disable();
+						c.setValue("Role will be available in all regions");
+						
+						result['location'] = '';
+						result['location_description'] = '';
+					} else {
+						c.store.loadData(k);
+						
+						c.enable();
+						
+						c.store.sort('description', 'desc');
+						c.setValue(result['platform'] == 'ec2' ? 'us-east-1' : k[0]['name']);
+	
+						var r = c.findRecord('name', c.getValue());
+						result['location'] = c.getValue();
+						result['location_description'] = r.get('description');
+					}
 
 					form.down('#architecture').setValue({ architecture: ['x86_64'] });
 					result['architecture'] = 'x86_64';
@@ -436,7 +496,7 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 						'</div>',
 					margin: 10
 				},
-				items: [{
+				items: [/*{
 					behavior: 'mysql',
 					renderData: {
 						name: 'MySQL',
@@ -444,10 +504,10 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 						prefix: 'scalr-ui-roles-builder'
 					},
 					handler: checkboxBehaviorListener
-				}, {
+				}, */{
 					behavior: 'mysql2',
 					renderData: {
-						name: 'MySQL 5.5',
+						name: 'MySQL 5',
 						icon: '/ui2/images/icons/behaviors/database_mysql.png',
 						prefix: 'scalr-ui-roles-builder'
 					},
@@ -463,7 +523,7 @@ Scalr.regPage('Scalr.ui.roles.builder', function (loadParams, moduleParams) {
 				}, {
 					behavior: 'percona',
 					renderData: {
-						name: 'Percona 5.5',
+						name: 'Percona 5',
 						icon: '/ui2/images/icons/behaviors/database_percona.png',
 						prefix: 'scalr-ui-roles-builder'
 					},

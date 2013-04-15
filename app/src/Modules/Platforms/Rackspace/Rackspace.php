@@ -333,7 +333,7 @@
 		        if ($iinfo)
 		        {
 			        return array(
-			        	'Server ID'				=> $DBServer->GetProperty(RACKSPACE_SERVER_PROPERTIES::SERVER_ID),
+			        	'Cloud Server ID'		=> $DBServer->GetProperty(RACKSPACE_SERVER_PROPERTIES::SERVER_ID),
 			        	'Image ID'				=> $iinfo->server->imageId,
 			        	'Flavor ID'				=> $iinfo->server->flavorId,
 			        	'Public IP'				=> implode(", ", $iinfo->server->addresses->public),

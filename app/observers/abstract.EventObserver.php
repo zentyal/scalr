@@ -43,9 +43,9 @@
 			$this->FarmID = $farmid;
 		}
 		
-		public function OnMetricCheckFailed(MetricCheckFailedEvent $event) {}
+		public function OnCheckFailed(CheckFailedEvent $event) {}
 		
-		public function OnMetricCheckRecovered(MetricCheckRecoveredEvent $event) {}
+		public function OnCheckRecovered(CheckRecoveredEvent $event) {}
 		
 		public function OnHostInit(HostInitEvent $event) {}
 		

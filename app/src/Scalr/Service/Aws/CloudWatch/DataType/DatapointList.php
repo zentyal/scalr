@@ -16,33 +16,33 @@ use Scalr\Service\Aws\DataType\ListDataType;
 class DatapointList extends AbstractCloudWatchListDataType
 {
 
-	/**
-	 * List of external identifier names.
-	 *
-	 * @var array
-	 */
-	protected $_externalKeys = array('metricName');
+    /**
+     * List of external identifier names.
+     *
+     * @var array
+     */
+    protected $_externalKeys = array('metricName');
 
-	/**
-	 * Constructor
-	 *
-	 * @param array|DatapointData  $aListData  DatapointData List
-	 */
-	public function __construct($aListData = null)
-	{
-		parent::__construct(
-			$aListData,
-			array('average', 'maximum', 'minimum', 'sampleCount', 'sum', 'timestamp', 'unit'),
-			'Scalr\\Service\\Aws\\CloudWatch\\DataType\\DatapointData'
-		);
-	}
+    /**
+     * Constructor
+     *
+     * @param array|DatapointData  $aListData  DatapointData List
+     */
+    public function __construct($aListData = null)
+    {
+        parent::__construct(
+            $aListData,
+            array('average', 'maximum', 'minimum', 'sampleCount', 'sum', 'timestamp', 'unit'),
+            'Scalr\\Service\\Aws\\CloudWatch\\DataType\\DatapointData'
+        );
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
-	 */
-	public function getQueryArray($uriParameterName = 'Datapoints')
-	{
-		return parent::getQueryArray($uriParameterName);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
+     */
+    public function getQueryArray($uriParameterName = 'Datapoints', $member = true)
+    {
+        return parent::getQueryArray($uriParameterName);
+    }
 }

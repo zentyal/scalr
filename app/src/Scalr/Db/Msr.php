@@ -26,6 +26,12 @@ class Scalr_Db_Msr
 	const DATA_STORAGE_RAID_DISK_SIZE = 'db.msr.data_storage.raid.volume_size';
 	const DATA_STORAGE_RAID_EBS_DISK_TYPE = 'db.msr.data_storage.raid.ebs.type';
 	const DATA_STORAGE_RAID_EBS_DISK_IOPS = 'db.msr.data_storage.raid.ebs.iops';
+    
+    // For cinder storage
+    const DATA_STORAGE_CINDER_SIZE = 'db.msr.data_storage.cinder.size';
+    
+    // For GCE persistent
+    const DATA_STORAGE_GCED_SIZE = 'db.msr.data_storage.gced.size';
 	
 	/** Replication settings **/
 	const SLAVE_TO_MASTER = 'db.msr.slave_to_master';
@@ -209,6 +215,8 @@ class Scalr_Db_Msr
 					} else
 						throw $e;
 				}
+                
+                $dbFarmRole->SetSetting(self::VOLUME_ID, $storageVolume->id);
 			}
 			catch(Exception $e) {
 				Logger::getLogger(__CLASS__)->error(new FarmLogMessage($dbServer->farmId, "Cannot save storage volume: {$e->getMessage()}"));

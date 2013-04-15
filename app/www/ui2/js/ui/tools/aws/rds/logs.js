@@ -40,7 +40,7 @@ Scalr.regPage('Scalr.ui.tools.aws.rds.logs', function (loadParams, moduleParams)
 			store: store,
 			dock: 'top',
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}]
 		}]

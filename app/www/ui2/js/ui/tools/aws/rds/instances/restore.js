@@ -88,6 +88,9 @@ Scalr.regPage('Scalr.ui.tools.aws.rds.instances.restore', function (loadParams, 
 						processBox: {
 							type: 'save'
 						},
+						params: {
+						    cloudLocation: loadParams['cloudLocation']
+						},
 						url: '/tools/aws/rds/instances/xRestoreInstance',
 						form: form.getForm(),
 						success: function (data) {

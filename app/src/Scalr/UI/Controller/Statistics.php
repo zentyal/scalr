@@ -5,14 +5,14 @@ class Scalr_UI_Controller_Statistics extends Scalr_UI_Controller
 	{
 		$this->serversUsageAction();
 	}
-	
+
 	public function serversUsageAction()
 	{
 		$years = array();
 		$results = $this->db->GetAll('SELECT `year` FROM servers_stats GROUP BY `year`');
 		foreach ($results as $key => $value)
 			$years[] = $value['year'];
-		
+
 		$envs = array();
 		$envs[0] = 'All environments';
 		foreach($this->user->getEnvironments() as $key => $value)
@@ -66,9 +66,13 @@ class Scalr_UI_Controller_Statistics extends Scalr_UI_Controller
 		}
 		return $price;
 	}
-	
-	public function xListFarmsAction() 
+
+	public function xListFarmsAction()
 	{
+		// Check permissions
+		$this->user->getPermissions()->validate(Scalr_Environment::init()->loadById($this->getParam('envId')));
+            
+        // Get list of farms
 		$sql = "SELECT id, name FROM farms WHERE env_id = ?"; //controller Farms getList
 		$results = array();
 		$results[0] = array(
@@ -78,32 +82,38 @@ class Scalr_UI_Controller_Statistics extends Scalr_UI_Controller
 		foreach ($this->db->GetAll($sql, array($this->getParam('envId'))) as $key => $value) {
 			$results[] = $value;
 		}
-		
+
 		$this->response->data(array('data'=>$results));
 	}
-	
-	public function xListServersUsageAction() 
+
+	public function xListServersUsageAction()
 	{
 		foreach($this->user->getEnvironments() as $key => $value)
 			$env[] = $value['id'];
 		$env = implode(',',$env);
 		$params = array($this->getParam('year'));
-		
+
 		$sql = 'SELECT SUM(`usage`) as `usage`, `month`, `instance_type` as `instanceType`, `cloud_location` as `cloudLocation` FROM `servers_stats` WHERE `year` = ?';
 		if($this->getParam('envId') != 0) {
 			$sql.= " AND `env_id` = ?";
+            
+            $this->user->getPermissions()->validate(Scalr_Environment::init()->loadById($this->getParam('envId')));
+            
 			$params[] = $this->getParam('envId');
-		}else 
+		}else
 			$sql.= " AND `env_id` IN (".$env.")";
 		if($this->getParam('farmId') != 0) {
 			$sql.= " AND `farm_id` = ?";
+            
+            $this->user->getPermissions()->validate(DBFarm::LoadByID($this->getParam('farmId')));
+            
 			$params[] = $this->getParam('farmId');
 		}
 		$sql.= 'GROUP BY `month`, `instance_type`, `cloud_location`';
-		
+
 		$usages = $this->db->GetAll($sql, $params);
 		$result = array();
-		
+
 		foreach ($usages as $value) {
 			$key = "{$value['cloudLocation']}-{$value['instanceType']}";
 			if (! isset($result[$key])) {
@@ -113,7 +123,7 @@ class Scalr_UI_Controller_Statistics extends Scalr_UI_Controller
 					'usage' => array()
 				);
 			}
-			
+
 			$result[$key]['usage'][date( 'F', mktime(0, 0, 0, $value['month']))] = round(($value['usage'] / 60), 2);
 		}
 
@@ -137,4 +147,4 @@ class Scalr_UI_Controller_Statistics extends Scalr_UI_Controller
 		} else
 			$this->response->data($response);
 	}
-}	
+}

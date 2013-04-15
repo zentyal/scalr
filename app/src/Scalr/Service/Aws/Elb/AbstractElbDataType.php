@@ -18,28 +18,28 @@ use Scalr\Service\Aws\AbstractDataType;
 abstract class AbstractElbDataType extends AbstractDataType
 {
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractDataType::getServiceNames()
-	 */
-	public function getServiceNames()
-	{
-		return array(Aws::SERVICE_INTERFACE_ELB);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractDataType::getServiceNames()
+     */
+    public function getServiceNames()
+    {
+        return array(Aws::SERVICE_INTERFACE_ELB);
+    }
 
-	/**
-	 * Throws an exception if this object was not initialized.
-	 *
-	 * @throws ElbException
-	 */
-	protected function throwExceptionIfNotInitialized()
-	{
-		$lbname = $this->getLoadBalancerName();
-		if (empty($lbname)) {
-			throw new ElbException(get_class($this) . ' has not been initialized with loadBalancerName.');
-		}
-		if (!($this->getElb() instanceof \Scalr\Service\Aws\Elb)) {
-			throw new ElbException(get_class($this) . ' has not been initialized with Elb yet.');
-		}
-	}
+    /**
+     * Throws an exception if this object was not initialized.
+     *
+     * @throws ElbException
+     */
+    protected function throwExceptionIfNotInitialized()
+    {
+        $lbname = $this->getLoadBalancerName();
+        if (empty($lbname)) {
+            throw new ElbException(get_class($this) . ' has not been initialized with loadBalancerName.');
+        }
+        if (!($this->getElb() instanceof \Scalr\Service\Aws\Elb)) {
+            throw new ElbException(get_class($this) . ' has not been initialized with Elb yet.');
+        }
+    }
 }

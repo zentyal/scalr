@@ -84,6 +84,9 @@
 					$newMasterServer->remoteIp,
 					$dbType
 				);
+                
+                $msg->cloudLocation = $newMasterServer->GetCloudLocation();
+                
 				$msg->{$dbType} = new stdClass();
 				$msg->{$dbType}->snapshotConfig = $props->snapshotConfig;
 				
@@ -101,6 +104,12 @@
 			$dbFarmRole = $newMasterServer->GetFarmRoleObject();
 			$servers = $dbFarmRole->GetServersByFilter(array('status' => array(SERVER_STATUS::INIT, SERVER_STATUS::RUNNING)));
 			
+            if ($dbFarmRole->GetSetting(Scalr_Role_DbMsrBehavior::ROLE_NO_DATA_BUNDLE_FOR_SLAVES) == 1) {
+                //
+                //No need to send newMasterUp because there is no data bundle from which slave can start
+                //
+            }
+            
 			foreach ($servers as $DBServer) {
 				
 				$msg = new Scalr_Messaging_Msg_Mysql_NewMasterUp(
@@ -113,8 +122,11 @@
 					$snapURL
 				);
 				
-				$msg->scripts = $this->getScripts($event, $newMasterServer, $DBServer);
+                $msg->cloudLocation = $newMasterServer->GetCloudLocation();
+                
 				$msg->serverId = $newMasterServer->serverId;
+                
+                $msg = Scalr_Scripting_Manager::extendMessage($msg, $event, $newMasterServer, $DBServer);
 				
 				$msg->replPassword = $dbFarmRole->GetSetting(DbFarmRole::SETTING_MYSQL_REPL_PASSWORD);
 				$msg->rootPassword = $dbFarmRole->GetSetting(DbFarmRole::SETTING_MYSQL_ROOT_PASSWORD);
@@ -150,9 +162,9 @@
 				$msg->remoteIp = $event->DBServer->remoteIp;
 				$msg->serverIndex = $event->DBServer->index;
 				$msg->serverId = $event->DBServer->serverId;
+                $msg->cloudLocation = $event->DBServer->GetCloudLocation();
 				
-				$msg->scripts = $this->getScripts($event, $event->DBServer, $DBServer);
-				$msg->eventId = $event->GetEventID();
+                $msg = Scalr_Scripting_Manager::extendMessage($msg, $event, $event->DBServer, $DBServer);
 				
 				// Send message ONLY if there are scripts assigned to this event
 				if (count($msg->scripts) > 0)
@@ -166,6 +178,8 @@
 				$event->DBServer->GetFarmObject()->GetSetting(DBFarm::SETTING_CRYPTO_KEY),
 				$event->DBServer->index
 			);
+            
+            $msg->cloudLocation = $event->DBServer->GetCloudLocation();
 			
 			$dbServer = $event->DBServer;
 			$dbFarmRole = $dbServer->GetFarmRoleObject();
@@ -238,6 +252,12 @@
 						{
 							if (in_array($dbFarmRole->GetSetting(DBFarmRole::SETTING_MYSQL_DATA_STORAGE_ENGINE), array(MYSQL_STORAGE_ENGINE::EBS, MYSQL_STORAGE_ENGINE::CSVOL))) {
 								$msg->mysql->volumeConfig->size = $dbFarmRole->GetSetting(DBFarmRole::SETTING_MYSQL_EBS_VOLUME_SIZE);
+								
+								if ($dbFarmRole->GetSetting(DBFarmRole::SETTING_MYSQL_DATA_STORAGE_ENGINE) == MYSQL_STORAGE_ENGINE::EBS) {
+									$msg->mysql->volumeConfig->volumeType = $dbFarmRole->GetSetting(DBFarmRole::SETTING_MYSQL_EBS_TYPE);
+                                    if ($msg->mysql->volumeConfig->volumeType == 'io1')
+                                        $msg->mysql->volumeConfig->iops = $dbFarmRole->GetSetting(DBFarmRole::SETTING_MYSQL_EBS_IOPS);
+								}
 							}
 							elseif ($dbFarmRole->GetSetting(DBFarmRole::SETTING_MYSQL_DATA_STORAGE_ENGINE) == MYSQL_STORAGE_ENGINE::EPH) {
 								
@@ -273,12 +293,20 @@
 			// Create ssh keypair for rackspace
 			if ($event->DBServer->IsSupported("0.7"))
 			{
-				if ($event->DBServer->platform == SERVER_PLATFORMS::RACKSPACE || 
-					$event->DBServer->platform == SERVER_PLATFORMS::NIMBULA || 
-					$event->DBServer->platform == SERVER_PLATFORMS::OPENSTACK ||
-					$event->DBServer->platform == SERVER_PLATFORMS::CLOUDSTACK ||
-					$event->DBServer->platform == SERVER_PLATFORMS::IDCF ||
-					$event->DBServer->platform == SERVER_PLATFORMS::UCLOUD)
+				$authSshKey = $event->DBServer->platform == SERVER_PLATFORMS::RACKSPACE || 
+                    $event->DBServer->platform == SERVER_PLATFORMS::NIMBULA || 
+                    $event->DBServer->platform == SERVER_PLATFORMS::CLOUDSTACK ||
+                    $event->DBServer->platform == SERVER_PLATFORMS::IDCF ||
+                    $event->DBServer->platform == SERVER_PLATFORMS::UCLOUD;
+                    
+                if($event->DBServer->platform == SERVER_PLATFORMS::OPENSTACK || $event->DBServer->platform == SERVER_PLATFORMS::RACKSPACENG_US || $event->DBServer->platform == SERVER_PLATFORMS::RACKSPACENG_UK) {
+                    $platform = PlatformFactory::NewPlatform($event->DBServer->platform);
+                    $isKeyPairsSupported = $platform->getConfigVariable(Modules_Platforms_Openstack::EXT_KEYPAIRS_ENABLED, $event->DBServer->GetEnvironmentObject(), false);
+                    if ($isKeyPairsSupported != 1)
+                        $authSshKey = true;    
+                }
+                    
+				if ($authSshKey)
 				{
 					$sshKey = Scalr_SshKey::init();
 					
@@ -287,7 +315,7 @@
 						$event->DBServer->GetFarmRoleObject()->CloudLocation,
 						$event->DBServer->platform
 					)) {
-						$key_name = "FARM-{$event->DBServer->farmId}";
+						$key_name = "FARM-{$event->DBServer->farmId}-" . SCALR_ID;
 						
 						$sshKey->generateKeypair();
 						
@@ -321,10 +349,9 @@
 				
 				$hiMsg->serverIndex = $event->DBServer->index;
 				$hiMsg->serverId = $event->DBServer->serverId;
+                $hiMsg->cloudLocation = $event->DBServer->GetCloudLocation();
 				
-				$hiMsg->scripts = $this->getScripts($event, $event->DBServer, $DBServer);
-				$hiMsg->eventId = $event->GetEventID();
-				//TODO: $hiMsg = Scalr_Scripting_Manager::extendMessage($hiMsg, $DBServer, $event);
+				$hiMsg = Scalr_Scripting_Manager::extendMessage($hiMsg, $event, $event->DBServer, $DBServer);
 				
 				if ($event->DBServer->farmRoleId != 0) {
 					foreach (Scalr_Role_Behavior::getListForFarmRole($event->DBServer->GetFarmRoleObject()) as $behavior)
@@ -336,31 +363,6 @@
 			
 			// Send HostInitResponse to target server
 			$event->DBServer->SendMessage($msg);
-		}
-		
-		private function getScripts(Event $event, DBServer $eventServer, DBServer $targetServer) 
-		{
-			$retval = array();
-			
-			try {
-				$scripts = Scalr_Scripting_Manager::getEventScriptList($event, $eventServer, $targetServer);
-				if (count($scripts) > 0)
-				{
-					foreach ($scripts as $script)
-					{						
-						$itm = new stdClass();
-						// Script
-						$itm->asynchronous = ($script['issync'] == 1) ? '0' : '1';
-						$itm->timeout = $script['timeout'];
-						$itm->name = $script['name'];
-						$itm->body = $script['body'];
-						
-						$retval[] = $itm;
-					}
-				}
-			} catch (Exception $e) {}
-			
-			return $retval;
 		}
 		
 		public function OnIPAddressChanged(IPAddressChangedEvent $event)
@@ -376,12 +378,13 @@
 					$event->NewIPAddress,
 					$event->NewLocalIPAddress
 				);
+                
+                $msg->cloudLocation = $event->DBServer->GetCloudLocation();
 				
 				$msg->serverIndex = $event->DBServer->index;
 				$msg->serverId = $event->DBServer->serverId;
 				
-				$msg->scripts = $this->getScripts($event, $event->DBServer, $DBServer);
-				$msg->eventId = $event->GetEventID();
+                $msg = Scalr_Scripting_Manager::extendMessage($msg, $event, $event->DBServer, $DBServer);
 				
 				$delayed = !($DBServer->serverId == $event->DBServer->serverId);
 				
@@ -404,9 +407,9 @@
 				
 				$msg->serverIndex = $event->DBServer->index;
 				$msg->serverId = $event->DBServer->serverId;
+                $msg->cloudLocation = $event->DBServer->GetCloudLocation();
 				
-				$msg->scripts = $this->getScripts($event, $event->DBServer, $DBServer);
-				$msg->eventId = $event->GetEventID();
+                $msg = Scalr_Scripting_Manager::extendMessage($msg, $event, $event->DBServer, $DBServer);
 				
 				$delayed = !($DBServer->serverId == $event->DBServer->serverId);
 				
@@ -430,9 +433,9 @@
 				
 				$msg->serverIndex = $event->DBServer->index;
 				$msg->serverId = $event->DBServer->serverId;
-				$msg->eventId = $event->GetEventID();
+                $msg->cloudLocation = $event->DBServer->GetCloudLocation();
 				
-				$msg->scripts = $this->getScripts($event, $event->DBServer, $DBServer);
+                $msg = Scalr_Scripting_Manager::extendMessage($msg, $event, $event->DBServer, $DBServer);
 				
 				$DBServer->SendMessage($msg);
 			}
@@ -457,9 +460,9 @@
 				
 				$msg->serverIndex = $event->DBServer->index;
 				$msg->serverId = $event->DBServer->serverId;
+                $msg->cloudLocation = $event->DBServer->GetCloudLocation();
 				
-				$msg->scripts = $this->getScripts($event, $event->DBServer, $DBServer);
-				$msg->eventId = $event->GetEventID();
+                $msg = Scalr_Scripting_Manager::extendMessage($msg, $event, $event->DBServer, $DBServer);
 				
 				$DBServer->SendMessage($msg);
 			}
@@ -479,9 +482,9 @@
 				
 				$msg->serverIndex = $event->DBServer->index;
 				$msg->serverId = $event->DBServer->serverId;
+                $msg->cloudLocation = $event->DBServer->GetCloudLocation();
 				
-				$msg->scripts = $this->getScripts($event, $event->DBServer, $DBServer);
-				$msg->eventId = $event->GetEventID();
+                $msg = Scalr_Scripting_Manager::extendMessage($msg, $event, $event->DBServer, $DBServer);
 				
 				$DBServer->SendMessage($msg);
 			}
@@ -506,12 +509,12 @@
 					$event->DBServer->remoteIp
 				);
 				
-				$msg->scripts = $this->getScripts($event, $event->DBServer, $DBServer);
-				$msg->eventId = $event->GetEventID();
+                $msg = Scalr_Scripting_Manager::extendMessage($msg, $event, $event->DBServer, $DBServer);
 				
 				$msg->serverIndex = $event->DBServer->index;
 				$msg->serverId = $event->DBServer->serverId;
 				$msg->farmRoleId = $event->DBServer->farmRoleId;
+                $msg->cloudLocation = $event->DBServer->GetCloudLocation();
 				
 				if ($event->DBServer->farmRoleId != 0) {
 					foreach (Scalr_Role_Behavior::getListForFarmRole($event->DBServer->GetFarmRoleObject()) as $behavior)
@@ -545,9 +548,9 @@
 				$msg->farmRoleId = $event->DBServer->farmRoleId;
 				$msg->serverId = $event->DBServer->serverId;
 				$msg->serverIndex = $event->DBServer->serverIndex;
+                $msg->cloudLocation = $event->DBServer->GetCloudLocation();
 				
-				$msg->scripts = $this->getScripts($event, $event->DBServer, $DBServer);
-				$msg->eventId = $event->GetEventID();
+                $msg = Scalr_Scripting_Manager::extendMessage($msg, $event, $event->DBServer, $DBServer);
 				
 				if ($event->DBServer->farmRoleId != 0) {
 					foreach (Scalr_Role_Behavior::getListForFarmRole($event->DBServer->GetFarmRoleObject()) as $behavior)
@@ -558,10 +561,11 @@
 			}
 			
 			try {
-				if ($event->DBServer->GetFarmRoleObject()->GetRoleObject()->getDbMsrBehavior()) {
-					$this->sendPromoteToMasterMessage($event);
-					
-				}
+			    if ($event->DBServer->GetFarmRoleObject()->GetSetting(Scalr_Db_Msr::SLAVE_TO_MASTER) != 1) {
+    				if ($event->DBServer->GetFarmRoleObject()->GetRoleObject()->getDbMsrBehavior()) {
+    					$this->sendPromoteToMasterMessage($event);
+    				}
+                }
 			} catch (Exception $e) {
 				
 			}
@@ -579,9 +583,9 @@
 				
 				$msg->serverId = $event->DBServer->serverId;
 				$msg->serverIndex = $event->DBServer->serverIndex;
+                $msg->cloudLocation = $event->DBServer->GetCloudLocation();
 				
-				$msg->scripts = $this->getScripts($event, $event->DBServer, $DBServer);
-				$msg->eventId = $event->GetEventID();
+                $msg = Scalr_Scripting_Manager::extendMessage($msg, $event, $event->DBServer, $DBServer);
 				
 				$DBServer->SendMessage($msg, false, true);
 			}
@@ -597,12 +601,12 @@
 				$msg = new Scalr_Messaging_Msg_DbMsr_PromoteToMaster();
 				$msg->tmpEventName = $event->GetName();
 				$msg->dbType = $event->DBServer->GetFarmRoleObject()->GetRoleObject()->getDbMsrBehavior();
+                $msg->cloudLocation = $event->DBServer->GetCloudLocation();
 				
 				if ($event->DBServer->farmRoleId != 0) {
 					foreach (Scalr_Role_Behavior::getListForRole(DBRole::loadById($event->DBServer->roleId)) as $behavior)
 						$msg = $behavior->extendMessage($msg, $event->DBServer);
 				}
-				
 				
 				if (in_array($event->DBServer->platform, array(SERVER_PLATFORMS::EC2, SERVER_PLATFORMS::CLOUDSTACK, SERVER_PLATFORMS::IDCF, SERVER_PLATFORMS::UCLOUD))) {
 					try {
@@ -710,10 +714,9 @@
 				$msg->serverIndex = $event->DBServer->index;
 				$msg->farmRoleId = $event->DBServer->farmRoleId;
 				$msg->serverId = $event->DBServer->serverId;
+                $msg->cloudLocation = $event->DBServer->GetCloudLocation();
 				
-				
-				$msg->scripts = $this->getScripts($event, $event->DBServer, $DBServer);
-				$msg->eventId = $event->GetEventID();
+				$msg = Scalr_Scripting_Manager::extendMessage($msg, $event, $event->DBServer, $DBServer);
 				
 				if ($event->DBServer->farmRoleId != 0) {
 					foreach (Scalr_Role_Behavior::getListForRole(DBRole::loadById($event->DBServer->roleId)) as $behavior)
@@ -735,7 +738,7 @@
 			}
 		
 			
-			if (!$doNotPromoteSlave2Master)
+			if (!$doNotPromoteSlave2Master && !$DBFarmRole->GetSetting(Scalr_Db_Msr::SLAVE_TO_MASTER))
 				$this->sendPromoteToMasterMessage($event);
 			
 			//LEGACY MYSQL CODE:

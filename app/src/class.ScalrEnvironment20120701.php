@@ -28,6 +28,23 @@
     		return $ResponseDOMDocument;
     	}
     	
+        public function ListGlobalVariables()
+        {
+            $ResponseDOMDocument = $this->CreateResponse();
+            $configNode = $ResponseDOMDocument->createElement("variables");
+            
+            $globalVariables = new Scalr_Scripting_GlobalVariables($this->DBServer->envId, Scalr_Scripting_GlobalVariables::SCOPE_FARMROLE);
+            $vars = $globalVariables->listVariables($this->DBServer->roleId, $this->DBServer->farmId, $this->DBServer->farmRoleId);
+            foreach ($vars as $key => $value) {
+                $settingNode = $ResponseDOMDocument->createElement("variable", $value);
+                $settingNode->setAttribute("name", $key);
+                $configNode->appendChild($settingNode);
+            }
+            
+            $ResponseDOMDocument->documentElement->appendChild($configNode);
+            return $ResponseDOMDocument;
+        }
+        
     	public function ListFarmRoleParams()
     	{
     		$farmRoleId = $this->GetArg("farm-role-id");

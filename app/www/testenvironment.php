@@ -68,10 +68,6 @@
 	//
 	// Check php sessings
 	//
-	if (ini_get('short_open_tag') == 0)
-		$err[] = "short_open_tag should be enabled";
-
-
 	if (ini_get('safe_mode') == 1)
 		$err[] = "PHP safe mode enabled. Please disable it.";
 		
@@ -84,9 +80,20 @@
 	// If all extensions installed
 	if (count($err) == 0)
 	{
+		if (!file_exists(dirname(__FILE__)."/../etc/.cryptokey") || filesize(dirname(__FILE__)."/../etc/.cryptokey") == 0) {
+		    $key = file_get_contents('/dev/urandom', null, null, 0, 512);
+            if (! $key)
+                throw new Exception("Null key generated");
+
+            $key = substr(base64_encode($key), 0, 512);
+            $res = file_put_contents(dirname(__FILE__)."/../etc/.cryptokey", $key);
+            if ($res == 0) {
+                $err[] = "Unable to create etc/.cryptokey file. Please create empty etc/.cryptokey and chmod it to 0777.";
+            }
+		}
+            
 		// Check files & folders permissions
 		$files = array(
-			realpath(dirname(__FILE__)."/../etc/.cryptokey"),
 			realpath(dirname(__FILE__)."/../cache"),
 			realpath(dirname(__FILE__)."/../cache/smarty_bin")
 		);

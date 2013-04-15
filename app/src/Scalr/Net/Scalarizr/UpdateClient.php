@@ -3,12 +3,14 @@
 	{
 		private $dbServer,
 			$port,
+			$timeout,
 			$cryptoTool;
 		
 		
-		public function __construct(DBServer $dbServer, $port = 8008) {
+		public function __construct(DBServer $dbServer, $port = 8008, $timeout = 5) {
 			$this->dbServer = $dbServer;
 			$this->port = $port;
+            $this->timeout = $timeout;
 			
 			$this->cryptoTool = Scalr_Messaging_CryptoTool::getInstance();
 		}
@@ -40,6 +42,21 @@
 			$r->force = $force;
 			return $this->request("restart", $r);
 		}
+        
+        public function executeCmd($cmd) {
+            $r = new stdClass();
+            $r->command = $cmd;
+            return $this->request("execute", $r);
+        }
+        
+        public function putFile($path, $contents)
+        {
+            $r = new stdClass();
+            $r->name = $path;
+            $r->content = base64_encode($contents);
+            $r->makedirs = true;
+            return $this->request("put_file", $r);
+        }
 		
 		private function request($method, Object $params = null)
 		{
@@ -49,19 +66,17 @@
 			$requestObj->params = $params;
 			
 			$jsonRequest = json_encode($requestObj);
-			
-			$timestamp = date("D d M Y H:i:s T");
-			$dt = new DateTime($timestamp, new DateTimeZone("CDT"));
-			$timestamp = Scalr_Util_DateTime::convertDateTime($dt, new DateTimeZone("UTC"), new DateTimeZone("CDT"))->format("D d M Y H:i:s");
-			$timestamp .= " UTC";
-			
+
+			$dt = new DateTime('now', new DateTimeZone("UTC"));
+			$timestamp = $dt->format("D d M Y H:i:s e");
+
 			$canonical_string = $jsonRequest . $timestamp;
 			$signature = base64_encode(hash_hmac('SHA1', $canonical_string, $this->dbServer->GetProperty(SERVER_PROPERTIES::SZR_KEY), 1));
 			
 			$request = new HttpRequest("http://{$this->dbServer->remoteIp}:{$this->port}/", HTTP_METH_POST);
 		  	$request->setOptions(array(
-		  		'timeout'	=> 5,
-		  		'connecttimeout' => 5
+		  		'timeout'	=> $this->timeout,
+		  		'connecttimeout' => $this->timeout
 		  	));
 		  	
 		  	$request->setHeaders(array(
@@ -81,7 +96,7 @@
 					$jResponse = @json_decode($response['body']);
 					
 					if ($jResponse->error)
-						throw new Exception("{$jResponse->error->message} ({$jResponse->error->code}): {$jResponse->error->data}");
+						throw new Exception("{$jResponse->error->message} ({$jResponse->error->code}): {$jResponse->error->data} ({$response['body']})");
 						
 					return $jResponse;
 				} else {

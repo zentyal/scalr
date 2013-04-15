@@ -1,4 +1,5 @@
 <?
+	// deprecated in favor Scalr_SchedulerTask
 	final class SCHEDULE_TASK_TYPE
 	{
 		const SCRIPT_EXEC   = "script_exec";

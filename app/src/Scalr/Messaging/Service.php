@@ -6,6 +6,7 @@ class Scalr_Messaging_Service {
 	private $cryptoTool;
 
 	private $serializer;
+    private $jsonSerializer;
 
 	private $handlers = array();
 
@@ -14,6 +15,7 @@ class Scalr_Messaging_Service {
 	function __construct () {
 		$this->cryptoTool = Scalr_Messaging_CryptoTool::getInstance();
 		$this->serializer = new Scalr_Messaging_XmlSerializer();
+        $this->jsonSerializer = new Scalr_Messaging_JsonSerializer();
 		$this->logger = Logger::getLogger(__CLASS__);
 	}
 
@@ -24,6 +26,9 @@ class Scalr_Messaging_Service {
 	}
 
 	function handle ($queue, $payload) {
+	    
+        $contentType = $_SERVER['CONTENT_TYPE'];
+        
     	// Authenticate request
 		try {
 			$this->logger->info(sprintf("Validating server (server_id: %s)", $_SERVER["HTTP_X_SERVER_ID"]));
@@ -55,10 +60,19 @@ class Scalr_Messaging_Service {
     	// Decrypt and decode message
 		try {
 			$this->logger->info(sprintf(_("Decrypting message '%s'"), $payload));
-			$xmlString = $this->cryptoTool->decrypt($payload, $cryptoKey);
+			$string = $this->cryptoTool->decrypt($payload, $cryptoKey);
 
-			$this->logger->info(sprintf(_("Unserializing message '%s'"), htmlspecialchars($xmlString)));
-			$message = $this->serializer->unserialize($xmlString);
+            if ($contentType == 'application/json') {
+                $this->logger->info(sprintf(_("Unserializing JSON message '%s'"), htmlspecialchars($string)));
+                $message = $this->jsonSerializer->unserialize($string);
+                $xml = null;
+                $json = $string;
+            } else {
+    			$this->logger->info(sprintf(_("Unserializing message '%s'"), htmlspecialchars($string)));
+                $message = $this->serializer->unserialize($string);
+                $xml = $string;
+                $json = null;
+            }
 
 			if ($isOneTimeKey && !$message instanceof Scalr_Messaging_Msg_HostInit) {
 				return array(401, _("One-time crypto key valid only for HostInit message"));
@@ -74,7 +88,7 @@ class Scalr_Messaging_Service {
 		foreach ($this->handlers as $handler) {
 			if ($handler->accept($queue)) {
 				$this->logger->info("Notify handler " . get_class($handler));
-				$handler->handle($queue, $message, $xmlString);
+				$handler->handle($queue, $message, $xml, $json);
 				$accepted = true;
 			}
 		}

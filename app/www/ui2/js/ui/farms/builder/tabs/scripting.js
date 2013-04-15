@@ -1,5 +1,136 @@
-Scalr.regPage('Scalr.ui.farms.builder.tabs.scripting', function () {
-	return Ext.create('Scalr.ui.FarmsBuilderTab', {
+Scalr.regPage('Scalr.ui.farms.builder.tabs.scripting', function (tabParams) {
+	return true //Scalr.flags['betaMode']
+	? 
+	Ext.create('Scalr.ui.FarmsBuilderTab', {
+		tabTitle: 'Scripting',
+		cache: {},
+
+		itemId: 'scripting',
+		layout: 'fit',
+		
+		isEnabled: function (record) {
+			return record.get('platform') != 'rds';
+		},
+
+		getDefaultValues: function (record) {
+			record.set('scripting', []);
+			return {};
+		},
+
+		beforeShowTab: function (record, handler) {
+			var cloudLocation = record.get('cloud_location');
+			/*if (this.cacheExist(['data', cloudLocation]))
+				handler();
+			else*/
+			Scalr.Request({
+				processBox: {
+					type: 'action'
+				},
+				url: '/farms/builder/xGetScripts',
+				params: {
+					cloudLocation: cloudLocation,
+					roleId: record.get('role_id')
+				},
+				scope: this,
+				success: function (response) {
+					this.cacheSet({ scripts: response.scripts, events: response.events, roleScripts: response.roleScripts }, [ 'data', cloudLocation]);
+					handler();
+				},
+				failure: function () {
+					this.deactivateTab();
+				}
+			});
+		},
+		
+		showTab: function (record) {
+			var scripts = record.get('scripting'),
+				roleScripts = this.cacheGet(['data', record.get('cloud_location')]).roleScripts,
+				roleParams = record.get('scripting_params'),
+				params = {};
+			
+			if (Ext.isArray(roleParams)) {
+				for (var i = 0; i < roleParams.length; i++) {
+					params[roleParams[i]['hash']] = roleParams[i]['params'];
+				}
+			}
+
+			for (var i in roleScripts) {
+				scripts.push({
+					role_script_id: roleScripts[i]['role_script_id'],
+					event: roleScripts[i]['event_name'],
+					issync: roleScripts[i]['issync'],
+					order_index: roleScripts[i]['order_index'],
+					params: params[roleScripts[i]['hash']] || roleScripts[i]['params'],
+					script: roleScripts[i]['script_name'],
+					script_id: roleScripts[i]['script_id'],
+					target: roleScripts[i]['target'],
+					timeout: roleScripts[i]['timeout'],
+					version: roleScripts[i]['version']+'',
+					system: true,
+					hash: roleScripts[i]['hash']
+				});
+			}
+			
+			
+			var rolescripting = this.down('#rolescripting');
+			rolescripting.setCurrentRole(record);
+			
+			//load farm roles
+			var farmRoles = [],
+				farmRolesStore = record.store;
+			(farmRolesStore.snapshot || farmRolesStore.data).each(function(item){
+				farmRoles.push({
+					farm_role_id: item.get('farm_role_id'),
+					platform: item.get('platform'),
+					cloud_location: item.get('cloud_location'),
+					role_id: item.get('role_id'),
+					name: item.get('name'),
+					current: item === record
+				});
+			});
+			rolescripting.loadRoles(farmRoles);
+			
+			//load scripst, events and behaviors
+			rolescripting.loadScripts(this.cacheGet(['data', record.get('cloud_location')]).scripts);
+			rolescripting.loadEvents(this.cacheGet(['data', record.get('cloud_location')]).events);
+			rolescripting.loadBehaviors(tabParams['behaviors']);
+
+			//load role scripts
+			rolescripting.loadRoleScripts(scripts);
+		},
+
+		hideTab: function (record) {
+			var scripts = this.down('#rolescripting').getRoleScripts(),
+				scripting = [], 
+				scripting_params = [];
+			
+			scripts.each(function(item) {
+				if (item.get('system') != true) {
+					scripting.push(item.data);
+				} else {
+					scripting_params.push({
+						role_script_id: item.get('role_script_id'),
+						params: item.get('params'),
+						hash: item.get('hash')
+					});
+				}
+			});
+
+			record.set('scripting', scripting);
+			record.set('scripting_params', scripting_params);
+			
+			this.down('#rolescripting').clearRoleScripts();
+		},
+		
+		items: {
+			xtype: 'scriptfield2',
+			itemId: 'rolescripting',
+			margin: '0 0 12 0'
+		}
+
+	})
+	:
+	Ext.create('Scalr.ui.FarmsBuilderTab', {
 		tabTitle: 'Scripting',
 		cache: {},
 
@@ -34,7 +165,9 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.scripting', function () {
 					},
 					scope: this,
 					success: function (response) {
-						this.cacheSet({ scripts: response.scripts, events: response.events, roleScripts: response.roleScripts }, [ 'data', cloudLocation]);
+						var events = { AllEvents: 'All events' };
+						Ext.apply(events, response.events);
+						this.cacheSet({ scripts: response.scripts, events: events, roleScripts: response.roleScripts }, [ 'data', cloudLocation]);
 						handler();
 					},
 					failure: function () {
@@ -53,23 +186,29 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.scripting', function () {
 
 			if (Ext.isArray(roleParams)) {
 				for (var i = 0; i < roleParams.length; i++) {
-					params[roleParams[i]['role_script_id']] = roleParams[i]['params'];
+					params[roleParams[i]['hash']] = roleParams[i]['params'];
 				}
+			}
+
+			for (var i = 0; i < scripts.length; i++) {
+				if (scripts[i]['event'] == '*')
+					scripts[i]['event'] = 'AllEvents';
 			}
 
 			for (var i in roleScripts) {
 				scripts.push({
 					role_script_id: roleScripts[i]['role_script_id'],
-					event: roleScripts[i]['event_name'],
+					event: roleScripts[i]['event_name'] == '*' ? 'AllEvents' : roleScripts[i]['event_name'],
 					issync: roleScripts[i]['issync'],
 					order_index: roleScripts[i]['order_index'],
-					params: params[roleScripts[i]['role_script_id']] || roleScripts[i]['params'],
+					params: params[roleScripts[i]['hash']] || roleScripts[i]['params'],
 					script: roleScripts[i]['script_name'],
 					script_id: roleScripts[i]['script_id'],
 					target: roleScripts[i]['target'],
 					timeout: roleScripts[i]['timeout'],
 					version: roleScripts[i]['version'] == -1 ? 'latest' : roleScripts[i]['version'],
-					system: true
+					system: true,
+					hash: roleScripts[i]['hash']
 				});
 			}
 
@@ -92,7 +231,8 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.scripting', function () {
 				} else {
 					scripting_params.push({
 						role_script_id: it.get('role_script_id'),
-						params: it.get('params')
+						params: it.get('params'),
+						hash: it.get('hash')
 					});
 				}
 			});
@@ -193,7 +333,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.scripting', function () {
 				xtype: 'dataview',
 				flex: 1,
 				store: {
-					fields: [ 'script_id', 'script', 'event', 'target', 'issync', 'timeout', 'version', 'params', 'order_index', 'system', 'role_script_id' ],
+					fields: [ 'script_id', 'script', 'event', 'target', 'issync', 'timeout', 'version', 'params', 'order_index', 'system', 'role_script_id', 'hash' ],
 					proxy: 'object'
 				},
 				border: true,

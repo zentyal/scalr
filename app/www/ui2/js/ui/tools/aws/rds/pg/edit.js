@@ -14,17 +14,17 @@ Scalr.regPage('Scalr.ui.tools.aws.rds.pg.edit', function (loadParams, modulePara
 			items: [{
 				fieldLabel: 'Parameter Group Name',
 				name: 'DBParameterGroupName',
-				value: moduleParams.group['DBParameterGroupName']
+				value: moduleParams.group['dBParameterGroupName']
 			},
 			{
 				fieldLabel: 'Engine',
 				name: 'Engine',
-				value: moduleParams.group['Engine']
+				value: moduleParams.group['dBParameterGroupFamily']
 			},
 			{
 				fieldLabel: 'Description',
 				name: 'Description',
-				value: moduleParams.group['Description']
+				value: moduleParams.group['description']
 			}]
 		},{
 			xtype: 'fieldset',

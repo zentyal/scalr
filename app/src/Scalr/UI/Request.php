@@ -7,12 +7,15 @@ class Scalr_UI_Request
 		$params = array(),
 		$definitions = array(),
 		$requestParams = array(),
+		$requestHeaders = array(),
 		$user,
 		$environment,
 		$requestType,
 		$paramErrors = array(),
 		$paramsIsValid = true,
 	    $clientIp = null;
+
+	public $requestApiVersion;
 
 	const REQUEST_TYPE_UI = 'ui';
 	const REQUEST_TYPE_API = 'api';
@@ -23,6 +26,10 @@ class Scalr_UI_Request
 	 */
 	private static $_instance = null;
 
+	/**
+	 * @return Scalr_UI_Request
+	 * @throws Scalr_Exception_Core
+	 */
 	public static function getInstance()
 	{
 		if (self::$_instance === null)
@@ -34,10 +41,14 @@ class Scalr_UI_Request
 	public function __construct($type)
 	{
 		$this->requestType = $type;
+		$this->requestHeaders = apache_request_headers();
 	}
 
 	public static function initializeInstance($type, $userId, $envId)
 	{
+		if (self::$_instance)
+			self::$_instance = null;
+
 		$instance = new Scalr_UI_Request($type);
 
 		if ($userId) {
@@ -66,9 +77,18 @@ class Scalr_UI_Request
 				}
 			}
 
+			// check header's variables
+			$headerUserId = !is_null($instance->getHeaderVar('UserId')) ? intval($instance->getHeaderVar('UserId')) : null;
+			$headerEnvId = !is_null($instance->getHeaderVar('EnvId')) ? intval($instance->getHeaderVar('EnvId')) : null;
+
+			if (!empty($headerUserId) && $headerUserId != $user->getId())
+				throw new Scalr_Exception_Core('Session expired. Please refresh page.', 1);
+
+			if (!empty($headerEnvId) && !empty($environment) && $headerEnvId != $environment->id)
+				throw new Scalr_Exception_Core('Session expired. Please refresh page.', 1);
+
 			$instance->user = $user;
 			$instance->environment = $environment;
-
 		}
 
 		$container = Container::getInstance();
@@ -99,6 +119,12 @@ class Scalr_UI_Request
 	public function getRequestType()
 	{
 		return $this->requestType;
+	}
+
+	public function getHeaderVar($name)
+	{
+		$name = "X-Scalr-{$name}";
+		return isset($this->requestHeaders[$name]) ? $this->requestHeaders[$name] : NULL;
 	}
 
 	public function defineParams($defs)
@@ -147,6 +173,7 @@ class Scalr_UI_Request
 
 	public function getParam($key)
 	{
+		$value = null;
 		if (isset($this->params[$key]))
 			return $this->params[$key];
 
@@ -163,7 +190,8 @@ class Scalr_UI_Request
 						break;
 
 					case 'bool':
-						$value = ($value == 'true' || $value == 'false') ? ($value == 'true' ? true : false) : (bool) $value;
+						$value = ($value == 'true' || $value == 'false') ?
+							($value == 'true' ? true : false) : (bool) $value;
 						break;
 
 					case 'json':
@@ -181,10 +209,12 @@ class Scalr_UI_Request
 			}
 
 			$this->params[$key] = $value;
+
 			return $value;
 		}
 
 		$this->params[$key] = $this->getRequestParam($key);
+
 		return $this->params[$key];
 	}
 

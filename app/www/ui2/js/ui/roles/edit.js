@@ -442,11 +442,17 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 					listeners: {
 						change: function () {
 							tabImages.down('[name="image_location"]').reset();
-							if (this.getValue()) {
-								tabImages.down('[name="image_location"]').show();
-								locationsStore.load({ data: this.store.findRecord('id', this.getValue()).get('locations') });
-							} else
+							
+							if (this.getValue() == 'gce') {
 								tabImages.down('[name="image_location"]').hide();
+								tabImages.down('[name="image_location"]').setValue('');
+							} else {
+								if (this.getValue()) {
+									tabImages.down('[name="image_location"]').show();
+									locationsStore.load({ data: this.store.findRecord('id', this.getValue()).get('locations') });
+								} else
+									tabImages.down('[name="image_location"]').hide();
+							}
 						}
 					}
 				}, {
@@ -549,8 +555,14 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 						width: 70,
 						handler: function () {
 							var invalid = false;
+							
+							var platform = tabImages.down('[name="image_platform"]').getValue();
+							
 							invalid = !tabImages.down('[name="image_platform"]').isValid() || invalid;
-							invalid = !tabImages.down('[name="image_location"]').isValid() || invalid;
+							
+							if (platform != 'gce')
+								invalid = !tabImages.down('[name="image_location"]').isValid() || invalid;
+								
 							invalid = !tabImages.down('[name="image_id"]').isValid() || invalid;
 							
 							invalid = !tabImages.down('[name="os_name"]').isValid() || invalid;
@@ -568,6 +580,9 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 									os_version = tabImages.down('[name="os_version"]').getValue();
 									arch = tabImages.down('[name="architecture"]').getValue();
 
+								if (platform == 'gce')
+									location = '';
+
 								Scalr.message.Flush();
 
 								if (imagesStore.findBy(function (record) {
@@ -581,11 +596,16 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 										return true;
 									}
 								}) == -1) {
+									var location_name = '';
+									if (location != '')
+										location_name = locationsStore.getById(location).get('name');
+
+									
 									imagesStore.add({
 										platform: platform,
 										platform_name: platformsStore.getById(platform).get('name'),
 										location: location,
-										location_name: locationsStore.getById(location).get('name'),
+										location_name: location_name,
 										image_id: image_id,
 										os_name: os_name,
 										os_version: os_version,
@@ -610,6 +630,17 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 								records[0].set('os_family', tabImages.down('[name="os_family"]').getValue());
 								records[0].set('os_version', tabImages.down('[name="os_version"]').getValue());
 								records[0].set('architecture', tabImages.down('[name="architecture"]').getValue());
+								
+								var location = tabImages.down('[name="image_location"]').getValue();
+								if (records[0].get('platform') == 'gce')
+									location = '';
+								
+								records[0].set('location', location);
+								if (location != '')
+									records[0].set('location_name', locationsStore.getById(location).get('name'));
+								else
+									records[0].set('location_name', '');
+								
 								
 								records[0].set('image_id', tabImages.down('[name="image_id"]').getValue());
 								tabImages.imageAddReset();
@@ -725,7 +756,6 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 				}, {
 					xtype: 'displayinfofield',
 					margin: '0 0 0 5',
-					value: '<img class="tipHelp" src="/ui2/images/icons/warning_icon_16x16.png" style="cursor: help;">',
 					info: 'This setting WON\'T change default SSH port on the servers. This port should be opened in the security groups.'
 				}]
 			}
@@ -1130,6 +1160,28 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 	});
 
 	tabScripts.down('scripteventgrid').store.load({ data: moduleParams.role.scripts });
+
+	if (moduleParams.role.id && Ext.isDefined(moduleParams.role.variables)) {
+		panel.add({
+			title: 'Global variables',
+			scalrPrivateGetData: function(params) {
+				params['variables'] = this.down('[name="variables"]').getValue();
+			},
+			layout: 'fit',
+			bodyCls: 'x-panel-body-frame',
+			items: [{
+				xtype: 'fieldset',
+				autoScroll: true,
+				items: [{
+					xtype: 'variablefield',
+					name: 'variables',
+					currentScope: 'role',
+					maxWidth: 1200,
+					value: moduleParams.role.variables
+				}]
+			}]
+		});
+	}
 
 	panel.setActiveTab(0);
 

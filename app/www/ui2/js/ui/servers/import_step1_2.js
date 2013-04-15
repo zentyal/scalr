@@ -94,10 +94,7 @@ Scalr.regPage('Scalr.ui.servers.import_step1_2', function (loadParams, modulePar
 							form: form.getForm(),
 							url: '/servers/xImportStart/',
 							success: function (data) {
-								if (loadParams['beta'] == 1)
-									Scalr.event.fireEvent('redirect', '#/servers/' + data.serverId + '/importCheck?beta=1');
-								else
-									Scalr.event.fireEvent('redirect', '#/servers/' + data.serverId + '/importCheck');
+								Scalr.event.fireEvent('redirect', '#/servers/' + data.serverId + '/importCheck');
 							}
 						});
 				}

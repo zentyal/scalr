@@ -185,8 +185,7 @@ Scalr.regPage('Scalr.ui.farms.roles.view', function (loadParams, moduleParams) {
 			store: store,
 			dock: 'top',
 			items: [{
-				xtype: 'tbfilterfield',
-				emptyText: 'Filter',
+				xtype: 'filterfield',
 				store: store
 			}]
 		}]

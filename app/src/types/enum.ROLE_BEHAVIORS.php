@@ -30,10 +30,10 @@
 			$types = array(
 				self::BASE	 => _("Base"),
 				self::CUSTOM => _("Custom"),
-				self::MYSQL	 => _("MySQL 5.1"),
-				self::MYSQL2	 => _("MySQL 5.5"),
+				self::MYSQL	 => _("MySQL (Deprecated)"),
+				self::MYSQL2	 => _("MySQL 5"),
 				
-				self::PERCONA	 => _("Percona Server 5.5"),
+				self::PERCONA	 => _("Percona Server 5"),
 					
 				self::APACHE => _("Apache"),
 				self::NGINX	 => _("Nginx"),

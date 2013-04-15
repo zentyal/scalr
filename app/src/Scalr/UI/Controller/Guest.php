@@ -20,17 +20,16 @@ class Scalr_UI_Controller_Guest extends Scalr_UI_Controller
 
 		$initParams['extjs'] = array(
 			$this->response->getModuleName("init.js"),
-			$this->response->getModuleName("theme.js"),
 			$this->response->getModuleName("override.js"),
 			$this->response->getModuleName("utils.js"),
+			$this->response->getModuleName("ui-form.js"),
+			$this->response->getModuleName("ui-grid.js"),
 			$this->response->getModuleName("ui-plugins.js"),
 			$this->response->getModuleName("ui.js")
 		);
 
 		$initParams['css'] = array(
-			$this->response->getModuleName("theme.css"),
-			$this->response->getModuleName("ui.css"),
-			$this->response->getModuleName("utils.css")
+			$this->response->getModuleName("ui.css")
 		);
 
 		$initParams['context'] = $this->getContext();
@@ -46,8 +45,10 @@ class Scalr_UI_Controller_Guest extends Scalr_UI_Controller
 				'userId' => $this->user->getId(),
 				'clientId' => $this->user->getAccountId(),
 				'userName' => $this->user->getEmail(),
+				'gravatarHash' => $this->user->getGravatarHash(),
 				'envId' => $this->getEnvironment() ? $this->getEnvironmentId() : 0,
 				'envName'  => $this->getEnvironment() ? $this->getEnvironment()->name : '',
+				'envVars' => $this->getEnvironment() ? $this->getEnvironment()->getPlatformConfigValue(Scalr_Environment::SETTING_UI_VARS) : '',
 				'type' => $this->user->getType()
 			);
 
@@ -55,10 +56,10 @@ class Scalr_UI_Controller_Guest extends Scalr_UI_Controller
 				$data['farms'] = $this->db->getAll('SELECT id, name FROM farms WHERE env_id = ? ORDER BY name', array($this->getEnvironmentId()));
 
 				if ($this->user->getAccountId() != 0) {
-					$initParams['flags'] = $this->user->getAccount()->getFeaturesList();
-					$initParams['user']['userIsTrial'] = $this->user->getAccount()->getSetting(Scalr_Account::SETTING_IS_TRIAL) == '1' ? true : false;
+					$data['flags'] = $this->user->getAccount()->getFeaturesList();
+					$data['user']['userIsTrial'] = $this->user->getAccount()->getSetting(Scalr_Account::SETTING_IS_TRIAL) == '1' ? true : false;
 				} else {
-					$initParams['flags'] = array();
+					$data['flags'] = array();
 				}
 
 				$data['flags']['platformEc2Enabled'] = !!$this->environment->isPlatformEnabled(SERVER_PLATFORMS::EC2);
@@ -68,6 +69,7 @@ class Scalr_UI_Controller_Guest extends Scalr_UI_Controller
 				$data['flags']['platformRackspaceEnabled'] = !!$this->environment->isPlatformEnabled(SERVER_PLATFORMS::RACKSPACE);
 
 				$data['flags']['billingExists'] = false;
+				$data['flags']['featureUsersPermissions'] = $this->user->getAccount()->isFeatureEnabled(Scalr_Limits::FEATURE_USERS_PERMISSIONS);
 
 				if ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER) {
 					if (! $this->user->getAccount()->getSetting(Scalr_Account::SETTING_DATE_ENV_CONFIGURED)) {
@@ -171,7 +173,7 @@ class Scalr_UI_Controller_Guest extends Scalr_UI_Controller
 			$account->status = Scalr_Account::STATUS_ACTIVE;
 			$account->save();
 
-			$account->createEnvironment("default", true);
+			$account->createEnvironment("Environment 1");
 
 			$user = $account->createUser($this->getParam('email'), $password, Scalr_Account_User::TYPE_ACCOUNT_OWNER);
 			$user->fullname = $name;
@@ -193,7 +195,7 @@ class Scalr_UI_Controller_Guest extends Scalr_UI_Controller
 				/*******************/
 		    } catch (Exception $e) {
 		    	$account->delete();
-		    	header("Location: https://scalr.net/order/?error={$e->getMessage()}");
+		    	header("Location: https://scalr.com/order/?error={$e->getMessage()}");
 		    	exit();
 		    }
 
@@ -249,12 +251,12 @@ class Scalr_UI_Controller_Guest extends Scalr_UI_Controller
 			Scalr_Session::create($user->getId());
 			Scalr_Session::keepSession();
 
-			header("Location: http://scalr.net/thanks.html");
+			header("Location: http://scalr.com/thanks.html");
 		}
 		else {
 			$errors = array_values($err);
 			$error = $errors[0];
-			header("Location: https://scalr.net/order/?error={$error}");
+			header("Location: https://scalr.com/order/?error={$error}");
 			//$this->response->failure();
 			//$this->response->data(array('errors' => $err));
 		}
@@ -322,12 +324,12 @@ class Scalr_UI_Controller_Guest extends Scalr_UI_Controller
 			array($this->getParam('scalrLogin'))
 		);
 		if ($loginattempt['loginattempts'] > 2) {
-			$text = file_get_contents('http://www.google.com/recaptcha/api/challenge?k=6Le9Us4SAAAAAOlqx9rkyJq0g3UBZtpoETmqUsmY');
+			$text = file_get_contents('http://www.google.com/recaptcha/api/challenge?k=6LcmltwSAAAAAJNs9vxjQeZ2cwhBleap9Dr8wQ7F');
 			$start = strpos($text, "challenge : '")+13;
 			$length = strpos($text, ",", $start)-$start;
 			$curl = curl_init();
 			// TODO: move private key to config.ini
-			curl_setopt($curl, CURLOPT_URL, 'http://www.google.com/recaptcha/api/verify?privatekey=6Le9Us4SAAAAAHcdRP6Dx44BIwVU0MOOGhBuOxf6&remoteip=my.scalr.net&challenge='.substr($text, $start, $length).'&response='.$this->getParam('scalrCaptcha'));
+			curl_setopt($curl, CURLOPT_URL, 'http://www.google.com/recaptcha/api/verify?privatekey=6LcmltwSAAAAAKW0IogvVyEbrB30Ls-tQK8IApIH&remoteip=my.scalr.net&challenge='.substr($text, $start, $length).'&response='.$this->getParam('scalrCaptcha'));
 			curl_setopt($curl, CURLOPT_TIMEOUT, 10);
 			curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
 			curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
@@ -344,6 +346,15 @@ class Scalr_UI_Controller_Guest extends Scalr_UI_Controller
 
 			// check for 2-factor auth
 			if ($user) {
+				// try to recognize timezone
+				if (! $user->getSetting(Scalr_Account_User::SETTING_UI_TIMEZONE) && $this->getParam('userTimezone')) {
+					$tm = Scalr_Util_DateTime::findTimezoneByOffset(intval($this->getParam('userTimezone')) * (-60));
+					if (! $tm)
+						$tm = 'GMT';
+
+					$user->setSetting(Scalr_Account_User::SETTING_UI_TIMEZONE, $tm);
+				}
+
 				if (
 					($user->getAccountId() && $user->getAccount()->isFeatureEnabled(Scalr_Limits::FEATURE_2FA) || !$user->getAccountId()) &&
 					($user->getSetting(Scalr_Account_User::SETTING_SECURITY_2FA_GGL) == 1)
@@ -466,6 +477,9 @@ class Scalr_UI_Controller_Guest extends Scalr_UI_Controller
 		if ($this->user) {
 			if ($this->getParam('updateDashboard'))
 				$result['updateDashboard'] = Scalr_UI_Controller::loadController('dashboard')->checkLifeCycle($this->getParam('updateDashboard'));
+
+			if (!Scalr_Session::getInstance()->isVirtual() && $this->getParam('uiStorage'))
+				$this->user->setVar(Scalr_Account_User::VAR_UI_STORAGE, $this->getParam('uiStorage'));
 		}
 
 		$equal = $this->user && ($this->user->getId() == $this->getParam('userId')) &&

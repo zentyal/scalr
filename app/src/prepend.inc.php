@@ -90,11 +90,8 @@ Core::Load("NET/Mail/PHPSmartyMailer");
 Core::Load("Data/Formater/class.Formater.php");
 Core::Load("Data/Validation/class.Validator.php");
 Core::Load("System/Independent/Shell/class.ShellFactory.php");
+//!TODO Remove unnecessary link EC2
 Core::Load("NET/API/AWS/AmazonEC2");
-Core::Load("NET/API/AWS/AmazonS3");
-Core::Load("NET/API/AWS/AmazonCloudFront");
-Core::Load("NET/API/AWS/AmazonRDS");
-Core::Load("NET/API/AWS/AmazonVPC");
 
 require_once(SRCPATH . '/externals/adodb5/adodb-exceptions.inc.php');
 require_once(SRCPATH . '/externals/adodb5/adodb.inc.php');
@@ -128,7 +125,6 @@ if (!$db) {
 }
 
 $ADODB_CACHE_DIR = CACHEPATH."/adodb";
-
 
 
 // Select config from db
@@ -215,12 +211,3 @@ CONFIG::$SYSDNS_SYSTEM = 0;
 // Require observer interfaces
 require_once (APPPATH.'/observers/interface.IDeferredEventObserver.php');
 require_once (APPPATH.'/observers/interface.IEventObserver.php');
-
-//
-// Tender integration
-//
-
-
-//Dependency injection container config
-require_once __DIR__ . '/di.php';
-

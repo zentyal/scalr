@@ -27,7 +27,7 @@
 				);
 				
 				$products = $cs->listAvailableProductTypes();
-				
+                
 				foreach ($products->producttypes as $product) {
 					$retval[$product->zoneid] = "KT uCloud / {$product->zonedesc} ({$product->zoneid})";
 				}
