@@ -19,6 +19,8 @@ class Scalr_Session
 
 	private $hashpwd;
 
+	private $virtual;
+
 	private $cloudynToken;
 
 	private $restored = false;
@@ -37,6 +39,8 @@ class Scalr_Session
 	const SESSION_HASH    = 'hash';
 
 	const SESSION_SAULT   = 'sault';
+
+	const SESSION_VIRTUAL = 'virtual';
 
 	const SESSION_CLOUDYN_TOKEN = 'cloudynToken';
 
@@ -59,10 +63,15 @@ class Scalr_Session
 		return self::$_session;
 	}
 
-	public static function create($userId)
+	/**
+	 * @param $userId
+	 * @param bool $virtual Session created by admin
+	 */
+	public static function create($userId, $virtual = false)
 	{
 		@session_start();
 		$_SESSION[__CLASS__][self::SESSION_USER_ID] = $userId;
+		$_SESSION[__CLASS__][self::SESSION_VIRTUAL] = $virtual;
 
 		$sault = Scalr_Util_CryptoTool::sault();
 		$_SESSION[__CLASS__][self::SESSION_SAULT] = $sault;
@@ -190,6 +199,11 @@ class Scalr_Session
 	public function isAuthenticated()
 	{
 		return $this->userId ? true : false;
+	}
+
+	public function isVirtual()
+	{
+		return $this->virtual;
 	}
 
 	public function setEnvironmentId($envId)

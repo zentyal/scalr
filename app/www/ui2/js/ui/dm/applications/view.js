@@ -43,7 +43,7 @@ Scalr.regPage('Scalr.ui.dm.applications.view', function (loadParams, moduleParam
 		columns: [
 			{ header: 'ID', width: 80, dataIndex: 'id', sortable: true },
 			{ header: 'Name', flex: 1, dataIndex: 'name', sortable: true },
-			{ header: 'Source', flex: 1, dataIndex: 'source_url', sortable: true, xtype: 'templatecolumn',
+			{ header: 'Source', flex: 1, dataIndex: 'source_url', sortable: false, xtype: 'templatecolumn',
 				tpl: '<a href="#/dm/sources/{source_id}/view">{source_url}</a>'
 			},
 			{ header: 'Status', width: 120, dataIndex: 'status', sortable: false, xtype: 'templatecolumn',

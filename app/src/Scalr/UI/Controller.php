@@ -2,6 +2,9 @@
 
 class Scalr_UI_Controller
 {
+	/**
+	 * @var ADOConnection
+	 */
 	public $db;
 
 	/**
@@ -105,8 +108,11 @@ class Scalr_UI_Controller
 	{
 		foreach ($this->sortParams as $cond) {
 			$field = $cond['property'];
-			$result = strcmp($item1[$field], $item2[$field]);
-
+			if (is_int($item1[$field]) || is_float($item1[$field])) {
+			    $result = ($item1[$field] == $item2[$field]) ? 0 : (($item1[$field] < $item2[$field]) ? -1 : 1);
+			} else {
+				$result = strcmp($item1[$field], $item2[$field]);
+			}
 			if ($result != 0)
 				return $cond['direction'] == 'DESC' ? $result : ($result > 0 ? -1: 1);
 		}
@@ -193,8 +199,8 @@ class Scalr_UI_Controller
 			$sql = str_replace(':FILTER:', 'true', $sql);
 		}
 
-		if (! $noLimit) {
-			$response['total'] = $this->db->Execute($sql, $args)->RecordCount();
+		if (!$noLimit) {
+			$response['total'] = $this->db->GetOne('SELECT COUNT(*) FROM (' . $sql. ') c_sub', $args);
 		}
 
 		if (is_array($this->getParam('sort'))) {
@@ -216,8 +222,13 @@ class Scalr_UI_Controller
 		}
 
 		if (! $noLimit) {
-			$start = $this->getParam('start');
-			$limit = $this->getParam('limit');
+			$start = intval($this->getParam('start'));
+			if ($start > $response["total"] || $start < 0)
+				$start = 0;
+
+			$limit = intval($this->getParam('limit'));
+			if ($limit < 1 || $limit > 100)
+				$limit = 100;
 			$sql .= " LIMIT $start, $limit";
 		}
 
@@ -254,11 +265,8 @@ class Scalr_UI_Controller
 		if ($groupSQL)
 			$sql .= "{$groupSQL}";
 
-		if (! $noLimit) {
-			if (stristr($sql, "SELECT * FROM")) {
-				$response["total"] = $this->db->GetOne(str_ireplace("SELECT * FROM", "SELECT COUNT(*) FROM", $sql), $args);
-			} else
-				$response["total"] = $this->db->Execute($sql, $args)->RecordCount();
+		if (!$noLimit) {
+			$response['total'] = $this->db->GetOne('SELECT COUNT(*) FROM (' . $sql. ') c_sub');
 		}
 
 		// @TODO replace with simple code (legacy code)
@@ -290,11 +298,11 @@ class Scalr_UI_Controller
 		}
 
 		if (! $noLimit) {
-			$start = $this->getParam('start');
+			$start = intval($this->getParam('start'));
 			if ($start > $response["total"])
 				$start = 0;
 
-			$limit = $this->getParam('limit');
+			$limit = intval($this->getParam('limit'));
 			$sql .= " LIMIT $start, $limit";
 		}
 
@@ -305,7 +313,7 @@ class Scalr_UI_Controller
 		return $response;
 	}
 
-	public function call($pathChunks, $permissionFlag = true)
+	public function call($pathChunks = array(), $permissionFlag = true)
 	{
 		$arg = array_shift($pathChunks);
 
@@ -489,7 +497,7 @@ class Scalr_UI_Controller
 					$message .= $value['key'] . ":\n" . $value['value'] . "\n\n";
 				}
 
-				$this->db->Execute('INSERT INTO ui_debug_log (ipaddress, dtadded, url, report, env_id, account_id, user_id) VALUES(?, NOW(), ?, ?, ?, ?, ?)', array(
+				$this->db->Execute('INSERT INTO ui_debug_log (ipaddress, url, report, env_id, account_id, user_id) VALUES(?, ?, ?, ?, ?, ?)', array(
 					$this->request->getClientIp(),
 					$key,
 					$message,
@@ -510,7 +518,7 @@ class Scalr_UI_Controller
 	static public function handleRequest($pathChunks, $params)
 	{
 		$startTime = microtime(true);
-			
+
 		if ($pathChunks[0] == '')
 			$pathChunks = array('guest');
 
@@ -565,7 +573,7 @@ class Scalr_UI_Controller
 					$e->getLine(),
 					$_SERVER['REQUEST_URI'],
 					$e->getMessage(),
-					$e->getTraceAsString(),
+					$e->getMessage() . "\n" . $e->getTraceAsString(),
 					$_SERVER['HTTP_USER_AGENT'],
 					$user ? $user->getAccountId() : ''
 				));
@@ -587,12 +595,26 @@ class Scalr_UI_Controller
 	/**
 	 *
 	 * @return Scalr_UI_Controller
+	 * @throws Scalr_UI_Exception_NotFound
+	 * @throws Scalr_Exception_InsufficientPermissions
 	 */
 	static public function loadController($controller, $prefix = 'Scalr_UI_Controller', $checkPermissions = false)
 	{
 		if (preg_match("/^[a-z0-9]+$/i", $controller)) {
 			$controller = ucwords(strtolower($controller));
+
+			// support versioning
+			if ($prefix == 'Scalr_UI_Controller' && $controller == 'Account') {
+				$request = Scalr_UI_Request::getInstance();
+				if ($request->getRequestType() == Scalr_UI_Request::REQUEST_TYPE_UI) {
+					$controller = 'Account2';
+				} else if ($request->getRequestType() == Scalr_UI_Request::REQUEST_TYPE_API && $request->requestApiVersion == '2') {
+					$controller = 'Account2';
+				}
+			}
+
 			$className = "{$prefix}_{$controller}";
+
 			if (file_exists(SRCPATH . '/' . str_replace('_', '/', $prefix) . '/' . $controller . '.php') && class_exists($className)) {
 				$o = new $className();
 				$o->init();

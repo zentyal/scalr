@@ -562,7 +562,7 @@ class Cloudyn
 				usleep($interval);
 				$message = $this->tryCall($httpRequest, $attempts, $interval * 2);
 			} else {
-				throw new CloudynException('Cannot connect to Cloudyn server. ' . $e->getMessage());
+				throw new CloudynException('The intertubes seem to be clogged again. Re-trying to connect to Cloudyn.');
 			}
 		}
 		return $message;

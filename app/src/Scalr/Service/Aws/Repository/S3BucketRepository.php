@@ -13,38 +13,38 @@ use Scalr\Service\Aws\AbstractRepository;
 class S3BucketRepository extends AbstractRepository
 {
 
-	/**
-	 * Reflection class name.
-	 * @var string
-	 */
-	private static $reflectionClassName = 'Scalr\\Service\\Aws\\S3\\DataType\\BucketData';
+    /**
+     * Reflection class name.
+     * @var string
+     */
+    private static $reflectionClassName = 'Scalr\\Service\\Aws\\S3\\DataType\\BucketData';
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractRepository::getReflectionClassName()
-	 */
-	public function getReflectionClassName()
-	{
-		return self::$reflectionClassName;
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractRepository::getReflectionClassName()
+     */
+    public function getReflectionClassName()
+    {
+        return self::$reflectionClassName;
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractRepository::getIdentifier()
-	 */
-	public function getIdentifier ()
-	{
-		return 'bucketName';
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractRepository::getIdentifier()
+     */
+    public function getIdentifier()
+    {
+        return 'bucketName';
+    }
 
-	/**
-	 * Finds one element in entity manager by id
-	 *
-	 * @param    string       $name   A bucket name
-	 * @return   BucketData   Returns BucketData or NULL if nothing found.
-	 */
-	public function find ($name)
-	{
-		return parent::find($name);
-	}
+    /**
+     * Finds one element in entity manager by id
+     *
+     * @param    string       $id     A bucket name
+     * @return   BucketData   Returns BucketData or NULL if nothing found.
+     */
+    public function find($id)
+    {
+        return parent::find($id);
+    }
 }

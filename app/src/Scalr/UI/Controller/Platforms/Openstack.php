@@ -1,23 +1,36 @@
 <?php
 
+use \Scalr\Service\OpenStack\Services\Servers\Type\ServersExtension;
+
 class Scalr_UI_Controller_Platforms_Openstack extends Scalr_UI_Controller
 {
-	public function xGetFlavorsAction()
+	public function xGetOpenstackResourcesAction()
 	{
-		$os = Scalr_Service_Cloud_Openstack::newNovaCC(
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Openstack::API_URL, true, $this->getParam('cloudLocation')),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Openstack::USERNAME, true, $this->getParam('cloudLocation')),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Openstack::API_KEY, true, $this->getParam('cloudLocation')),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Openstack::PROJECT_NAME, true, $this->getParam('cloudLocation'))
-		);
-		
+		$client = $this->environment->openstack($this->getParam('platform'), $this->getParam('cloudLocation'));
 		$data = array();
-		foreach ($os->flavorsList(true)->flavors as $flavor) {
-			$data[] = array(
-				'id' => $flavor->id,
-				'name' => sprintf('RAM: %s MB Disk: %s GB', $flavor->ram, $flavor->disk)
+        
+        // List flavors
+		$data['flavors'] = array();
+		foreach ($client->servers->listFlavors() as $flavor) {
+			$data['flavors'][] = array(
+				'id' => (int)$flavor->id,
+				'name' => $flavor->name
 			);
 		}
+        
+        //Check floating IPs
+        if ($client->servers->isExtensionSupported(ServersExtension::EXT_FLOATING_IP_POOLS))
+        {
+            $data['ipPools'] = array(array('id' =>'', 'name' => ''));
+            $pools = $client->servers->listFloatingIpPools();
+            foreach ($pools as $pool) {
+                $data['ipPools'][] = array(
+                    'id' => $pool->name,
+                    'name' => $pool->name
+                );
+            }
+        }
+
 
 		$this->response->data(array('data' => $data));
 	}

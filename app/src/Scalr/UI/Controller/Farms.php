@@ -35,9 +35,12 @@ class Scalr_UI_Controller_Farms extends Scalr_UI_Controller
         	
         	$servers = $dbFarm->GetServersByFilter(array('status' => array(SERVER_STATUS::INIT, SERVER_STATUS::RUNNING)));
         	foreach ($servers as $dbServer) {
-        		
         		try {
-        			$updClient = new Scalr_Net_Scalarizr_UpdateClient($dbServer);
+                    $port = $dbServer->GetProperty(SERVER_PROPERTIES::SZR_UPDC_PORT);
+                    if (!$port)
+                        $port = 8008;
+                    
+        			$updClient = new Scalr_Net_Scalarizr_UpdateClient($dbServer, $port);
         			$updClient->configure($repo, $schedule);
         		} catch (Exception $e) {
         			Logger::getLogger('Farm')->error(new FarmLogMessage($dbFarm->ID, sprintf("Unable to update scalarizr update settings on server %s: %s",
@@ -51,7 +54,7 @@ class Scalr_UI_Controller_Farms extends Scalr_UI_Controller
         if (!$err)
 			$this->response->success('Scalarizr auto-update settings successfully saved');
 		else 
-			$this->response->warning('Scalarizr auto-update settings successfully saved, but some servers were not updated. Please check "Logs->Event log" for more details.');
+			$this->response->warning('Scalarizr auto-update settings successfully saved, but some servers were not updated. Please check "Logs -> System log" for more details.');
 	}
 	
 	public function extendedInfoAction()
@@ -320,20 +323,24 @@ class Scalr_UI_Controller_Farms extends Scalr_UI_Controller
 			$options = array();
 
 		if ($values['serverId']) {
-			$dbServer = DBServer::LoadByID($values['serverId']);
-			$this->user->getPermissions()->validate($dbServer);
-			$values['farmRoleId'] = $dbServer->farmRoleId;
+			try {
+				$dbServer = DBServer::LoadByID($values['serverId']);
+				$this->user->getPermissions()->validate($dbServer);
+				$values['farmRoleId'] = $dbServer->farmRoleId;
+			} catch (Exception $e) {}
 		}
 
 		if ($values['farmRoleId']) {
-			$dbFarmRole = DBFarmRole::LoadByID($values['farmRoleId']);
-			$this->user->getPermissions()->validate($dbFarmRole);
+			try {
+				$dbFarmRole = DBFarmRole::LoadByID($values['farmRoleId']);
+				$this->user->getPermissions()->validate($dbFarmRole);
 
-			$values['dataServers'] = $this->getFarmWidgetServers($values['farmRoleId'], $options);
-			$values['farmId'] = $dbFarmRole->FarmID;
+				$values['dataServers'] = $this->getFarmWidgetServers($values['farmRoleId'], $options);
+				$values['farmId'] = $dbFarmRole->FarmID;
 
-			if (! $values['serverId'])
-				$values['serverId'] = 0;
+				if (! $values['serverId'])
+					$values['serverId'] = 0;
+			} catch (Exception $e) {}
 		}
 
 		if ($values['farmId']) {
@@ -422,7 +429,7 @@ class Scalr_UI_Controller_Farms extends Scalr_UI_Controller
 			array_push($servers, array('id' => $value->serverId, 'name' => $value->remoteIp));
 
 		if (count($servers) && in_array('addAll', $options)) {
-			array_unshift($servers, array('id' => 0, 'name' => 'On all servers'));
+			array_unshift($servers, array('id' => 0, 'name' => 'On all instances of a role in this farm'));
 		}
 
 		if (in_array('addEmpty', $options))
@@ -443,8 +450,7 @@ class Scalr_UI_Controller_Farms extends Scalr_UI_Controller
 
 	public function viewAction()
 	{
-		$enabled = $this->user->getSetting(Scalr_Account_User::SETTING_DASHBOARD_ENABLED);
-		$this->response->page('ui/farms/view.js', array('dashboard_enabled' => $enabled));
+		$this->response->page('ui/farms/view.js');
 	}
 
 	public function editAction()
@@ -642,21 +648,35 @@ class Scalr_UI_Controller_Farms extends Scalr_UI_Controller
 			'currentTimeZone' => $this->getEnvironment()->getPlatformConfigValue(Scalr_Environment::SETTING_TIMEZONE),
 			'currentTime' => Scalr_Util_DateTime::convertTz(time()),
 			'currentEnvId' => $this->getEnvironmentId(),
-			'groups' => ROLE_GROUPS::GetName(null, true)
+			'groups' => ROLE_GROUPS::GetName(null, true),
+			'behaviors' => ROLE_BEHAVIORS::GetName(null, true)
 		);
+		
+		unset($moduleParams['behaviors'][ROLE_BEHAVIORS::CASSANDRA]);
+		unset($moduleParams['behaviors'][ROLE_BEHAVIORS::CUSTOM]);
+		unset($moduleParams['behaviors'][ROLE_BEHAVIORS::HAPROXY]);
 		
 		$platforms = $this->getEnvironment()->getEnabledPlatforms();
 		if (empty($platforms))
 			throw new Exception('Before building new farm you need to configure environment and setup cloud credentials');
 
+		$moduleParams['farmVpcEc2Enabled'] = $this->getEnvironment()->isPlatformEnabled(SERVER_PLATFORMS::EC2);
+		if ($moduleParams['farmVpcEc2Enabled']) {
+			$moduleParams['farmVpcEc2Locations'] = self::loadController('Platforms')->getCloudLocations(SERVER_PLATFORMS::EC2, false);
+		}
+
 		if ($farmId) {
 			$c = self::loadController('Builder', 'Scalr_UI_Controller_Farms');
 			$moduleParams['farm'] = $c->getFarm($farmId);
+		} else {
+			// TODO: remove hack, do better
+			$vars = new Scalr_Scripting_GlobalVariables($this->getEnvironmentId(), Scalr_Scripting_GlobalVariables::SCOPE_FARM);
+			$moduleParams['farmVariables'] = json_encode($vars->getValues());
 		}
 
-		$moduleParams['tabs'] = array('scaling', 'mysql', 'dbmsr', 'cloudfoundry', 'rabbitmq', 'mongodb', 'haproxy', 'balancing', 'placement', 
-			'openstack', 'cloudstack', 'rsplacement', 'gce', 'params', 'rds', 'eips', 'ebs', 'ebs2',  'dns', 'scripting',
-			'timeouts', 'cloudwatch', 'euca', 'nimbula', 'ec2', 'servicesconfig', 'deployments', 'devel', 'storage'
+		$moduleParams['tabs'] = array('openstack', 'cloudstack', 'rsplacement', 'gce', 'scaling', 'mysql', 'dbmsr', 'cloudfoundry', 'rabbitmq', 'mongodb', 'haproxy', 'balancing', 'placement', 
+			'params', 'rds', 'eips', 'ebs',  'dns', 'scripting',
+			'timeouts', 'cloudwatch', 'euca', 'nimbula', 'ec2', 'servicesconfig', 'deployments', 'devel', 'storage', 'variables'
 		);
 		
 		if ($this->user->getAccount()->isFeatureEnabled(Scalr_Limits::FEATURE_CHEF)) {
@@ -670,7 +690,7 @@ class Scalr_UI_Controller_Farms extends Scalr_UI_Controller
 			'currentEnvId' => $this->getEnvironmentId()
 		);
 		
-		//TODO: Features
+		// TODO: Features
 		$moduleParams['tabParams']['featureRAID'] = $this->user->getAccount()->isFeatureEnabled(Scalr_Limits::FEATURE_RAID);
 		$moduleParams['tabParams']['featureMFS'] = $this->user->getAccount()->isFeatureEnabled(Scalr_Limits::FEATURE_MFS);
 
@@ -688,7 +708,6 @@ class Scalr_UI_Controller_Farms extends Scalr_UI_Controller
 			'ui/farms/builder/tabs/haproxy.js',
 			'ui/farms/builder/tabs/dns.js',
 			'ui/farms/builder/tabs/ebs.js',
-			'ui/farms/builder/tabs/ebs2.js',
 			'ui/farms/builder/tabs/eips.js',
 			'ui/farms/builder/tabs/euca.js',
 			'ui/farms/builder/tabs/mysql.js',
@@ -710,11 +729,19 @@ class Scalr_UI_Controller_Farms extends Scalr_UI_Controller
 			'ui/farms/builder/tabs/deployments.js',
 			'ui/farms/builder/tabs/devel.js',
 			'ui/farms/builder/tabs/storage.js',
-			'ui/scripts/scriptfield.js'
+			'ui/farms/builder/tabs/variables.js',
+			'ui/scripts/scriptfield.js',
+			'codemirror/codemirror.js',
+			'ui/core/variablefield.js',
+			'ui/scripts/scriptfield2.js',
+			'ux-boxselect.js',
 		), array(
 			'ui/farms/builder/tabs/scripting.css',
 			'ui/farms/builder/selroles.css',
-			'ui/farms/builder/allroles.css'
+			'ui/farms/builder/allroles.css',
+			'codemirror/codemirror.css',
+			'ui/core/variablefield.css',
+			'ui/scripts/scriptfield2.css',
 		));
 	}
 
@@ -755,12 +782,9 @@ class Scalr_UI_Controller_Farms extends Scalr_UI_Controller
 		try
 		{
 			foreach ($this->db->GetAll("SELECT * FROM farm_roles WHERE farmid = ?", array($dbFarm->ID)) as $value) {
-				$this->db->Execute("DELETE FROM scheduler WHERE target_id = ? AND target_type = ?", array(
+				$this->db->Execute("DELETE FROM scheduler WHERE target_id = ? AND target_type IN(?,?)", array(
 					$value['id'],
-					Scalr_SchedulerTask::TARGET_ROLE
-				));
-
-				$this->db->Execute("DELETE FROM scheduler WHERE target_id LIKE '" . $value['id'] . ":%' AND target_type = ?", array(
+					Scalr_SchedulerTask::TARGET_ROLE,
 					Scalr_SchedulerTask::TARGET_INSTANCE
 				));
 			}
@@ -817,25 +841,37 @@ class Scalr_UI_Controller_Farms extends Scalr_UI_Controller
 		$this->request->defineParams(array(
 			'clientId' => array('type' => 'int'),
 			'farmId' => array('type' => 'int'),
-			'sort' => array('type' => 'json', 'default' => array('property' => 'id', 'direction' => 'asc'))
+			'sort' => array('type' => 'json')
 		));
 
-		$sql = "SELECT clientid, id, name, status, dtadded, created_by_id, created_by_email FROM farms WHERE env_id='" . $this->getEnvironmentId() . "'";
+		$sql = 'SELECT clientid, id, name, status, dtadded, created_by_id, created_by_email FROM farms WHERE env_id = ? AND :FILTER:';
+		$args = array($this->getEnvironmentId());
 
-		if ($this->getParam('farmId'))
-			$sql .= " AND id=".$this->db->qstr($this->getParam('farmId'));
+		if ($this->getParam('farmId')) {
+			$sql .= ' AND id = ?';
+			$args[] = $this->getParam('farmId');
+		}
 
-		if ($this->getParam('clientId'))
-			$sql .= " AND clientid=".$this->db->qstr($this->getParam('clientId'));
+		if ($this->getParam('clientId')) {
+			$sql .= ' AND clientid = ?';
+			$args[] = $this->getParam('clientId');
+		}
 
-		if ($this->getParam('status') != '')
-			$sql .= " AND status=".$this->db->qstr($this->getParam('status'));;
+		if ($this->getParam('status') != '') {
+			$sql .= ' AND status = ?';
+			$args[] = $this->getParam('status');
+		}
 
-		$response = $this->buildResponseFromSql($sql, array("name", "id", "comments"));
+		if ($this->getParam('showOnlyMy')) {
+			$sql .= ' AND created_by_id = ?';
+			$args[] = $this->user->getId();
+		}
+
+		$response = $this->buildResponseFromSql2($sql, array('id', 'name', 'dtadded', 'created_by_email', 'status'), array('name', 'id', 'comments'), $args);
 
 		foreach ($response["data"] as &$row) {
-			$row["running_servers"] = $this->db->GetOne("SELECT COUNT(*) FROM servers WHERE farm_id='{$row['id']}' AND status IN ('Pending', 'Initializing', 'Running', 'Temporary', 'Pending launch')");
-			$row["non_running_servers"] = $this->db->GetOne("SELECT COUNT(*) FROM servers WHERE farm_id='{$row['id']}' AND status NOT IN ('Pending', 'Initializing', 'Running', 'Temporary')");
+			$row["running_servers"] = $this->db->GetOne("SELECT COUNT(*) FROM servers WHERE farm_id='{$row['id']}' AND status IN ('Pending', 'Initializing', 'Running', 'Temporary')");
+			$row["non_running_servers"] = $this->db->GetOne("SELECT COUNT(*) FROM servers WHERE farm_id='{$row['id']}' AND status NOT IN ('Pending', 'Initializing', 'Running', 'Temporary', 'Pending launch')");
 
 			$row["roles"] = $this->db->GetOne("SELECT COUNT(*) FROM farm_roles WHERE farmid='{$row['id']}'");
 			$row["zones"] = $this->db->GetOne("SELECT COUNT(*) FROM dns_zones WHERE farm_id='{$row['id']}'");
@@ -891,4 +927,95 @@ class Scalr_UI_Controller_Farms extends Scalr_UI_Controller
 
 		$this->response->data($response);
 	}
+	
+	public function build2Action()
+	{
+		$this->request->defineParams(array(
+			'farmId' => array('type' => 'int'),
+			'roleId' => array('type' => 'int')
+		));
+
+		$farmId = $this->getParam('farmId');
+		$roleId = $this->getParam('roleId');
+
+		$moduleParams = array(
+			'farmId' => $farmId,
+			'roleId' => $roleId,
+			'currentTimeZone' => $this->getEnvironment()->getPlatformConfigValue(Scalr_Environment::SETTING_TIMEZONE),
+			'currentTime' => Scalr_Util_DateTime::convertTz(time()),
+			'currentEnvId' => $this->getEnvironmentId(),
+			'groups' => ROLE_GROUPS::GetName(null, true)
+		);
+		
+		$platforms = $this->getEnvironment()->getEnabledPlatforms();
+		if (empty($platforms))
+			throw new Exception('Before building new farm you need to configure environment and setup cloud credentials');
+
+		if ($farmId) {
+			$c = self::loadController('Builder', 'Scalr_UI_Controller_Farms');
+			$moduleParams['farm'] = $c->getFarm($farmId);
+		}
+
+		$moduleParams['tabs'] = array('scaling', 'mysql', 'dbmsr', 'cloudfoundry', 'rabbitmq', 'mongodb', 'haproxy', 'balancing', 'placement', 
+			'openstack', 'cloudstack', 'rsplacement', 'gce', 'params', 'rds', 'eips', 'ebs',  'dns', 'scripting',
+			'timeouts', 'cloudwatch', 'euca', 'nimbula', 'ec2', 'servicesconfig', 'deployments', 'devel', 'storage'
+		);
+		
+		if ($this->user->getAccount()->isFeatureEnabled(Scalr_Limits::FEATURE_CHEF)) {
+			$moduleParams['tabs'][] = 'chef';
+		}
+
+		$moduleParams['tabParams'] = array(
+			'farmId' => $farmId,
+			'currentTimeZone' => $this->getEnvironment()->getPlatformConfigValue(Scalr_Environment::SETTING_TIMEZONE),
+			'currentTime' => Scalr_Util_DateTime::convertTz(time()),
+			'currentEnvId' => $this->getEnvironmentId()
+		);
+		
+		//TODO: Features
+		$moduleParams['tabParams']['featureRAID'] = $this->user->getAccount()->isFeatureEnabled(Scalr_Limits::FEATURE_RAID);
+		$moduleParams['tabParams']['featureMFS'] = $this->user->getAccount()->isFeatureEnabled(Scalr_Limits::FEATURE_MFS);
+
+		$this->response->page('ui/farms/builder2.js', $moduleParams, array(
+			'ui/farms/builder2/selroles.js',
+			'ui/farms/builder2/roleedit.js',
+			'ui/farms/builder2/allroles.js',
+			/*'ui/farms/builder/tab.js',
+			'ui/farms/builder/tabs/balancing.js',
+			'ui/farms/builder/tabs/cloudwatch.js',
+			'ui/farms/builder/tabs/dbmsr.js',
+			'ui/farms/builder/tabs/cloudfoundry.js',
+			'ui/farms/builder/tabs/rabbitmq.js',
+			'ui/farms/builder/tabs/mongodb.js',
+			'ui/farms/builder/tabs/haproxy.js',
+			'ui/farms/builder/tabs/dns.js',
+			'ui/farms/builder/tabs/ebs.js',
+			'ui/farms/builder/tabs/eips.js',
+			'ui/farms/builder/tabs/euca.js',
+			'ui/farms/builder/tabs/mysql.js',
+			'ui/farms/builder/tabs/nimbula.js',
+			'ui/farms/builder/tabs/params.js',
+			'ui/farms/builder/tabs/placement.js',
+			'ui/farms/builder/tabs/rsplacement.js',
+			'ui/farms/builder/tabs/cloudstack.js',
+			'ui/farms/builder/tabs/openstack.js',
+			'ui/farms/builder/tabs/gce.js',
+			'ui/farms/builder/tabs/rds.js',
+			'ui/farms/builder/tabs/scaling.js',
+			'ui/farms/builder/tabs/scripting.js',
+			'ui/farms/builder/tabs/servicesconfig.js',
+			'ui/farms/builder/tabs/timeouts.js',
+			'ui/farms/builder/tabs/vpc.js',
+			'ui/farms/builder/tabs/ec2.js',
+			'ui/farms/builder/tabs/chef.js',
+			'ui/farms/builder/tabs/deployments.js',
+			'ui/farms/builder/tabs/devel.js',
+			'ui/farms/builder/tabs/storage.js',
+			'ui/scripts/scriptfield.js'*/
+		), array(
+			//'ui/farms/builder/tabs/scripting.css',
+			'ui/farms/builder2/selroles.css',
+			'ui/farms/builder2/allroles.css'
+		));
+	}	
 }

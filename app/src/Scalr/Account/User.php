@@ -21,15 +21,17 @@ class Scalr_Account_User extends Scalr_Model
 	const SETTING_RSS_LOGIN 	= 'rss.login';
 	const SETTING_RSS_PASSWORD 	= 'rss.password';
 
-	const SETTING_DEFAULT_ENVIRONMENT = 'defaults.environment';
+	const SETTING_UI_ENVIRONMENT = 'ui.environment'; // last used
+	const SETTING_UI_TIMEZONE = 'ui.timezone';
+	
+	const SETTING_GRAVATAR_EMAIL = 'gravatar.email';
 
 	const SETTING_SECURITY_IP_WHITELIST 	= 'security.ip.whitelist';
 	const SETTING_SECURITY_2FA_GGL = 'security.2fa.ggl';
 	const SETTING_SECURITY_2FA_GGL_KEY = 'security.2fa.ggl.key';
 
-	const SETTING_DASHBOARD_ENABLED = 'dashboard.enabled'; 
-	
-	
+	const VAR_UI_STORAGE = 'ui.storage';
+
 	protected $dbPropertyMap = array(
 		'id'			=> 'id',
 		'account_id'	=> 'accountId',
@@ -64,46 +66,46 @@ class Scalr_Account_User extends Scalr_Model
 	 *
 	 * @return Scalr_Account_User
 	 */
-	public static function init()
+	public static function init($className = null)
 	{
 		return parent::init();
 	}
 
 	/**
-	 * 
+	 *
 	 * @return Scalr_Account
 	 */
 	public function loadBySetting($name, $value)
 	{
-		$id = $this->db->GetOne("SELECT user_id FROM account_user_settings WHERE name = ? AND value = ?", 
+		$id = $this->db->GetOne("SELECT user_id FROM account_user_settings WHERE name = ? AND value = ?",
 			array($name, $value)
 		);
 		if (!$id)
 			return false;
-		else 
+		else
 			return $this->loadById($id);
 	}
-	
+
 	public function loadByApiAccessKey($accessKey)
 	{
 		return $this->loadBySetting(Scalr_Account_User::SETTING_API_ACCESS_KEY, $accessKey);
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * @return Scalr_Account_User
 	 */
 	public function loadByEmail($email)
 	{
-		$info = $this->db->GetRow("SELECT * FROM account_users WHERE `email` = ?", 
+		$info = $this->db->GetRow("SELECT * FROM account_users WHERE `email` = ?",
 			array($email)
 		);
 		if (!$info)
 			return false;
-		else 
+		else
 			return $this->loadBy($info);
 	}
-	
+
 	/**
 	 *
 	 * @return Scalr_Permissions
@@ -121,22 +123,27 @@ class Scalr_Account_User extends Scalr_Model
 		$this->id = 0;
 
 		if ($this->isEmailExists($email))
-			throw new Exception('Such email already used');
+			throw new Exception('Uh oh. Seems like that email is already in use. Try another?');
 
 		$this->email = $email;
 		$this->accountId = $accountId;
-		
+
 		$this->save();
+		$this->setSetting(Scalr_Account_User::SETTING_GRAVATAR_EMAIL, $email);
 		return $this;
 	}
-	
-	public function delete()
+
+	/**
+	 * {@inheritdoc}
+	 * @see Scalr_Model::delete()
+	 */
+	public function delete($id = null)
 	{
 		if ($this->type == Scalr_Account_User::TYPE_ACCOUNT_OWNER)
 			throw new Exception('You cannot remove Account Owner');
 
 		parent::delete();
-		
+
 		$this->db->Execute('DELETE FROM `account_team_users` WHERE user_id = ?', array($this->id));
 		$this->db->Execute('DELETE FROM `account_user_groups` WHERE user_id = ?', array($this->id));
 		$this->db->Execute('DELETE FROM `account_user_settings` WHERE user_id = ?', array($this->id));
@@ -177,12 +184,17 @@ class Scalr_Account_User extends Scalr_Model
 		return $this->email;
 	}
 
+	public function getGravatarHash()
+	{
+		return md5(strtolower(trim($this->getSetting(Scalr_Account_User::SETTING_GRAVATAR_EMAIL))));
+	}
+	
 	public function updateEmail($email)
 	{
 		if ($email && ($email == $this->email || !$this->isEmailExists($email)))
 			$this->email = $email;
 		else
-			throw new Exception('Such email already used');
+			throw new Exception('Uh oh. Seems like that email is already in use. Try another?');
 	}
 
 	/**
@@ -193,9 +205,11 @@ class Scalr_Account_User extends Scalr_Model
 	 */
 	public function getSetting($name)
 	{
-		return $this->db->GetOne("SELECT value FROM account_user_settings WHERE user_id=? AND `name`=?",
+		$r = $this->db->GetOne("SELECT value FROM account_user_settings WHERE user_id=? AND `name`=?",
 			array($this->id, $name)
 		);
+
+		return $r == 'false' ? '' : $r;
 	}
 
 	/**
@@ -212,9 +226,37 @@ class Scalr_Account_User extends Scalr_Model
 	}
 
 	/**
+	 * Returns user var value by name
+	 *
+	 * @param string $name
+	 * @return mixed $value
+	 */
+	public function getVar($name)
+	{
+		$r = $this->db->GetOne("SELECT value FROM account_user_vars WHERE user_id=? AND `name`=?",
+			array($this->id, $name)
+		);
+
+		return $r == 'false' ? '' : $r;
+	}
+
+	/**
+	 * Set user var
+	 * @param string $name
+	 * @param mixed $value
+	 * @return void
+	 */
+	public function setVar($name, $value)
+	{
+		$this->db->Execute("REPLACE INTO account_user_vars SET `name`=?, `value`=?, user_id=?",
+			array($name, $value, $this->id)
+		);
+	}
+
+	/**
 	 * Get user dashboard
 	 * @param $envId
-	 * @return object
+	 * @return array
 	 */
 	public function getDashboard($envId)
 	{
@@ -252,8 +294,8 @@ class Scalr_Account_User extends Scalr_Model
 
 	/**
 	 * Set user dashboard
-	 * @param $envId integer
-	 * @param $value object
+	 * @param integer $envId
+	 * @param array $value
 	 * @throws Scalr_Exception_Core
 	 */
 	public function setDashboard($envId, $value)
@@ -288,7 +330,28 @@ class Scalr_Account_User extends Scalr_Model
 			array(serialize($value), $this->id, $envId)
 		);
 	}
-	
+
+	/**
+	 * Add widget to dashboard
+	 * @param int $envId
+	 * @param array $widgetConfig
+	 * @param int $columnNumber
+	 * @param int $position
+	 */
+	public function addDashboardWidget($envId, $widgetConfig, $columnNumber = 0, $position = 0)
+	{
+		$dashboard = $this->getDashboard($envId);
+
+		// we could use maximum only last column, do not create new one
+		$columnNumber = $columnNumber >= count($dashboard['configuration']) ? count($dashboard['configuration']) - 1 : $columnNumber;
+		$column = $dashboard['configuration'][$columnNumber];
+		$position = $position > count($column) ? count($column) : $position;
+		$column = array_merge(array_slice($column, 0, $position), array($widgetConfig), array_slice($column, $position));
+		$dashboard['configuration'][$columnNumber] = $column;
+
+		$this->setDashboard($envId, $dashboard);
+	}
+
 	public function updatePassword($pwd)
 	{
 		$this->password = $this->getCrypto()->hash(trim($pwd));
@@ -313,7 +376,7 @@ class Scalr_Account_User extends Scalr_Model
 		else
 			$this->db->Execute('UPDATE `account_users` SET loginattempts = 0 WHERE id = ?', array($this->id));
 	}
-	
+
 	public function updateLastLogin()
 	{
 		$this->db->Execute('UPDATE `account_users` SET dtlastlogin = NOW() WHERE id = ?', array($this->id));
@@ -329,7 +392,7 @@ class Scalr_Account_User extends Scalr_Model
 		return $this->db->getAll('SELECT account_teams.id, account_teams.name FROM account_teams JOIN account_team_users
 			ON account_teams.id = account_team_users.team_id WHERE account_team_users.user_id = ?', array($this->id));
 	}
-	
+
 	public function getEnvironments()
 	{
 		if ($this->type == self::TYPE_ACCOUNT_OWNER) {
@@ -340,14 +403,14 @@ class Scalr_Account_User extends Scalr_Model
 			$teams = array();
 			foreach ($this->getTeams() as $team)
 				$teams[] = $team['id'];
-				
+
 			if (count($teams))
 				return $this->db->getAll('SELECT client_environments.id, client_environments.name FROM client_environments
 					JOIN account_team_envs ON client_environments.id = account_team_envs.env_id WHERE team_id IN (' . implode(',', $teams) . ')
 					GROUP BY client_environments.id
-				'); 
+				');
 		}
-		
+
 		return array();
 	}
 
@@ -355,6 +418,7 @@ class Scalr_Account_User extends Scalr_Model
 	 * Get default environment (or given) and check access to it
 	 * @param integer $envId
 	 * @return Scalr_Environment
+	 * @throws Scalr_Exception_Core
 	 */
 	public function getDefaultEnvironment($envId = 0)
 	{
@@ -367,7 +431,7 @@ class Scalr_Account_User extends Scalr_Model
 				}
 
 			} else {
-				$envId = (int) $this->getSetting(Scalr_Account_User::SETTING_DEFAULT_ENVIRONMENT);
+				$envId = (int) $this->getSetting(Scalr_Account_User::SETTING_UI_ENVIRONMENT);
 
 				if ($envId) {
 					$environment = Scalr_Environment::init()->loadById($envId);
@@ -392,7 +456,7 @@ class Scalr_Account_User extends Scalr_Model
 		$this->getPermissions()->validate($environment);
 		return $environment;
 	}
-	
+
 	public function getGroupPermissions($envId)
 	{
 		$result = array();
@@ -406,7 +470,7 @@ class Scalr_Account_User extends Scalr_Model
 			)',
 			array($this->id, $envId, $this->id)
 		);
-		
+
 		foreach ($permissions as $perm) {
 			$c = $perm['controller'];
 			if (isset($result[$c])) {
@@ -416,14 +480,14 @@ class Scalr_Account_User extends Scalr_Model
 					$result[$c] = array('FULL');
 				else
 					$result[$c] = array_unique(array_merge($result[$c], explode(',', $perm['permissions'])));
-				
+
 			} else
 				$result[$c] = explode(',', $perm['permissions']);
 		}
-		
+
 		return $result;
 	}
-	
+
 	public function isTeamOwner($teamId = null)
 	{
 		if ($teamId)
@@ -431,7 +495,7 @@ class Scalr_Account_User extends Scalr_Model
 		else
 			return $this->db->getOne('SELECT permissions FROM `account_team_users` WHERE user_id = ? AND permissions = "owner"', array($this->id)) == Scalr_Account_Team::PERMISSIONS_OWNER ? true : false;
 	}
-	
+
 	public function isTeamUserInEnvironment($envId, $permissions)
 	{
 		$all = $this->db->getCol('SELECT permissions FROM account_team_users
@@ -439,5 +503,33 @@ class Scalr_Account_User extends Scalr_Model
 			WHERE user_id = ? AND env_id = ?', array($this->id, $envId));
 
 		return in_array($permissions, $all) ? true : false;
+	}
+
+	public function getUserInfo()
+	{
+		$info['id'] = $this->id;
+		$info['status'] = $this->status;
+		$info['email'] = $this->getEmail();
+		$info['fullname'] = $this->fullname;
+		$info['dtcreated'] = Scalr_Util_DateTime::convertTz($this->dtCreated);
+		$info['dtlastlogin'] = $this->dtLastLogin ? Scalr_Util_DateTime::convertTz($this->dtLastLogin) : 'Never';
+		$info['dtlastloginhr'] = $this->dtLastLogin ? Scalr_Util_DateTime::getFuzzyTimeString($this->dtLastLogin) : 'Never';
+		$info['gravatarhash'] = $this->getGravatarHash();
+		$info['type'] = $this->type;
+		$info['comments'] = $this->comments;
+
+		$info['is2FaEnabled'] = $this->getSetting(Scalr_Account_User::SETTING_SECURITY_2FA_GGL) == '1' ? true : false;
+		$info['password'] = $this->password ? true : false;
+
+		switch ($info['type']) {
+			case Scalr_Account_User::TYPE_ACCOUNT_OWNER:
+				$info['type'] = 'Account Owner';
+				break;
+			default:
+				$info['type'] = $this->isTeamOwner() ? 'Team Owner' : 'Team User';
+				break;
+		}
+		return $info;
+
 	}
 }

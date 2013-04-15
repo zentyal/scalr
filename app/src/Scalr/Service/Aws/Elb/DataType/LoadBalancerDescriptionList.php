@@ -15,22 +15,22 @@ use Scalr\Service\Aws\DataType\ListDataType;
 class LoadBalancerDescriptionList extends AbstractElbListDataType
 {
 
-	/**
-	 * Constructor
-	 *
-	 * @param array|LoadBalancerDescriptionList  $aListData  Load Balancer Description list
-	 */
-	public function __construct($aListData = null)
-	{
-		parent::__construct($aListData, array('loadBalancerName'), 'Scalr\\Service\\Aws\\Elb\\DataType\\LoadBalancerDescriptionData');
-	}
+    /**
+     * Constructor
+     *
+     * @param array|LoadBalancerDescriptionList  $aListData  Load Balancer Description list
+     */
+    public function __construct($aListData = null)
+    {
+        parent::__construct($aListData, array('loadBalancerName'), 'Scalr\\Service\\Aws\\Elb\\DataType\\LoadBalancerDescriptionData');
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
-	 */
-	public function getQueryArray($uriParameterName = 'LoadBalancerNames')
-	{
-		return parent::getQueryArray($uriParameterName);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
+     */
+    public function getQueryArray($uriParameterName = 'LoadBalancerNames', $member = true)
+    {
+        return parent::getQueryArray($uriParameterName);
+    }
 }

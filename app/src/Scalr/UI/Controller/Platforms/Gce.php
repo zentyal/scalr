@@ -23,13 +23,23 @@ class Scalr_UI_Controller_Platforms_Gce extends Scalr_UI_Controller
 		$projectId = $this->environment->getPlatformConfigValue(Modules_Platforms_GoogleCE::PROJECT_ID);
 		
 		$gceClient = new Google_ComputeService($client);
-		
+        
 		$data['types'] = array();
+        $data['dbTypes'] = array();
 		$types = $gceClient->machineTypes->listMachineTypes($projectId);
 		foreach ($types->items as $item) {
+            $isEphemeral = (substr($item->name, -2) == '-d');
+            
+            if ($isEphemeral) {
+                $data['dbTypes'][] = array(
+                    'name' => $item->name,
+                    'description' => "{$item->name} ({$item->description})"
+                );
+            }
+            
 			$data['types'][] = array(
 				'name' => $item->name,
-				'description' => "{$item->name} ({$item->description}"	
+				'description' => "{$item->name} ({$item->description})"
 			);
 		}
 		
@@ -38,7 +48,8 @@ class Scalr_UI_Controller_Platforms_Gce extends Scalr_UI_Controller
 		foreach ($zones->items as $item) {
 			$data['zones'][] = array(
 				'name' => $item->name,
-				'description' => $item->description
+				'description' => $item->description,
+				'state' => $item->status
 			);
 		}
 		

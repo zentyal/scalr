@@ -9,6 +9,7 @@ Ext.define('Ext.layout.container.Scalr', {
 
 	initLayout : function() {
 		if (!this.initialized) {
+			var me = this;
 			this.callParent();
 
 			this.owner.on('resize', function () {
@@ -27,16 +28,11 @@ Ext.define('Ext.layout.container.Scalr', {
 					modal: false, // mask prev window and show new one (false - don't mask, true - mask previous)
 					maximize: '' // maximize which sides (all, (max-height - default))
 				});
-				// for layout, save width @TODO better
-				if (o.width)
-					o.minWidth = o.width;
 
 				if (o.scalrOptions.modal)
 					o.addCls('x-panel-modal-shadow');
 
 				o.scalrDestroy = function () {
-
-
 					this.destroy();
 					/*Ext.create('Ext.fx.Animator', {
 					 target: this,
@@ -57,14 +53,25 @@ Ext.define('Ext.layout.container.Scalr', {
 					 }
 					 });*/
 				};
-			});
+				if (o.scalrOptions.leftMenu) {
+					var listeners = {
+						beforeactivate: function() {
+							me.owner.getPlugin('leftmenu').show(o.scalrOptions.leftMenu);
+						},
+						hide: function() {
+							me.owner.getPlugin('leftmenu').hide();
+						}
+					};
+					o.on(listeners);
+				}
+		});
 		}
 	},
 
 	setActiveItem: function (newPage, param) {
 		var me = this,
 			oldPage = this.activeItem;
-
+		
 		if (this.firstRun) {
 			Ext.get('body-container').applyStyles('visibility: visible; opacity: 0.3');
 
@@ -162,21 +169,25 @@ Ext.define('Ext.layout.container.Scalr', {
 			this.activeItem = newPage;
 			this.setSize(this.activeItem);
 
-			if (! newPage.scalrOptions.modal)
-				document.title = ((this.activeItem.title ? (this.activeItem.title + ' - ') : '') + 'Scalr CP').replace(/&raquo;/g, '»');
-
+			if (! newPage.scalrOptions.modal) {
+				var docTitle = this.activeItem.title || (this.activeItem.scalrOptions ? (this.activeItem.scalrOptions.title || null) : null);
+				document.title = ((docTitle ? (docTitle + ' - ') : '') + 'Scalr CP').replace(/&raquo;/g, '»');
+			}
 			if (this.activeItem.scalrReconfigureFlag && this.activeItem.scalrReconfigure)
 				this.activeItem.scalrReconfigure(param || {});
 			else
 				this.activeItem.scalrReconfigureFlag = true;
-
+			
+			this.activeItem.fireEvent('beforeactivate');
 			this.activeItem.show();
 			this.activeItem.el.unmask();
 			this.activeItem.fireEvent('activate');
 
+			this.owner.doLayout();
+
 			if (this.activeItem.scalrOptions.modal)
 				this.activeItem.el.setStyle({ 'z-index': this.zIndex });
-
+			
 			return true;
 		}
 	},
@@ -201,7 +212,6 @@ Ext.define('Ext.layout.container.Scalr', {
 			comp.setSize(r);
 			comp.removeCls('x-panel-shadow');
 		} else {
-			comp.setWidth(0);
 			comp.setAutoScroll(true);
 			comp.maxHeight = Math.max(0, r.height - 5*2);
 			left = (r.width - comp.getWidth()) / 2;
@@ -230,7 +240,12 @@ Scalr.application = Ext.create('Ext.panel.Panel', {
 	border: 0,
 	padding: 5,
 	autoScroll: false,
-	bodyStyle: 'background-image: url(/ui2/images/bg.png); border-radius: 4px;',
+	bodyCls: 'x-panel-background',
+	bodyStyle: 'border-radius: 4px',
+	plugins: {
+		ptype: 'leftmenu',
+		pluginId: 'leftmenu'
+	},
 	dockedItems: [{
 		xtype: 'toolbar',
 		plugins: Ext.create('Ext.ux.BoxReorderer', {
@@ -311,13 +326,18 @@ Scalr.application.add({
 Scalr.application.updateContext = function(handler) {
 	Scalr.Request({
 		url: '/guest/xGetContext',
+		headers: {
+			'X-Scalr-EnvId': null, // avoid checking variable on server side,
+			'X-Scalr-UserId': null
+		},
 		success: function(data) {
 			var win = Scalr.utils.CreateProcessBox({
 				type: 'action',
 				msg: 'Applying configuration ...'
 			});
 			Scalr.application.applyContext(data);
-			handler();
+			if (Ext.isFunction(handler))
+				handler();
 			win.close();
 		}
 	});
@@ -336,7 +356,15 @@ Scalr.application.applyContext = function(context) {
 		delete Ext.Ajax.defaultHeaders['X-Scalr-UserId'];
 	}
 
-	Scalr.flags['betaMode'] = document.location.search.indexOf('beta') != -1 ? true : false;
+	Scalr.user['envVars'] = Ext.decode(Scalr.user['envVars'], true) || {};
+
+	// TODO: add posibility to inverse beta via !beta in url
+	Scalr.flags['betaMode'] = Scalr.user['envVars']['beta'] == 1 || document.location.search.indexOf('beta') != -1 ? true : false;
+	if (Scalr.flags['betaMode']) {
+		Ext.Ajax.defaultHeaders['X-Scalr-Interface-Beta'] = 1;
+	} else {
+		delete Ext.Ajax.defaultHeaders['X-Scalr-Interface-Beta'];
+	}
 
 	// clear cache
 	Scalr.application.items.each(function() {
@@ -345,6 +373,9 @@ Scalr.application.applyContext = function(context) {
 			this.destroy();
 		}
 	});
+
+	// clear global store
+	Scalr.data.reloadDefer('*');
 
 	if (Ext.isObject(Scalr.user)) {
 		Scalr.timeoutHandler.enabled = true;
@@ -360,13 +391,13 @@ Scalr.application.applyContext = function(context) {
 	}
 
 	if (Ext.isDefined(Scalr.user.userId) && Scalr.flags.needEnvConfig && !sessionStorage.getItem('needEnvConfigLater')) {
-		var envId = Scalr.flags.needEnvConfig;
+		var needConfigEnvId = Scalr.flags.needEnvConfig;
 		Scalr.flags.needEnvConfig = true;
 		Scalr.event.fireEvent('lock');
-		Scalr.event.fireEvent('redirect', '#/environments/' + envId + '/platform/ec2', true, true);
-		Scalr.event.on('update', function (type, platform, enabled) {
+		Scalr.event.fireEvent('redirect', '#/account/environments/' + needConfigEnvId + '/platform/ec2', true, true);
+		Scalr.event.on('update', function (type, envId, platform, enabled) {
 			if (! sessionStorage.getItem('needEnvConfigDone')) {
-				if (type ==  '/environments/' + envId + '/edit') {
+				if (type == '/account/environments/edit' && envId == needConfigEnvId) {
 					if (enabled) {
 						sessionStorage.setItem('needEnvConfigDone', true);
 						Scalr.event.fireEvent('unlock');
@@ -374,9 +405,12 @@ Scalr.application.applyContext = function(context) {
 						if (platform == 'ec2') {
 							Scalr.message.Success('Cloud credentials successfully configured. Now you can start to build your first farm. <a target="_blank" href="http://www.youtube.com/watch?v=6u9M-PD-_Ds&t=6s">Learn how to do this by watching video tutorial.</a>');
 							Scalr.event.fireEvent('redirect', '#/farms/build', true);
-						} else {
+						} else if (platform == 'rackspace' || platform == 'gce') {
 							Scalr.message.Success('Cloud credentials successfully configured. You need to create some roles before you will be able to create your first farm.');
-							Scalr.event.fireEvent('redirect', '#/roles/builder', true);
+							Scalr.event.fireEvent('redirect', '#/roles/builder2', true);
+						} else {
+							Scalr.message.Success('Cloud credentials successfully configured. Please create role from already running server. <a href="http://wiki.scalr.com/display/docs/Import+a+non+Scalr+server" target="_blank">More info here.</a>');
+							Scalr.event.fireEvent('redirect', '#/servers/import2', true);
 						}
 					}
 				}
@@ -400,7 +434,7 @@ Scalr.application.createMenu = function(context) {
 		});
 
 		menu.push({
-			text: '<img src="/ui2/js/extjs-4.1/theme/images/topmenu/scalr_logo_icon_36x27.png">',
+			cls: 'x-scalr-icon',
 			hideOnClick: false,
 			width: 65,
 			style: 'margin-right: 15px; border-top-left-radius: 3px; border-bottom-left-radius: 3px;',
@@ -504,7 +538,7 @@ Scalr.application.createMenu = function(context) {
 					href: '#/roles/view'
 				}, {
 					cls: 'create',
-					href: '#/roles/builder'
+					href: '#/roles/builder2'
 				}]
 			}, {
 				text: 'Servers',
@@ -547,7 +581,7 @@ Scalr.application.createMenu = function(context) {
 					href: '#/dnszones/view'
 				}, {
 					cls: 'create',
-					href: '#/dnszones/create'
+					href: '#/dnszones/create2'
 				}]
 			}, {
 				xtype: 'menuitemtop',
@@ -606,6 +640,10 @@ Scalr.application.createMenu = function(context) {
 				text: 'Custom events',
 				href: '#/scripts/events',
 				iconCls: 'x-topmenu-icon-events'
+			}, {
+				text: 'Global variables',
+				href: '#/core/variables',
+				iconCls: 'x-topmenu-icon-variables'
 			}, {
 				text: 'Chef',
 				hideOnClick: false,
@@ -684,7 +722,7 @@ Scalr.application.createMenu = function(context) {
 			}, {
 				text: 'IDCF',
 				hideOnClick: false,
-				iconCls: 'x-topmenu-icon-cloudstack',
+				iconCls: 'x-topmenu-icon-idcf',
 				hidden: !Scalr.flags['platformIdcfEnabled'],
 				menu: [{
 					text: 'Volumes',
@@ -696,7 +734,7 @@ Scalr.application.createMenu = function(context) {
 			}, {
 				text: 'uCloud',
 				hideOnClick: false,
-				iconCls: 'x-topmenu-icon-cloudstack',
+				iconCls: 'x-topmenu-icon-ucloud',
 				hidden: !Scalr.flags['platformUcloudEnabled'],
 				menu: [{
 					text: 'Volumes',
@@ -782,6 +820,7 @@ Scalr.application.createMenu = function(context) {
 
 							SnapABug.initAsync('1ddc18b2-03c6-49a3-a858-4e1b34d41dec');
 							SnapABug.setDomain('scalr.net');
+							SnapABug.setUserEmail(Scalr.user['userName'], true);
 
 							me.on('click', function() {
 								SnapABug.setSecureConnexion();
@@ -796,15 +835,27 @@ Scalr.application.createMenu = function(context) {
 		menu.push({
 			text: Scalr.user['userName'],
 			reorderable: false,
-			cls: 'x-icon-login',
+			cls: 'x-icon-avatar',
+			itemId: 'gravatar',
+			icon: Scalr.utils.getGravatarUrl(Scalr.user['gravatarHash']),
+			listeners: {
+				boxready: function() {
+					Scalr.event.on('update', function (type, hash) {
+						Scalr.user['gravatarHash'] = hash;
+						if (type == '/account/user/gravatar') {
+							this.setIcon(Scalr.utils.getGravatarUrl(hash));
+						}
+					}, this);
+				}
+			},
 			menu: [{
 				text: 'API access',
 				href: '#/core/api',
 				iconCls: 'x-topmenu-icon-api'
 			}, '-', {
-				text: 'Profile',
-				href: '#/core/profile',
-				iconCls: 'x-topmenu-icon-profile'
+				text: 'Security',
+				href: '#/core/security',
+				iconCls: 'x-topmenu-icon-security'
 			}, {
 				text: 'Settings',
 				href: '#/core/settings',
@@ -817,6 +868,16 @@ Scalr.application.createMenu = function(context) {
 		});
 
 		var envs = [];
+		if (Scalr.user['type'] == 'AccountOwner' || Scalr.user['isTeamOwner']) {
+			envs.push({
+				href: '#/account/environments',
+				iconCls: 'x-topmenu-icon-settings',
+				text: 'Manage'
+			}, {
+				xtype: 'menuseparator'
+			});
+		}
+
 		Ext.each(context['environments'], function(item) {
 			envs.push({
 				text: item.name,
@@ -825,21 +886,6 @@ Scalr.application.createMenu = function(context) {
 				checked: item.id == Scalr.user.envId
 			});
 		});
-
-		if (Scalr.user['type'] == 'AccountOwner' || Scalr.user['isTeamOwner']) {
-			envs.push({
-				xtype: 'menuseparator'
-			}, {
-				href: '#/environments/view',
-				text: 'Manage'
-			});
-
-			if (Scalr.user['type'] == 'AccountOwner')
-				envs.push({
-					href: '#/environments/create',
-					text: 'Add new'
-				});
-		}
 
 		menu.push({
 			cls: 'x-icon-environment',
@@ -869,20 +915,23 @@ Scalr.application.createMenu = function(context) {
 					});
 
 					Scalr.event.on('update', function (type, env) {
-						if (type == '/environments/create') {
-							var ind = this.menu.items.indexOf(this.menu.child('menuseparator'));
-							this.menu.insert(ind, {
+						if (type == '/account/environments/create') {
+							this.menu.add({
 								text: env.name,
 								checked: false,
 								group: 'environment',
 								envId: env.id
 							}).on('click', handler);
-						} else if (type == '/environments/rename') {
+						} else if (type == '/account/environments/rename') {
 							var el = this.menu.child('[envId="' + env.id + '"]');
 							if (el) {
 								el.setText(env.name);
 							}
-						} else if (type == '/environments/delete') {
+
+							if (Scalr.user['envId'] == env.id) {
+								this.setText(env.name);
+							}
+						} else if (type == '/account/environments/delete') {
 							var el = this.menu.child('[envId="' + env.id + '"]');
 							if (el) {
 								this.menu.remove(el);
@@ -893,7 +942,16 @@ Scalr.application.createMenu = function(context) {
 			}
 		});
 
-		var account = {
+		if (Scalr.user['type'] == 'AccountOwner' && Scalr.flags['billingExists'])
+			menu.push({
+				text: 'Billing',
+				href: '#/billing',
+				reorderable: false,
+				hrefTarget: '_self',
+				cls: 'x-icon-billing'
+			});
+
+		/*var account = {
 			cls: 'x-icon-account',
 			tooltip: 'Accounting',
 			reorderable: false,
@@ -908,7 +966,7 @@ Scalr.application.createMenu = function(context) {
 			}]
 		};
 
-		menu.push(account);
+		menu.push(account);*/
 
 		menu.push({
 			cls: 'x-icon-help',
@@ -916,7 +974,7 @@ Scalr.application.createMenu = function(context) {
 			reorderable: false,
 			menu: [{
 				text: 'Wiki',
-				href: 'http://wiki.scalr.net',
+				href: 'http://wiki.scalr.com',
 				iconCls: 'x-topmenu-icon-wiki',
 				hrefTarget: '_blank'
 			}, {
@@ -960,7 +1018,7 @@ Scalr.application.createMenu = function(context) {
 			text: 'Settings',
 			menu: [{
 				text: 'Default DNS records',
-				href: '#/dnszones/defaultRecords'
+				href: '#/dnszones/defaultRecords2'
 			}, {
 				text: 'Core settings',
 				href: '#/admin/settings/core'
@@ -1019,7 +1077,7 @@ window.onhashchange = function (e) {
 
 		if (link == '' || link == '/') {
 			defaultPage = true;
-			return;
+			return; // TODO: check why ?
 		}
 	} else {
 		defaultPage = true;
@@ -1042,7 +1100,7 @@ window.onhashchange = function (e) {
 
 		return {
 			scalrReconfigureFlag: false,
-			scalrRegExp: new RegExp('^' + re + '$', 'g'),
+			scalrRegExp: new RegExp('^' + re + '$'),
 			scalrCache: cache,
 			scalrParamFields: fields,
 			scalrParamGets: function (link) {
@@ -1068,7 +1126,6 @@ window.onhashchange = function (e) {
 			Ext.apply(param, this.scalrParamGets(link));
 
 			loaded = Scalr.application.layout.setActiveItem(this, param);
-
 			return false;
 		}
 	});
@@ -1131,11 +1188,19 @@ window.onhashchange = function (e) {
 						finishChange();
 					}
 				};
-
+				var loadModuleData = function(c, param, data) {
+					if (data.moduleRequiresData) {
+						Scalr.data.load(data.moduleRequiresData, function(){
+							initComponent(Scalr.cache[c](param, data.moduleParams));
+						});
+					} else {
+						initComponent(Scalr.cache[c](param, data.moduleParams));
+					}
+				};
+				
 				Ext.apply(param, cache.scalrParamGets(link));
-
 				if (Ext.isDefined(Scalr.cache[c]))
-					initComponent(Scalr.cache[c](param, data.moduleParams));
+					loadModuleData(c, param, data);
 				else {
 					var head = Ext.getHead();
 					if (data.moduleRequiresCss) {
@@ -1153,15 +1218,19 @@ window.onhashchange = function (e) {
 					if (data.moduleRequires)
 						sc = sc.concat(data.moduleRequires);
 
-					var load = function () {
+					Ext.Loader.loadScripts(sc, function() {
+						loadModuleData(c, param, data);
+					})
+
+					/*var load = function () {
 						if (sc.length)
 							Ext.Loader.injectScriptElement(sc.shift(), load);
 						else {
-							initComponent(Scalr.cache[c](param, data.moduleParams));
+							loadModuleData(c, param, data);
 						}
 					};
 
-					load();
+					load();*/
 				}
 			} catch (e) {
 				Scalr.utils.PostException(e);
@@ -1228,6 +1297,7 @@ Scalr.timeoutHandler = {
 		this.run();
 	},
 	run: function () {
+		this.params['uiStorage'] = Scalr.storage.dump(true);
 		Ext.Ajax.request({
 			url: '/guest/xPerpetuumMobile',
 			params: this.params,
@@ -1239,8 +1309,13 @@ Scalr.timeoutHandler = {
 					try {
 						var response = Ext.decode(response.responseText);
 
-						if (response.success != true)
-							throw 'False';
+						if (response.success != true) {
+							if (response.success == false && response.errorMessage != '') {
+								Scalr.message.Error(response.errorMessage);
+							} else {
+								throw 'False';
+							}
+						}
 
 						this.clearDom();
 						this.timeoutRun = this.defaultTimeout;

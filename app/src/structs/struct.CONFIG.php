@@ -1,7 +1,5 @@
 <?php
 
-//!FIXME THIS FEATURE MUST BE AMENDED BECAUSE OF VULNERABILITY. Each config value may be changed it any time by the faulty code.
-
 final class CONFIG
 {
 	public static $DB_DRIVER;
@@ -16,14 +14,15 @@ final class CONFIG
 	public static $DEBUG_DB;
 
 	public static $AUDITLOG_ENABLED;
-	public static $AUDITLOG_STORAGE;
 	public static $AUDITLOG_DSN;
 
 	public static $CLOUDYN_MASTER_EMAIL;
 	public static $CLOUDYN_ENVIRONMENT;
 
 	public static $PHPUNIT_SKIP_FUNCTIONAL_TESTS = true;
-	
+	public static $PHPUNIT_TEST_USERID;
+	public static $PHPUNIT_TEST_ENVID;
+
 	public static $STATISTICS_RRD_DEFAULT_FONT_PATH;
 	public static $STATISTICS_RRD_DB_DIR;
 	public static $STATISTICS_RRD_STATS_URL;
@@ -54,7 +53,7 @@ final class CONFIG
 	public static $DEF_SOA_MINTTL = 300;
 	public static $DEF_SOA_PARENT;
 
-	public static $DNS_TEST_DOMAIN_NAME = 'example.ws';
+	public static $DNS_TEST_DOMAIN_NAME = 'scalr.ws';
 	public static $SYSDNS_SYSTEM = 0;
 
 	/*******************************/
@@ -80,11 +79,11 @@ final class CONFIG
 
 	public static $HTTP_PROTO = "http";
 
-	public static $PMA_INSTANCE_IP_ADDRESS = '192.168.1.1';
+	public static $PMA_INSTANCE_IP_ADDRESS = '184.73.181.141';
 
 	//**** Statistics and monitoring *******//
-	public static $MONITORING_SERVER_URL = 'http://monitoring.example.net';
-	public static $MONITORING_GRAPHS_URL = 'http://monitoring-graphs.example.net';
+	public static $MONITORING_SERVER_URL = 'http://monitoring.scalr.net';
+	public static $MONITORING_GRAPHS_URL = 'https://monitoring-graphs.scalr.net';
 
 	public static $CRON_PROCESSES_NUMBER = 5;
 

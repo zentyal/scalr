@@ -85,7 +85,7 @@ Scalr.regPage('Scalr.ui.environments.platform.gce', function (loadParams, module
 							},
 							form: form.getForm(),
 							url: '/environments/' + moduleParams.env.id + '/platform/xSaveGce',
-							params: {beta: loadParams['beta']},
+							params: {beta: Scalr.flags['betaMode']},
 							success: function (data) {
 								
 								Scalr.event.fireEvent('unlock');

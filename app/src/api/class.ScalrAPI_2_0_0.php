@@ -510,12 +510,9 @@
 			if (!$script_info)
 				throw new Exception(sprintf("Script ID: %s not found in our database (1)", $ScriptID));
 				
-			if ($script_info['origin'] == SCRIPT_ORIGIN_TYPE::CUSTOM && $this->user->getAccountId() != $script_info['clientid'])
+			if ($script_info['clientid'] != 0 && $this->user->getAccountId() != $script_info['clientid'])
 				throw new Exception(sprintf("Script ID: %s not found in our database (2)", $ScriptID));
-				
-			if ($script_info['origin'] == SCRIPT_ORIGIN_TYPE::USER_CONTRIBUTED && $script_info['approval_state'] != APPROVAL_STATE::APPROVED)
-				throw new Exception(sprintf("Script ID: %s not found in our database (3)", $ScriptID));
-			
+
 			$response = $this->CreateInitialResponse();
 				
 			$response->ScriptID = $ScriptID;
@@ -600,22 +597,13 @@
 			$timeout = (int)$Timeout;
 			$issync = ($Async == 1) ? 0 : 1;
 			
-			$this->DB->Execute("INSERT INTO farm_role_scripts SET
-				scriptid	= ?,
-				farmid		= ?,
-				farm_roleid	= ?,
-				params		= ?,
-				event_name	= ?,
-				target		= ?,
-				version		= ?,
-				timeout		= ?,
-				issync		= ?,
-				ismenuitem	= ?
-			", array(
-				$scriptid, $farmid, $FarmRoleID, serialize($config), $event_name, $target, $version, $timeout, $issync, 0
-			));
-			
-			$farm_rolescript_id = $this->DB->Insert_ID();
+            $scriptSettings = array(
+                'version' => $version,
+                'scriptid' => $scriptid,
+                'timeout' => $timeout,
+                'issync' => $issync,
+                'params' => serialize($config)
+            );
 			
 			switch($target)
 			{
@@ -643,24 +631,29 @@
 					
 					break;
 			}
-			
-			//
-			// Send Trap
-			//
-			if (count($servers) > 0)
-			{			
-				foreach ($servers as $server)
-				{
-					$DBServer = DBServer::LoadByID($server['server_id']);
-					
-					$msg = new Scalr_Messaging_Msg_ExecScript($event_name);
-					$msg->meta[Scalr_Messaging_MsgMeta::EVENT_ID] = "FRSID-{$farm_rolescript_id}";
-					
-					$msg = Scalr_Scripting_Manager::extendMessage($msg, $DBServer);
-					$DBServer->SendMessage($msg);
-				}
-			}
-			
+            
+            // send message to start executing task (starts script)
+            if (count($servers) > 0) {
+                foreach ($servers as $server) {
+                    $DBServer = DBServer::LoadByID($server['server_id']);
+                    
+                    $msg = new Scalr_Messaging_Msg_ExecScript("Executed via API");
+                    $msg->eventId = $response->TransactionID;
+                
+                    $script = Scalr_Scripting_Manager::prepareScript($scriptSettings, $DBServer);
+                    
+                    $itm = new stdClass();
+                    // Script
+                    $itm->asynchronous = ($script['issync'] == 1) ? '0' : '1';
+                    $itm->timeout = $script['timeout'];
+                    $itm->name = $script['name'];
+                    $itm->body = $script['body'];
+                    
+                    $msg->scripts = array($itm);
+                    
+                    $DBServer->SendMessage($msg, false, true);
+                }
+            }
 			
 			$response->Result = true;
 			return $response;
@@ -729,25 +722,13 @@
 			$response->ScriptSet = new stdClass();
 			$response->ScriptSet->Item = array();
 			
-			$filter_sql .= " AND ("; 
-				// Show shared roles
-				$filter_sql .= " origin='".SCRIPT_ORIGIN_TYPE::SHARED."'";
-			
-				// Show custom roles
-				$filter_sql .= " OR (origin='".SCRIPT_ORIGIN_TYPE::CUSTOM."' AND clientid='{$this->user->getAccountId()}')";
-				
-				//Show approved contributed roles
-				$filter_sql .= " OR (origin='".SCRIPT_ORIGIN_TYPE::USER_CONTRIBUTED."' AND (scripts.approval_state='".APPROVAL_STATE::APPROVED."' OR clientid='{$this->user->getAccountId()}'))";
-			$filter_sql .= ")";
-			
+			$filter_sql = " AND (clientid = 0 OR clientid = '{$this->user->getAccountId()}')";
 		    $sql = "SELECT 
 		    			scripts.id, 
 		    			scripts.name, 
 		    			scripts.description, 
-		    			scripts.origin,
 		    			scripts.clientid,
-		    			scripts.approval_state,
-		    			MAX(script_revisions.dtcreated) as dtupdated, MAX(script_revisions.revision) AS version FROM scripts 
+		    			MAX(script_revisions.dtcreated) as dtupdated, MAX(script_revisions.revision) AS version FROM scripts
 		    		INNER JOIN script_revisions ON script_revisions.scriptid = scripts.id 
 		    		WHERE 1=1 {$filter_sql}";
 

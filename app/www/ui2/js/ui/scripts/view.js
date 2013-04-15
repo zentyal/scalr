@@ -1,10 +1,8 @@
 Scalr.regPage('Scalr.ui.scripts.view', function (loadParams, moduleParams) {
 	var store = Ext.create('store.store', {
 		fields: [
-			{ name: 'id', type: 'int' },
-			'name', 'description', 'origin',
-			{ name: 'clientid', type: 'int' },
-			'approval_state', 'dtupdated', 'client_email', 'version', 'client_name'
+			{ name: 'id', type: 'int' }, { name: 'accountId', type: 'int' },
+			'name', 'description', 'dtUpdated', 'version'
 		],
 		proxy: {
 			type: 'scalr.paging',
@@ -40,64 +38,28 @@ Scalr.regPage('Scalr.ui.scripts.view', function (loadParams, moduleParams) {
 
 		viewConfig: {
 			emptyText: 'No scripts defined',
-			loadingText: 'Loading scripts ...',
-			disableSelection: true
+			loadingText: 'Loading scripts ...'
 		},
 
 		columns: [
-			{ header: 'Author', flex: 1, dataIndex: 'id', sortable: false, xtype: 'templatecolumn', tpl: new Ext.XTemplate(
-				'<tpl if="!this.isAdmin()">' +
-					'<tpl if="clientid">' +
-						'<tpl if="clientid == this.getClientId()">Me</tpl>' +
-						'<tpl if="clientid != this.getClientId()">{client_name}</tpl>' +
-					'</tpl>' +
-					'<tpl if="!clientid">Scalr</tpl>' +
-				'</tpl>' +
-				'<tpl if="this.isAdmin()">' +
-					'<tpl if="clientid">{client_name}</tpl>' +
-					'<tpl if="!clientid">Scalr</tpl>' +
-				'</tpl>', {
-					getClientId: function() {
-						return moduleParams['clientId']
-					},
-					isAdmin: function() {
-						return moduleParams['isScalrAdmin']
-					}
-				})
-			},
+			{ header: 'ID', width: 50, dataIndex: 'id', sortable: true },
 			{ header: 'Name', flex: 1, dataIndex: 'name', sortable: true },
 			{ header: 'Description', flex: 2, dataIndex: 'description', sortable: true },
 			{ header: 'Latest version', width: 100, dataIndex: 'version', sortable: false, align:'center' },
-			{ header: 'Updated on', width: 160, dataIndex: 'dtupdated', sortable: true },
+			{ header: 'Updated on', width: 160, dataIndex: 'dtUpdated', sortable: true },
 			{ header: 'Origin', width: 80, dataIndex: 'origin', sortable: false, align:'center', xtype: 'templatecolumn', tpl:
-				'<tpl if="origin == &quot;Shared&quot;"><img src="/ui2/images/ui/scripts/default.png" height="16" title="Contributed by Scalr"></tpl>' +
-				'<tpl if="origin == &quot;Custom&quot;"><img src="/ui2/images/ui/scripts/custom.png" height="16" title="Custom"></tpl>' +
-				'<tpl if="origin != &quot;Shared&quot; && origin != &quot;Custom&quot;"><img src="/ui2/images/ui/scripts/contributed.png" height="16" title="Contributed by {client_name}"></tpl>'
-			},
-			{ header: 'Approved', width: 80, dataIndex: 'approval_state', sortable: false, align:'center', xtype: 'templatecolumn', tpl:
-				'<tpl if="approval_state == &quot;Approved&quot; || !approval_state"><img src="/ui2/images/icons/true.png" title="Approved" /></tpl>' +
-				'<tpl if="approval_state == &quot;Pending&quot;"><img src="/ui2/images/ui/scripts/pending.gif" title="Pending" /></tpl>' +
-				'<tpl if="approval_state == &quot;Declined&quot;"><img src="/ui2/images/icons/false.png" title="Declined" /></tpl>'
+				'<tpl if="accountId == &quot;0&quot;"><img src="/ui2/images/ui/scripts/default.png" height="16" title="Contributed by Scalr"></tpl>' +
+				'<tpl if="accountId != &quot;0&quot;"><img src="/ui2/images/ui/scripts/custom.png" height="16" title="Custom"></tpl>'
 			}, {
 				xtype: 'optionscolumn',
 				getOptionVisibility: function (item, record) {
-					var data = record.data;
-					
-					if (item.itemId == 'option.view') {
-						return true;
-					} else if (item.itemId == 'option.fork') {
+					if (item.itemId == 'option.view' || item.itemId == 'option.fork') {
 						return true;
 					} else {
 						if (item.itemId == 'option.execute' || item.itemId == 'option.execSep') {
-							if (moduleParams['isScalrAdmin'])
-								return false;
-							else
-								return true;
+							return Scalr.user.type != 'ScalrAdmin';
 						}
-						if ((data.clientid != 0 && data.clientid == moduleParams['clientId']) || moduleParams['isScalrAdmin'])
-							return true;
-						else
-							return false;
+						return (Scalr.user.type == 'ScalrAdmin' || record.get('accountId'));
 					}
 				},
 
@@ -118,88 +80,126 @@ Scalr.regPage('Scalr.ui.scripts.view', function (loadParams, moduleParams) {
 					itemId: 'option.fork',
 					text: 'Fork',
 					iconCls: 'x-menu-icon-fork',
-					request: {
-						processBox: {
-							type: 'action'
-						},
-						dataHandler: function (record) {
-							this.url = '/scripts/' + record.get('id') + '/xFork';
-						},
-						success: function () {
-							store.load();
-						}
+					menuHandler: function(item) {
+						Scalr.Request({
+							confirmBox: {
+								formValidate: true,
+								form: [{
+									xtype: 'textfield',
+									name: 'newName',
+									labelWidth: 110,
+									fieldLabel: 'New script name',
+									value: 'Custom ' + item.record.get('name'),
+									allowBlank: false
+								}],
+								type: 'action',
+								msg: 'Are you sure want to fork script "' + item.record.get('name') + '" ?'
+							},
+							processBox: {
+								type: 'action'
+							},
+							url: '/scripts/xFork',
+							params: {
+								scriptId: item.record.get('id')
+							},
+								success: function () {
+								store.load();
+							}
+						});
 					}
 				}, {
 					itemId: 'option.edit',
 					iconCls: 'x-menu-icon-edit',
 					text: 'Edit',
 					href: '#/scripts/{id}/edit'
-				}, {
-					itemId: 'option.delete',
-					text: 'Delete',
-					iconCls: 'x-menu-icon-delete',
-					request: {
-						confirmBox: {
-							msg: 'Remove script "{name}"?',
-							type: 'delete'
-						},
-						processBox: {
-							type: 'delete',
-							msg: 'Removing script ...'
-						},
-						dataHandler: function (record) {
-							this.url = '/scripts/' + record.get('id') + '/xRemove';
-						},
-						success: function () {
-							store.load();
-						}
-					}
 				}]
 			}
 		],
+
+		multiSelect: true,
+		selModel: {
+			selType: 'selectedmodel',
+			getVisibility: function(record) {
+				return (Scalr.user.type == 'ScalrAdmin') || !!record.get('accountId');
+			}
+		},
+
+		listeners: {
+			selectionchange: function(selModel, selections) {
+				var toolbar = this.down('scalrpagingtoolbar');
+				toolbar.down('#delete').setDisabled(!selections.length);
+			}
+		},
 
 		dockedItems: [{
 			xtype: 'scalrpagingtoolbar',
 			store: store,
 			dock: 'top',
-			afterItems: [{
+			beforeItems: [{
 				ui: 'paging',
 				iconCls: 'x-tbar-add',
 				handler: function() {
 					Scalr.event.fireEvent('redirect', '#/scripts/create');
 				}
 			}],
+			afterItems: [{
+				ui: 'paging',
+				itemId: 'delete',
+				iconCls: 'x-tbar-delete',
+				tooltip: 'Select one or more scripts to delete them',
+				disabled: true,
+				handler: function() {
+					var request = {
+						confirmBox: {
+							msg: 'Remove selected script(s): %s ?',
+							type: 'delete'
+						},
+						processBox: {
+							msg: 'Removing selected scripts(s) ...',
+							type: 'delete'
+						},
+						url: '/scripts/xRemove',
+						success: function() {
+							store.load();
+						}
+					}, records = this.up('grid').getSelectionModel().getSelection(), data = [];
+
+					request.confirmBox.objects = [];
+					for (var i = 0, len = records.length; i < len; i++) {
+						data.push(records[i].get('id'));
+						request.confirmBox.objects.push(records[i].get('name'));
+					}
+					request.params = { scripts: Ext.encode(data) };
+					Scalr.Request(request);
+				}
+			}],
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}, ' ', {
-				xtype: 'combo',
-				fieldLabel: 'Moderation phase',
-				labelWidth: 110,
-				width: 230,
-				store: [ ['','All'], ['Approved','Approved'], ['Declined','Declined'], ['Pending','Pending'] ],
-				editable: false,
+				xtype: 'buttongroupfield',
+				fieldLabel: 'Owner',
+				labelWidth: 45,
+				hidden: (Scalr.user.type == 'ScalrAdmin'),
 				value: '',
-				queryMode: 'local',
-				itemId: 'approvalState',
+				items: [{
+					xtype: 'button',
+					text: 'All',
+					value: '',
+					width: 60
+				}, {
+					xtype: 'button',
+					text: 'Scalr',
+					width: 60,
+					value: 'Shared'
+				}, {
+					xtype: 'button',
+					text: 'Private',
+					width: 60,
+					value: 'Custom'
+				}],
 				listeners: {
-					change: function(field, value) {
-						store.proxy.extraParams.approvalState = value;
-						store.loadPage(1);
-					}
-				}
-			}, ' ', {
-				xtype: 'combo',
-				fieldLabel: 'Origin',
-				labelWidth: 40,
-				store: [ ['','All'], ['Shared','Shared'], ['Custom','Custom'], ['User-contributed','User-contributed'] ],
-				editable: false,
-				value: '',
-				queryMode: 'local',
-				itemId: 'origin',
-				iconCls: 'no-icon',
-				listeners:{
-					change: function(field, value) {
+					change: function (field, value) {
 						store.proxy.extraParams.origin = value;
 						store.loadPage(1);
 					}

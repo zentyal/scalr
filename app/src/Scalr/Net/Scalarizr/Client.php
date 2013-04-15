@@ -1,18 +1,41 @@
 <?php
 	class Scalr_Net_Scalarizr_Client
 	{
+		const NAMESPACE_SERVICE = 'service';
+        const NAMESPACE_MYSQL = 'mysql';
+        const NAMESPACE_POSTGRESQL = 'postgresql';
+        const NAMESPACE_REDIS = 'redis';
+        const NAMESPACE_SYSINFO = 'sysinfo';
+        const NAMESPACE_SYSTEM = 'system';
+            
 		private $dbServer,
 			$port,
 			$cryptoTool;
 		
 		protected $namespace;
-		
+        
 		public static function getClient($dbServer, $namespace = null, $port = 8010)
 		{
 			switch ($namespace) {
 				case "service":
 					return new Scalr_Net_Scalarizr_Services_Service($dbServer, $port);
 					break;
+                case "mysql":
+                    return new Scalr_Net_Scalarizr_Services_Mysql($dbServer, $port);
+                    break;
+                case "postgresql":
+                    return new Scalr_Net_Scalarizr_Services_Postgresql($dbServer, $port);
+                    break;
+                case "redis":
+                    return new Scalr_Net_Scalarizr_Services_Redis($dbServer, $port);
+                    break;
+                case "sysinfo":
+                    return new Scalr_Net_Scalarizr_Services_Sysinfo($dbServer, $port);
+                    break;
+                case "system":
+                    return new Scalr_Net_Scalarizr_Services_System($dbServer, $port);
+                    break;
+                    
 				default:
 					return new Scalr_Net_Scalarizr_Client($dbServer, $port);
 					break;
@@ -26,7 +49,7 @@
 			$this->cryptoTool = Scalr_Messaging_CryptoTool::getInstance();
 		}
 		
-		public function request($method, Object $params = null, $namespace = null)
+		public function request($method, stdClass $params = null, $namespace = null)
 		{
 			if (!$namespace)
 				$namespace = $this->namespace;
@@ -36,21 +59,20 @@
 			$requestObj->method = $method;
 			$requestObj->params = new stdClass();
 			
-			$this->walkSerialize($params, $requestObj->params);			
+			$this->walkSerialize($params, $requestObj->params);		
+            
 			$jsonRequest = $this->cryptoTool->encrypt(json_encode($requestObj), $this->dbServer->GetKey(true));
 			
-			$timestamp = date("D d M Y H:i:s T");
-			$dt = new DateTime($timestamp, new DateTimeZone("CDT"));
-			$timestamp = Scalr_Util_DateTime::convertDateTime($dt, new DateTimeZone("UTC"), new DateTimeZone("CDT"))->format("D d M Y H:i:s");
-			$timestamp .= " UTC";
-			
+			$dt = new DateTime('now', new DateTimeZone("UTC"));
+			$timestamp = $dt->format("D d M Y H:i:s e");
+
 			$canonical_string = $jsonRequest . $timestamp;
 			$signature = base64_encode(hash_hmac('SHA1', $canonical_string, $this->dbServer->GetKey(true), 1));
 			
 			$request = new HttpRequest("http://{$this->dbServer->remoteIp}:{$this->port}/{$namespace}", HTTP_METH_POST);
 		  	$request->setOptions(array(
-		  		'timeout'	=> 5,
-		  		'connecttimeout' => 5
+		  		'timeout'	=> 30,
+		  		'connecttimeout' => 10
 		  	));
 		  	
 		  	$request->setHeaders(array(
@@ -77,15 +99,19 @@
 					return $jResponse;
 				} else {
 					$response = $request->getResponseData();
-					throw new Exception(sprintf("Unable to perform request to update client: %s (%s)", $response['body'], $request->getResponseCode()));	
+					throw new Exception(sprintf("Unable to perform request to scalarizr: %s (%s)", $response['body'], $request->getResponseCode()));	
 				}
 			} catch(HttpException $e) {
 				if (isset($e->innerException))
 					$msg = $e->innerException->getMessage();
 			    else
 					$msg = $e->getMessage();
+                
+                if (stristr($msg, "Namespace not found")) {
+                    $msg = "Feature not supported by installed version of scalarizr. Please update it to the latest version and try again.";
+                }
 				
-				throw new Exception(sprintf("Unable to perform request to update client: %s", $msg));
+				throw new Exception(sprintf("Unable to perform request to scalarizr: %s", $msg));
 			}
 		}
 		
@@ -94,7 +120,10 @@
 				if (is_object($v) || is_array($v)) {
 					$this->walkSerialize($v, $retval->{$this->underScope($k)});
 				} else {
-					$retval->{$this->underScope($k)} = $v;
+				    if (is_object($object))
+					   $retval->{$this->underScope($k)} = $v;
+                    else
+                       $retval[$this->underScope($k)] = $v;
 				}
 			}
 		}

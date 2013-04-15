@@ -380,8 +380,8 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.scaling', function (moduleTabParams) 
 				});
 
 				var currentTimeZone = 'Current time zone is: <span style="font-weight: bold;">' + moduleTabParams['currentTimeZone'] +
-					'</span> (' + moduleTabParams['currentTime'] + '). <a target="_blank" href="#/environments/' + moduleTabParams['currentEnvId'] +
-					'/edit">Click here</a> if you want to change it.';
+					'</span> (' + moduleTabParams['currentTime'] + '). <a target="_blank" href="#/account/environments/view?envId=' + moduleTabParams['currentEnvId'] +
+					'">Click here</a> if you want to change it.';
 
 				p = tabpanel.add({
 					title: metric.get('name'),

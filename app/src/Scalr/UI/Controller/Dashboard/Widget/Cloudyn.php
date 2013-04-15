@@ -90,6 +90,8 @@ class Scalr_UI_Controller_Dashboard_Widget_Cloudyn extends Scalr_UI_Controller_D
 					}
 				}
 			}
+			
+			//TODO for Invar: Show error on widget "Cannot get statistics due to internal Cloudyn error." if $accountStatistics is null
 
 			return array('enabled' => true, 'owner' => $owner, 'metrics' => $accountStatistics, 'consoleUrl' => $cy->getConsoleUrl());
 		} else {
@@ -146,7 +148,7 @@ class Scalr_UI_Controller_Dashboard_Widget_Cloudyn extends Scalr_UI_Controller_D
 		$policyName = sprintf('cloudynpolicy-%s', $env->id);
 		$cyAccountName = sprintf('scalr-aws-account-%s', $env->id);
 		//Read-only AWS policy
-		$policyDocument = '{"Statement":[{"Effect":"Allow","Action":["autoscaling:Describe*","aws-portal:View*","cloudformation:DescribeStacks","cloudformation:DescribeStackEvents","cloudformation:DescribeStackResources","cloudformation:GetTemplate","cloudfront:Get*","cloudfront:List*","cloudwatch:Describe*","cloudwatch:Get*","cloudwatch:List*","dynamodb:DescribeTable","dynamodb:ListTables","ec2:Describe*","elasticache:Describe*","elasticbeanstalk:Check*","elasticbeanstalk:Describe*","elasticbeanstalk:List*","elasticbeanstalk:RequestEnvironmentInfo","elasticbeanstalk:RetrieveEnvironmentInfo","elasticloadbalancing:Describe*","elasticmapreduce:DescribeJobFlows","iam:List*","iam:Get*","route53:Get*","route53:List*","rds:Describe*","s3:List*","s3:GetBucketAcl","s3:GetBucketLocation","s3:GetBucketLogging","s3:GetBucketNotification","s3:GetBucketPolicy","s3:GetBucketRequestPayment","s3:GetBucketVersioning","s3:GetBucketWebsite","s3:GetLifecycleConfiguration","s3:GetObjectAcl","s3:GetObjectTorrent","s3:GetObjectVersion","s3:GetObjectVersionAcl","s3:GetObjectVersionTorrent","sdb:DomainMetadata","sdb:GetAttributes","sdb:ListDomains","ses:Get*","ses:List*","sns:Get*","sns:List*","sqs:Get*","sqs:List*","storagegateway:List*","storagegateway:Describe*"],"Resource":"*"}]}';
+		$policyDocument = '{"Statement":[{"Effect":"Allow","Action":["autoscaling:Describe*","aws-portal:View*","cloudformation:DescribeStacks","cloudformation:DescribeStackEvents","cloudformation:DescribeStackResources","cloudformation:GetTemplate","cloudfront:Get*","cloudfront:List*","cloudwatch:Describe*","cloudwatch:Get*","cloudwatch:List*","dynamodb:DescribeTable","dynamodb:ListTables","ec2:Describe*","elasticache:Describe*","elasticbeanstalk:Check*","elasticbeanstalk:Describe*","elasticbeanstalk:List*","elasticbeanstalk:RequestEnvironmentInfo","elasticbeanstalk:RetrieveEnvironmentInfo","elasticloadbalancing:Describe*","elasticmapreduce:DescribeJobFlows","iam:List*","iam:Get*","route53:Get*","route53:List*","rds:Describe*","rds:List*","s3:List*","s3:GetBucketAcl","s3:GetBucketLocation","s3:GetBucketLogging","s3:GetBucketNotification","s3:GetBucketPolicy","s3:GetBucketRequestPayment","s3:GetBucketVersioning","s3:GetBucketWebsite","s3:GetLifecycleConfiguration","s3:GetObjectAcl","s3:GetObjectTorrent","s3:GetObjectVersion","s3:GetObjectVersionAcl","s3:GetObjectVersionTorrent","s3:GetBucketTagging","sdb:DomainMetadata","sdb:GetAttributes","sdb:ListDomains","ses:Get*","ses:List*","sns:Get*","sns:List*","sqs:Get*","sqs:List*","storagegateway:List*","storagegateway:Describe*"],"Resource":"*"}]}';
 
 		$isCloudynEnabled = $acc->getSetting(Scalr_Account::SETTING_CLOUDYN_ENABLED);
 		$isCloudynEnvironmentEnabled = $env->getPlatformConfigValue(ENVIRONMENT_SETTINGS::CLOUDYN_ENABLED);

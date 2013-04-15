@@ -14,8 +14,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.ec2', function () {
 				'aws.ari_id' : "",
 				'aws.cluster_pg': "",
 				
-				'aws.vpc.subnetId': "",
-				'aws.vpc.privateIpAddress': ""
+				'aws.vpc.subnetId': ""
 			};
 		},
 		
@@ -55,7 +54,6 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.ec2', function () {
 			
 			this.down('[name="aws.vpc.subnetId"]').store.load({ data: this.cacheGet(['subnets', record.get('cloud_location')]) });
 			this.down('[name="aws.vpc.subnetId"]').setValue(settings['aws.vpc.subnetId'] || '');
-			this.down('[name="aws.vpc.privateIpAddress"]').setValue(settings['aws.vpc.privateIpAddress'] || '');
 		},
 
 		hideTab: function (record) {
@@ -66,7 +64,6 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.ec2', function () {
 			settings['aws.cluster_pg'] = this.down('[name="aws.cluster_pg"]').getValue();
 			
 			settings['aws.vpc.subnetId'] = this.down('[name="aws.vpc.subnetId"]').getValue();
-			settings['aws.vpc.privateIpAddress'] = this.down('[name="aws.vpc.privateIpAddress"]').getValue();
 			
 			record.set('settings', settings);
 		},
@@ -99,6 +96,33 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.ec2', function () {
 			}]
 		}, {
 			xtype: 'fieldset',
+			hidden: !Scalr.flags['betaMode'],
+			defaults: {
+				labelWidth: 230
+			},
+			items: [{
+				xtype: 'fieldcontainer',
+				hideLabel: true,
+				layout: 'hbox',
+				items: [{
+					xtype: 'displayfield',
+					value: 'Additional tags (one per line: name=value)',
+					width: 250
+				}, {
+					xtype: 'displayinfofield',
+					margin: '0 0 0 5',
+					value: 'You can use the following variables: %image_id%, %external_ip%, %internal_ip%, %role_name%, %isdbmaster%, %instance_index%, ' +
+						'%server_id%, %farm_id%, %farm_name%, %env_id%, %env_name%, %cloud_location%, %instance_id%, %avail_zone%<br />' +
+						'For example: tag1=%instance_index%.%farm_id%.example'
+				}]
+			},{
+				xtype: 'textarea',
+				anchor: '100%',
+				hideLabel:true,
+				name: 'aws.additional_tags'
+			}]
+		}, {
+			xtype: 'fieldset',
 			defaults: {
 				labelWidth: 230
 			},
@@ -115,11 +139,6 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.ec2', function () {
 					fields: ['id' , 'description'],
 					proxy: 'object'
 				}
-			}, {
-				fieldLabel: 'Private IP Address',
-				anchor: '100%',
-				xtype: 'textfield',
-				name: 'aws.vpc.privateIpAddress'
 			}]
 		},]
 	});

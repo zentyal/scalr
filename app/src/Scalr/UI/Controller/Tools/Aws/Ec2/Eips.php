@@ -1,5 +1,7 @@
 <?php
 
+use Scalr\Service\Aws\Ec2\DataType as Ec2DataType;
+
 class Scalr_UI_Controller_Tools_Aws_Ec2_Eips extends Scalr_UI_Controller
 {
 	const CALL_PARAM_NAME = 'elasticIp';
@@ -16,14 +18,8 @@ class Scalr_UI_Controller_Tools_Aws_Ec2_Eips extends Scalr_UI_Controller
 
 	public function xDeleteAction()
 	{
-		$amazonEC2Client = Scalr_Service_Cloud_Aws::newEc2(
-			$this->getParam('cloudLocation'),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::PRIVATE_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::CERTIFICATE)
-		);
-
-		$amazonEC2Client->ReleaseAddress($this->getParam('elasticIp'));
-
+		$aws = $this->environment->aws($this->getParam('cloudLocation'));
+		$aws->ec2->address->release($this->getParam('elasticIp'));
 		$this->response->success();
 	}
 
@@ -61,26 +57,17 @@ class Scalr_UI_Controller_Tools_Aws_Ec2_Eips extends Scalr_UI_Controller
 
 	public function xListEipsAction()
 	{
-		$amazonEC2Client = Scalr_Service_Cloud_Aws::newEc2(
-			$this->getParam('cloudLocation'),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::PRIVATE_KEY),
-			$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::CERTIFICATE)
-		);
+		$aws = $this->environment->aws($this->getParam('cloudLocation'));
 
-		// Rows
-		$aws_response = $amazonEC2Client->DescribeAddresses();
-		$rowz = $aws_response->addressesSet->item;
-
-		if ($rowz instanceof stdClass)
-			$rowz = array($rowz);
-
-		foreach ($rowz as &$pv) {
+		$addressList = $aws->ec2->address->describe();
+		$rowz = array();
+		/* @var $address Ec2DataType\AddressData */
+		foreach ($addressList as $address) {
 			$item = array(
-				'ipaddress' => $pv->publicIp,
-				'instance_id' => $pv->instanceId
+				'ipaddress'   => $address->publicIp,
+				'instance_id' => ($address->instanceId === null ? '' : $address->instanceId),
 			);
-
-			$info = $this->db->GetRow("SELECT * FROM elastic_ips WHERE ipaddress=?", array($pv->publicIp));
+			$info = $this->db->GetRow("SELECT * FROM elastic_ips WHERE ipaddress=?", array($address->publicIp));
 			if ($info) {
 				$item['farm_id'] = $info['farmid'];
 				$item['farm_roleid'] = $info['farm_roleid'];
@@ -93,8 +80,8 @@ class Scalr_UI_Controller_Tools_Aws_Ec2_Eips extends Scalr_UI_Controller
 					try {
 						$DBServer = DBServer::LoadByPropertyValue(EC2_SERVER_PROPERTIES::INSTANCE_ID, $item['instance_id']);
 						$item['server_id'] = $DBServer->serverId;
+					} catch (Exception $e) {
 					}
-					catch(Exception $e){}
 				}
 
 				if ($item['farm_roleid']) {
@@ -102,19 +89,18 @@ class Scalr_UI_Controller_Tools_Aws_Ec2_Eips extends Scalr_UI_Controller
 						$DBFarmRole = DBFarmRole::LoadByID($item['farm_roleid']);
 						$item['role_name'] = $DBFarmRole->GetRoleObject()->name;
 						$item['farm_name'] = $DBFarmRole->GetFarmObject()->Name;
+					} catch (Exception $e){
 					}
-					catch(Exception $e){}
 				}
 			} else {
 				try {
-					$DBServer = DBServer::LoadByPropertyValue(EC2_SERVER_PROPERTIES::INSTANCE_ID, $pv->instanceId);
+					$DBServer = DBServer::LoadByPropertyValue(EC2_SERVER_PROPERTIES::INSTANCE_ID, $address->instanceId);
 					$item['server_id'] = $DBServer->serverId;
 					$item['farm_id'] = $DBServer->farmId;
 				}
 				catch(Exception $e){}
 			}
-
-			$pv = $item;
+			$rowz[] = $item;
 		}
 
 		$response = $this->buildResponseFromData($rowz);

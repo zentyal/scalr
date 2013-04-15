@@ -2,34 +2,34 @@
 
 	class ParametersList
 	{
-		private $Items;		
+		private $Items;
 		static  $ItemsCounter;
 		public function __construct()
 		{
 			$this->Items = array();
 		}
-		
-		public function AddParameters($ParameterName,$ParameterValue,$ApplyMethod)		
+
+		public function AddParameters($ParameterName,$ParameterValue,$ApplyMethod)
 		{
 			if(empty($ParameterValue))				 // $ParameterValue can't be empty
 				$ParameterValue = '0';
-					
+
 			$o = new stdClass();
 			$o->ParameterName	= $ParameterName;
 			$o->ParameterValue	= $ParameterValue;
-			$o->ApplyMethod		= $ApplyMethod;		
-			
+			$o->ApplyMethod		= $ApplyMethod;
+
 			$this->Items[] = $o;
 			$ParameterName++;
-		}	
-		
+		}
+
 		public function GetParameters()
 		{
 			return $this->Items;
 		}
 	}
 
-	
+
 	class DBModifyInstanceSettings
 	{	// The DBModifyInstanceSettings class just coveres DB settings for request. It's not amazonRDS class
 		public $DBInstanceIdentifier;
@@ -41,9 +41,9 @@
 		public $DBInstanceClass;			// The new compute and memory capacity of the DB Instance. This change causes an outage during the change and is applied during the next maintenance window, unless the ApplyImmediately parameter true for this request. Type: String
 		public $ApplyImmediately;			// Specifies that the modifications in this request and any pending modifications are asynchronously applied as soon as possible, regardless of the PreferredMaintenanceWindow setting for the DB Instance. If this parameter is false, changes to the DB Instance are applied on the next call to RebootDBInstance or the next maintenance or failure reboot, whichever occurs first. Type: Boolean
 		public $BackupRetentionPeriod;		// The number of days to retain automated backups. Setting this parameter to a positive number enables backups. Setting this parameter to 0 disables automated backups. Type: Integer
-		public $PreferredBackupWindow;		// The daily time range during which automated backups are created if backups are enabled (as determined by the --backup-retention-period). Type: String		
-		
-		
+		public $PreferredBackupWindow;		// The daily time range during which automated backups are created if backups are enabled (as determined by the --backup-retention-period). Type: String
+
+
 		public function __construct($DBInstanceIdentifier,
 										 $DBParameterGroupName	= null,
 										 $DBSecurityGroups		= null,
@@ -55,7 +55,7 @@
 										 $BackupRetentionPeriod	= null,
 										 $PreferredBackupWindow	= null
 										)
-		{			
+		{
 			$this->DBInstanceIdentifier		= $DBInstanceIdentifier;
 			$this->DBParameterGroupName		=  $DBParameterGroupName;
 			$this->DBSecurityGroups			= $DBSecurityGroups;
@@ -70,41 +70,41 @@
 	}
 	class DBInstanceSettings
 	{ // The DBInstanceSettings class just coveres DB settings for request. It's not amazonRDS class
-		
-		public $DBInstanceIdentifier;		// DB Instance identifier. This is the unique key that identifies a DB Instance. This parameter is stored as a lowercase string. Type: String									
-		public $AllocatedStorage;			// Amount of storage to be initially allocated for the database instance, in gigabytes. Type: String.						   
+
+		public $DBInstanceIdentifier;		// DB Instance identifier. This is the unique key that identifies a DB Instance. This parameter is stored as a lowercase string. Type: String
+		public $AllocatedStorage;			// Amount of storage to be initially allocated for the database instance, in gigabytes. Type: String.
 		public $DBInstanceClass;			// Contains the compute and memory capacity of the DB Instance. Type: String
 		public $Engine;						// Name of the database engine to be used for this instance. Type: String
 		public $MasterUsername;				// Name of master user for your DB Instance. Type: String.
 		public $MasterUserPassword;			// Password for the master DB Instance user. Type: String.
-		public $MultiAZ;					// Specifies if the DB Instance is a Multi-AZ deployment. 
+		public $MultiAZ;					// Specifies if the DB Instance is a Multi-AZ deployment.
 		public $Port;						// Type: Integer Default: 3306
-		public $DBName;						// Name of a database to create when the DB Instance is created. If this parameter is not specified, no database is created in the DB Instance. Type: String									
+		public $DBName;						// Name of a database to create when the DB Instance is created. If this parameter is not specified, no database is created in the DB Instance. Type: String
 		public $DBParameterGroup;			// Name of the database parameter group to associate with this DB instance. If this argument is omitted, the default DBParameterGroup for the specified engine will be used. Type: String
-		public $DBSecurityGroups;			// List of DB Security Groups to associate with this DB Instance. Type: String							
+		public $DBSecurityGroups;			// List of DB Security Groups to associate with this DB Instance. Type: String
 		public $AvailabilityZone;			// The EC2 Availability Zone that the database instance will be created in. Type: String
 		public $PreferredMaintenanceWindow; // The weekly time range (in UTC) during which system maintenance can occur. Type: String
 		public $BackupRetentionPeriod;		// The number of days for which automated backups are retained. Type: Integer
 		public $PreferredBackupWindow;		// The daily time range during which automated backups are created if automated backups are enabled (as determined by the --backup-retention-period). Type: String
-		
-		
+
+
 		public function __construct($DBInstanceIdentifier,
 										$AllocatedStorage,
 										$DBInstanceClass,
-										$Engine,$MasterUsername, 
-										$MasterUserPassword, 
-										$Port = null, 
-										$DBName = null,										
-										$DBParameterGroup  = null, 
-										$DBSecurityGroups = null, 
+										$Engine,$MasterUsername,
+										$MasterUserPassword,
+										$Port = null,
+										$DBName = null,
+										$DBParameterGroup  = null,
+										$DBSecurityGroups = null,
 										$AvailabilityZone = null,
-										$PreferredMaintenanceWindow = null, 
+										$PreferredMaintenanceWindow = null,
 										$BackupRetentionPeriod = null,
 										$PreferredBackupWindow = null,
 										$MultiAZ = null
 										)
 		{
-			$this->DBInstanceIdentifier		= $DBInstanceIdentifier;		 
+			$this->DBInstanceIdentifier		= $DBInstanceIdentifier;
 			$this->AllocatedStorage			= $AllocatedStorage;
 			$this->DBInstanceClass			= $DBInstanceClass;
 			$this->Engine					= $Engine;
@@ -121,20 +121,20 @@
 			$this->MultiAZ					= $MultiAZ;
 		}
 	}
-	
-	class AmazonRDS  
+
+	class AmazonRDS
 	{
-		const API_VERSION 				= "2010-01-01";		
+		const API_VERSION 				= "2010-01-01";
 		const HASH_ALGO 				= 'SHA256';
 		const USER_AGENT 				= 'Libwebta AWS Client (http://webta.net)';
 		const MAX_MODIFY_PARAMETERS_NUM	= 5;
-		
+
 		private $AWSAccessKeyId			= NULL;
 		private $AWSAccessKey			= NULL;
 		private $Region					= 'us-east-1';
 		private $LastResponseHeaders	= array();
 		private static $Instance;
-		
+
 		public function GetMaxNum()
 		{
 			return MAX_MODIFY_PARAMETERS_NUM;
@@ -144,34 +144,34 @@
 		 * @param $AWSAccessKeyId
 		 * @param $AWSAccessKey
 		 * @return AmazonRDS
-		 */		
-		
+		 */
+
 		public static function GetInstance($AWSAccessKeyId, $AWSAccessKey)
 		{
 			self::$Instance = new AmazonRDS($AWSAccessKeyId, $AWSAccessKey);
 			return self::$Instance;
 		}
-		
+
 		public function __construct($AWSAccessKeyId, $AWSAccessKey)
 		{
 			$this->AWSAccessKeyId = $AWSAccessKeyId;
 			$this->AWSAccessKey = $AWSAccessKey;
-			
+
 			if (!function_exists("hash_hmac"))
 				throw new Exception("hash_hmac() function not found. Please install HASH Pecl extension.", E_ERROR);
 		}
-		
+
 		public function SetRegion($region)
-		{ 
+		{
 			if (in_array($region, array('sa-east-1', 'us-east-1','us-west-1','us-west-2','eu-west-1','ap-southeast-1','ap-northeast-1')))
-				$this->Region = $region;				
+				$this->Region = $region;
 		}
-		
+
 		private function GetRESTSignature($params)
 		{
 			return base64_encode(@hash_hmac(AmazonRDS::HASH_ALGO, implode("\n", $params), $this->AWSAccessKey, 1));
 		}
-		
+
 		/**
 		 * Return GMT timestamp for Amazon AWS S3 Requests
 		 *
@@ -185,20 +185,20 @@
 		    date_default_timezone_set($tz);
 		    return $dt;
 		}
-		
+
 		private function Request($method, $uri, $args)
-		{ 
+		{
 			//timeout , connecttimeout , dns_cache_timeout
 			$HttpRequest = new HttpRequest();
-			
+
 			$HttpRequest->setOptions(array(
-				"redirect" 	=> 10, 
+				"redirect" 	=> 10,
 				"useragent" => "LibWebta AWS Client (http://webta.net)",
 				"timeout"	=> 30,
 				"connecttimeout" => 10,
-				"dns_cache_timeout"	=> 5 
+				"dns_cache_timeout"	=> 5
 			));
-			
+
 			$timestamp = $this->GetTimestamp();
 			$URL = "rds.{$this->Region}.amazonaws.com";
 
@@ -209,27 +209,27 @@
 			$args['AWSAccessKeyId'] = $this->AWSAccessKeyId;
 
 			ksort($args);
-								
+
 			foreach ($args as $k=>$v)
 				$CanonicalizedQueryString .= "&{$k}=".rawurlencode($v);
 			$CanonicalizedQueryString = trim($CanonicalizedQueryString, "&");
-						
-			$args['Signature'] = $this->GetRESTSignature(array($method, $URL, $uri, $CanonicalizedQueryString));		
+
+			$args['Signature'] = $this->GetRESTSignature(array($method, $URL, $uri, $CanonicalizedQueryString));
 			$HttpRequest->setUrl("https://{$URL}{$uri}");
-			
+
 			$HttpRequest->setMethod(constant("HTTP_METH_{$method}"));
-			
+
 			if ($args)
 				$HttpRequest->addQueryData($args);
-			
-			try 
+
+			try
 			{
 				$HttpRequest->send();
 				$info = $HttpRequest->getResponseInfo();
 				$data = $HttpRequest->getResponseData();
 
-				$this->LastResponseHeaders = $data['headers'];			
-				$response = simplexml_load_string($data['body']);   
+				$this->LastResponseHeaders = $data['headers'];
+				$response = simplexml_load_string($data['body']);
 
 				if ($response->Error)
 					throw new Exception($response->Error->Message);
@@ -237,24 +237,24 @@
 					return $response;
 			}
 			catch (Exception $e)
-			{ 
+			{
 				if ($e->innerException)
 					$message = $e->innerException->getMessage();
 				else
-					$message = $e->getMessage();  
-				
+					$message = $e->getMessage();
+
 				throw new Exception($message);
 			}
 		}
-		
+
 		/**
 		 * Check  values of any function's parameters
 		 *
 		 * if parametr == null, function CutNullArgs dosn't add it to the "Get request" string $request_args
 		 * else - adds it as new value of array.
-		 * 
+		 *
 		 * @param array $$method_args
-		 * @param array $method_name 
+		 * @param array $method_name
 		 * @param refference to &$request_args
 		 * @return void
 		 *
@@ -267,16 +267,16 @@
 			foreach ($params as $param)
 			{
 				if ($param->isOptional() && $param->getDefaultValue() === null)
-					$args[$param->getName()] = $method_args[$param->getPosition()]; 
+					$args[$param->getName()] = $method_args[$param->getPosition()];
 			}
-			
+
 			foreach($args as $k=>$v)
 			{
 				if($v !== null)
-					$request_args[$k] = $v;										   	
-			}	
+					$request_args[$k] = $v;
+			}
 		}
-	
+
 		/**
 		 * Creates a new Amazon RDS database instance.
 		 *
@@ -303,9 +303,9 @@
 		public function CreateDBInstance($DBInstanceIdentifier,
 												$AllocatedStorage,
 												$DBInstanceClass,
-												$Engine,				
+												$Engine,
 												$MasterUsername,
-												$MasterUserPassword,												
+												$MasterUserPassword,
 												$Port					= null,
 												$DBName					= null,
 												$DBParameterGroupName	= null,
@@ -318,58 +318,58 @@
 		{
 			$request_args = array(
 				"Action"						=> "CreateDBInstance",
-				"DBInstanceIdentifier"			=> $DBInstanceIdentifier,		 
+				"DBInstanceIdentifier"			=> $DBInstanceIdentifier,
 				"AllocatedStorage"				=> $AllocatedStorage,
 				"DBInstanceClass"				=> $DBInstanceClass,
 				"Engine"						=> $Engine,
 				"MasterUsername"				=> $MasterUsername,
 				"MasterUserPassword"			=> $MasterUserPassword,
-				"MultiAZ"						=> ($MultiAZ)?$MultiAZ = 1: $MultiAZ = 0			
-			 );		
-			
+				"MultiAZ"						=> ($MultiAZ)?$MultiAZ = 1: $MultiAZ = 0
+			 );
+
 			foreach ($DBSecurityGroups as $i=>$o)
 				$request_args['DBSecurityGroups.member.'.($i+1)]	 = $o;
-			 
-			$this->CutNullArgs(func_get_args(), __FUNCTION__, &$request_args);			
+
+			$this->CutNullArgs(func_get_args(), __FUNCTION__, $request_args);
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-			
+
 		/**
 		 * Retrieves information about one or all DB Instances for an AWS account.
-		 * 
-		 * You can call this operation recursively using the Marker parameter.	
-		 *  
+		 *
+		 * You can call this operation recursively using the Marker parameter.
+		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
-		 * @param	string	$DBInstanceIdentifier 
-		 * @param	int		$maxRecords 
-		 * @param	string	$marker 
+		 *
+		 * @param	string	$DBInstanceIdentifier
+		 * @param	int		$maxRecords
+		 * @param	string	$marker
 		 * @return	object	$response
 		 *
 		 */
 		public function DescribeDBInstances($DBInstanceIdentifier = null, $maxRecords = null, $marker = null)
 		{
-			$request_args = array("Action" => "DescribeDBInstances" );		
-					
-			
-			$this->CutNullArgs(func_get_args(), __FUNCTION__, &$request_args);	
+			$request_args = array("Action" => "DescribeDBInstances" );
+
+
+			$this->CutNullArgs(func_get_args(), __FUNCTION__, $request_args);
 
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		 
+
 		/**
 		 * Changes the settings of an existing DB Instance.
-		 * 		
+		 *
 		 * Changes are applied in the following manner: A ModifyDBInstance API call to
-		 * modify security groups or to change the maintenance windows results in 
-		 * immediate action. 
+		 * modify security groups or to change the maintenance windows results in
+		 * immediate action.
 		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
+		 *
 		 * @param	string  $DBInstanceIdentifier
 		 * @param	string  $DBParameterGroupName
 		 * @param	string  $DBSecurityGroups
@@ -398,28 +398,28 @@
 		{
 			$request_args = array(
 					"Action"						=> "ModifyDBInstance",
-					"DBInstanceIdentifier"			=> $DBInstanceIdentifier								
-					);		
-						
+					"DBInstanceIdentifier"			=> $DBInstanceIdentifier
+					);
+
 			foreach ($DBSecurityGroups as $i=>$o)
 				$request_args['DBSecurityGroups.member.'.($i+1)]	 = $o;
-				
-			$this->CutNullArgs(func_get_args(), __FUNCTION__, &$request_args);
+
+			$this->CutNullArgs(func_get_args(), __FUNCTION__, $request_args);
 
 			$response = $this->Request("GET", "/", $request_args);
 
 			return $response;
 		}
-		
+
 		/**
-		 * Reboots a DB Instance. 
-		 * 
-		 * Once started, the process cannot be stopped, and the database instance will be 
+		 * Reboots a DB Instance.
+		 *
+		 * Once started, the process cannot be stopped, and the database instance will be
 		 * unavailable until the reboot complete
 		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
-		 * @param	DBInstanceIdentifier $DBInstanceIdentifier 
+		 *
+		 * @param	DBInstanceIdentifier $DBInstanceIdentifier
 		 * @return	object $response
 		 *
 		 */
@@ -427,22 +427,22 @@
 		{
 			$request_args = array(
 					"Action"				=> "RebootDBInstance",
-					"DBInstanceIdentifier"	=> $DBInstanceIdentifier							
-					);		
-			
+					"DBInstanceIdentifier"	=> $DBInstanceIdentifier
+					);
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
+
 		/**
 		 * Deletes a DB Instance.
-		 * 
+		 *
 		 * Once started, the process cannot be stopped, and the DB Instance
 		 * will no longer be accessible.
 		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
+		 *
 		 * @param	string $DBInstanceIdentifier
 		 * @param	bool   $skipFinalSnapshot
 		 * @param	string $finalDBSnapshotIdentifier
@@ -454,26 +454,26 @@
 											$FinalDBSnapshotIdentifier = null)
 		{
 			$request_args = array(
-					"Action"					=> "DeleteDBInstance",				
+					"Action"					=> "DeleteDBInstance",
 					"DBInstanceIdentifier"		=> $DBInstanceIdentifier,
 					"SkipFinalSnapshot"			=> $SkipFinalSnapshot
-					);	
-										
-			$this->CutNullArgs(func_get_args(), __FUNCTION__, &$request_args);
-			
-			$response = $this->Request("GET", "/", $request_args);		
+					);
+
+			$this->CutNullArgs(func_get_args(), __FUNCTION__, $request_args);
+
+			$response = $this->Request("GET", "/", $request_args);
 			return $response;
 		}
-		
-		
-		
+
+
+
 		/**
 		 * Creates a new DB Security Group.
 		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
-		 * @param	string $DBSecurityGroupName 
-		 * @param	string $DBSecurityGroupDescription 
+		 *
+		 * @param	string $DBSecurityGroupName
+		 * @param	string $DBSecurityGroupDescription
 		 * @return	object $response
 		 *
 		 */
@@ -482,44 +482,44 @@
 			$request_args = array(
 					"Action"					 => "CreateDBSecurityGroup",
 					"DBSecurityGroupName"		 => $DBSecurityGroupName,
-					"DBSecurityGroupDescription" => $DBSecurityGroupDescription,							
-					);		
-			
-			$response = $this->Request("GET", "/", $request_args);		
+					"DBSecurityGroupDescription" => $DBSecurityGroupDescription,
+					);
+
+			$response = $this->Request("GET", "/", $request_args);
 			return $response;
 		}
-		
+
 		/**
 		 * This is method DescribeDBSecurityGroups
 		 *
-		 * Returns all the DB Security Group details for a particular AWS account, 
+		 * Returns all the DB Security Group details for a particular AWS account,
 		 * or for a particular DB Security Group if a name is specified.
 		 * You can call this operation recursively using the Marker parameter.
-		 * 
+		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
-		 * @param	string $DBSecurityGroupName 
+		 *
+		 * @param	string $DBSecurityGroupName
 		 * @param	int    $maxRecords
-		 * @param	string $marker 
-		 * @return	object $response 
+		 * @param	string $marker
+		 * @return	object $response
 		 *
 		 */
 		public function DescribeDBSecurityGroups($DBSecurityGroupName=null,$maxRecords = null, $marker = null)
 		{
 			$request_args = array(
-					"Action"				=> "DescribeDBSecurityGroups",							
-					);		
-			$this->CutNullArgs(func_get_args(), __FUNCTION__, &$request_args);							
-	
+					"Action"				=> "DescribeDBSecurityGroups",
+					);
+			$this->CutNullArgs(func_get_args(), __FUNCTION__, $request_args);
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
-		
+
+
 		/**
 		 * Deletes a DB Security Group.
-		 * 
+		 *
 		 * The specified database security group must not be associated with any DB instances.
 		 *
 		 * @param sting $DBSecurityGroupName
@@ -531,28 +531,28 @@
 			$request_args = array(
 					"Action"				=> "DeleteDBSecurityGroup",
 					"DBSecurityGroupName"	=> $DBSecurityGroupName
-					);		
-			
+					);
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
-	
-		
+
+
+
 		/**
 		 * Authorizes network ingress for an Amazon EC2 security group or an IP address range.
-		 * 
+		 *
 		 * EC2 security groups can be added to the DBSecurityGroup if the application using
 		 * the database is running on EC2 instances. IP ranges are available
-		 * if the application accessing your database is running on the Internet. 
+		 * if the application accessing your database is running on the Internet.
 		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
+		 *
 		 * @param	string $DBSecurityGroupName
-		 * @param	string $CIDRIP 
-		 * @param	string $EC2SecurityGroupName 
-		 * @param	string $EC2SecurityGroupOwnerId 
+		 * @param	string $CIDRIP
+		 * @param	string $EC2SecurityGroupName
+		 * @param	string $EC2SecurityGroupOwnerId
 		 * @return	object $response
 		 *
 		 */
@@ -564,8 +564,8 @@
 			$request_args = array(
 					"Action"					=> "AuthorizeDBSecurityGroupIngress",
 					"DBSecurityGroupName"		=> $DBSecurityGroupName
-					);		
-			
+					);
+
 			if ($CIDRIP)
 				$request_args['CIDRIP'] = $CIDRIP;
 			else
@@ -573,22 +573,22 @@
 				$request_args['EC2SecurityGroupName'] = $EC2SecurityGroupName;
 				$request_args['EC2SecurityGroupOwnerId'] = $EC2SecurityGroupOwnerId;
 			}
-					
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
-		
+
+
 		/**
-		 * Revokes ingress to a DBSecurityGroup for previously authorized 
-		 * IP ranges or EC2 Security Groups. 
+		 * Revokes ingress to a DBSecurityGroup for previously authorized
+		 * IP ranges or EC2 Security Groups.
 		 *
-		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more 
-		 * 
-		 * @param	string  $DBSecurityGroupName 
+		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
+		 *
+		 * @param	string  $DBSecurityGroupName
 		 * @param	string  $CIDRIP
-		 * @param	string  $EC2SecurityGroupName 
+		 * @param	string  $EC2SecurityGroupName
 		 * @param	string  $EC2SecurityGroupOwnerId
 		 * @return	object  $response
 		 *
@@ -601,8 +601,8 @@
 			$request_args = array(
 					"Action"					=> "RevokeDBSecurityGroupIngress",
 					"DBSecurityGroupName"		=> $DBSecurityGroupName
-					);		
-					
+					);
+
 			if ($CIDRIP)
 				$request_args['CIDRIP'] = $CIDRIP;
 			else
@@ -610,13 +610,13 @@
 				$request_args['EC2SecurityGroupName'] = $EC2SecurityGroupName;
 				$request_args['EC2SecurityGroupOwnerId'] = $EC2SecurityGroupOwnerId;
 			}
-			
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
-		
+
+
 		/**
 		 * Creates a DB Parameter Group.
 		 *
@@ -632,45 +632,45 @@
 					"Action"					=> "CreateDBParameterGroup",
 					"DBParameterGroupName"		=> strtolower($DBParameterGroupName),
 					"Engine"					=> $Engine,
-					"Description"				=> $Description				
-					);		
-			
+					"Description"				=> $Description
+					);
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
-		
+
+
 		/**
 		 * Deletesa DB Parameter Group.
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * @param	string $DBParameterGroupNam 
+		 * @param	string $DBParameterGroupNam
 		 * @return	object $response
 		 */
-		 
+
 		public function DeleteDBParameterGroup($DBParameterGroupName)
 		{
 			$request_args = array(
 					"Action"					=> "DeleteDBParameterGroup",
-					"DBParameterGroupName"		=> strtolower($DBParameterGroupName)		
-					);		
-			
+					"DBParameterGroupName"		=> strtolower($DBParameterGroupName)
+					);
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
-		
+
+
 		/**
-		 * Returns the default engine and system parameter information for each supported database engine. 
+		 * Returns the default engine and system parameter information for each supported database engine.
 		 *
 		 * You can call this operation recursively using the Marker parameter.
-		 * 
+		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
+		 *
 		 * @param	string $DBSecurityGroupName
-		 * @param	int    $maxRecords 
-		 * @param	string $marker 
+		 * @param	int    $maxRecords
+		 * @param	string $marker
 		 * @return	object $response
 		 *
 		 */
@@ -678,25 +678,25 @@
 		{
 			$request_args = array(
 					"Action"				=> "DescribeEngineDefaultParameters",
-					"Engine"				=> $Engine	
-					);		
-			
-			$this->CutNullArgs(func_get_args(), __FUNCTION__, &$request_args);	
-			
+					"Engine"				=> $Engine
+					);
+
+			$this->CutNullArgs(func_get_args(), __FUNCTION__, $request_args);
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
-		
+
+
 		/**
 		 * Returns information about all DB Parameter Groups for an account if no DB
 		 * Parameter Group name is supplied, or displays information about
-		 * a specific named DB Parameter Group. 
-		 * 
+		 * a specific named DB Parameter Group.
+		 *
 		 * You can call this operation recursively using the Marker parameter.
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
+		 *
 		 * @param	string $DBParameterGroupName
 		 * @param	int    $maxRecords
 		 * @param	string $marker
@@ -708,21 +708,21 @@
 															$marker		 = null)
 		{
 			$request_args = array(
-					"Action"					=> "DescribeDBParameterGroups"			
-					);		
-			$this->CutNullArgs(func_get_args(), __FUNCTION__, &$request_args);	
+					"Action"					=> "DescribeDBParameterGroups"
+					);
+			$this->CutNullArgs(func_get_args(), __FUNCTION__, $request_args);
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
 		/**
-		 * Returns information about parameters that are part of a parameter group. 
-		 * 
-		 * You can optionally request only parameters from a specific source. 
-		 * You can call this operation recursively using the Marker parameter. * 
-		 * 
+		 * Returns information about parameters that are part of a parameter group.
+		 *
+		 * You can optionally request only parameters from a specific source.
+		 * You can call this operation recursively using the Marker parameter. *
+		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
+		 *
 		 * @param	string $DBParameterGroupName
 		 * @param	string $Source
 		 * @param	int    $maxRecords
@@ -737,25 +737,25 @@
 		{
 			$request_args = array(
 					"Action"					=> "DescribeDBParameters",
-					"DBParameterGroupName"		=> strtolower($DBParameterGroupName)			
-					);		
-					
-			$this->CutNullArgs(func_get_args(), __FUNCTION__, &$request_args);			
+					"DBParameterGroupName"		=> strtolower($DBParameterGroupName)
+					);
+
+			$this->CutNullArgs(func_get_args(), __FUNCTION__, $request_args);
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
-		
+
+
 		/**
-		 * Modifies the parameters of a DB Parameter Group. 
-		 * 
+		 * Modifies the parameters of a DB Parameter Group.
+		 *
 		 * To modify more than one parameter, submit a list of the following: ParameterName,
 		 * ParameterValue, and ApplyMethod. You can modify a maximum of 20 parameters
 		 * in a single request.
-		 * 
+		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
+		 *
 		 * @param	string			$DBParameterGroupName
 		 * @param	ParametersList	$Parameters
 		 * @return	object			$response
@@ -767,34 +767,34 @@
 					"Action" 					=> "ModifyDBParameterGroup",
 					"DBParameterGroupName"		=> strtolower($DBParameterGroupName)
 					);
-			
+
 			foreach ($Parameters->GetParameters() as $i=>$o)
 			{
 				$request_args['Parameters.member.'.($i+1).".ParameterName"]	 = $o->ParameterName;
-				$request_args['Parameters.member.'.($i+1).".ParameterValue"] = $o->ParameterValue;				
+				$request_args['Parameters.member.'.($i+1).".ParameterValue"] = $o->ParameterValue;
 				$request_args['Parameters.member.'.($i+1).".ApplyMethod"]	 = $o->ApplyMethod;
-			}			
-			
+			}
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
-		
-		
+
+
+
 		/**
-		 * 
-		 * Resets some or all of the parameters of a DB Parameter Group to the default values. 
-		 * 
+		 *
+		 * Resets some or all of the parameters of a DB Parameter Group to the default values.
+		 *
 		 * When resetting the entire group, dynamic parameters are updated immediately,
-		 * and static parameters are set to pending-reboot to take effect when the DB 
+		 * and static parameters are set to pending-reboot to take effect when the DB
 		 * Instance reboots.
-		 * 
+		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
-		 * @param  string			$DBParameterGroupName 
-		 * @param  ParametersList	$parameters 
-		 * @param  bool				$resetAllParameters 
+		 *
+		 * @param  string			$DBParameterGroupName
+		 * @param  ParametersList	$parameters
+		 * @param  bool				$resetAllParameters
 		 * @return object			$response
 		 *
 		 */
@@ -805,26 +805,26 @@
 			$request_args = array(
 					"Action" 					=> "ResetDBParameterGroup",
 					"DBParameterGroupName"		=> strtolower($DBParameterGroupName),
-					"resetAllParameters"		=> $resetAllParameters			
+					"resetAllParameters"		=> $resetAllParameters
 					);
-			
+
 			foreach ($parameters->GetParameters() as $i=>$o)
 			{
-				$request_args['Parameters.member.'.($i+1).".ParameterName"]	 = $o->ParameterName;			
+				$request_args['Parameters.member.'.($i+1).".ParameterName"]	 = $o->ParameterName;
 				$request_args['Parameters.member.'.($i+1).".ApplyMethod"]	 = $o->ApplyMethod;
-			}		
-			
+			}
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-			
-		
+
+
 		/**
 		 * Creates a restorable DB Snapshot of all data associated with a DB Instance.
 		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
+		 *
 		 * @param  string $DBSnapshotIdentifier
 		 * @param  string $DBInstanceIdentifier
 		 * @return object $response
@@ -835,83 +835,83 @@
 			$request_args = array(
 					"Action"					=> "CreateDBSnapshot",
 					"DBSnapshotIdentifier"		=> $DBSnapshotIdentifier,
-					"DBInstanceIdentifier"		=> $DBInstanceIdentifier							
-					);		
-			
+					"DBInstanceIdentifier"		=> $DBInstanceIdentifier
+					);
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
-		
+
+
 		/**
 		 * Returns information about the DB Snapshots for this account.
 		 *
-		 * If you pass in a DBInstanceIdentifier, it returns information only about 
-		 * DB Snapshots taken for that DB Instance. If you pass in a 
-		 * DBSnapshotIdentifier,it will return information only about the specified 
-		 * snapshot. 
-		 * 
+		 * If you pass in a DBInstanceIdentifier, it returns information only about
+		 * DB Snapshots taken for that DB Instance. If you pass in a
+		 * DBSnapshotIdentifier,it will return information only about the specified
+		 * snapshot.
+		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
+		 *
 		 * @param  string $DBInstanceSettings
-		 * @param  string $DBSnapshotIdentifier 
+		 * @param  string $DBSnapshotIdentifier
 		 * @param  int    $maxRecords
 		 * @param  string $marker
 		 * @return object $response
 		 *
 		 */
 		public function DescribeDBSnapshots($DBInstanceIdentifier	= null,
-											$DBSnapshotIdentifier	= null,											
+											$DBSnapshotIdentifier	= null,
 											$maxRecords				= null,
 											$marker					= null)
 		{
 			$request_args = array(
-				"Action"					=> "DescribeDBSnapshots"				
+				"Action"					=> "DescribeDBSnapshots"
 			);
-					
-			$this->CutNullArgs(func_get_args(), __FUNCTION__, &$request_args);
-								
+
+			$this->CutNullArgs(func_get_args(), __FUNCTION__, $request_args);
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
-		
+
+
 		/**
 		 * Deletes a DB Snapshot.
 		 *
 		 * The specified DB Snapshot must be in the available state.
-		 * 
+		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
-		 * @param  string $DBSnapshotIdentifier 
+		 *
+		 * @param  string $DBSnapshotIdentifier
 		 * @return object $response
 		 */
-	
+
 		public function DeleteDBSnapshot($DBSnapshotIdentifier)
 		{
 			$request_args = array(
 					"Action"					=> "DeleteDBSnapshot",
-					"DBSnapshotIdentifier"		=> $DBSnapshotIdentifier											
-					);		
-			
+					"DBSnapshotIdentifier"		=> $DBSnapshotIdentifier
+					);
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
-		
-		
+
+
+
 		/**
-		 * Creates a new DB Instance from a DB Snapshot. 
-		 * 
-		 * The source DB Snapshot must be in the available state. 
+		 * Creates a new DB Instance from a DB Snapshot.
+		 *
+		 * The source DB Snapshot must be in the available state.
 		 * The new DB Instance is created with the default DB Security Group.
 		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
-		 * @param  string $DBSnapshotIdentifier 
+		 *
+		 * @param  string $DBSnapshotIdentifier
 		 * @param  string $DBInstanceIdentifier,
 		 * @param  string $DBInstanceClass,
 		 * @param  int    $Port,
@@ -919,7 +919,7 @@
 		 * @param  int	  $MultiAZ
 		 * @return object $response
 		 */
-		public function RestoreDBInstanceFromDBSnapshot($DBSnapshotIdentifier, 
+		public function RestoreDBInstanceFromDBSnapshot($DBSnapshotIdentifier,
 																$DBInstanceIdentifier,
 																$DBInstanceClass,
 																$Port,
@@ -933,30 +933,30 @@
 					"DBInstanceClass"			=> $DBInstanceClass,
 					"Port"						=> $Port,
 					"MultiAZ"					=> ($MultiAZ)?$MultiAZ = 1: $MultiAZ = 0
-					
-					);		
-				
-			// AvailabilityZone not allowed if MultiAZ is true 
-			if(!$MultiAZ)			
+
+					);
+
+			// AvailabilityZone not allowed if MultiAZ is true
+			if(!$MultiAZ)
 				$request_args["AvailabilityZone"] = $AvailabilityZone;
-				
+
 			$request_args["MultiAZ"] = ($MultiAZ)?$MultiAZ = 1: $MultiAZ = 0;
-			
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
-		
+
+
 		/**
 		 * Restores a DB Instance to a specified time, creating a new DB Instance.
 		 *
-		 * Some characteristics of the new DB Instance can be modified using optional parameters. 
-		 * If these options are omitted, the new DB Instance defaults to the characteristics 
-		 * of the DB Instance from which the DB Snapshot was created. 
+		 * Some characteristics of the new DB Instance can be modified using optional parameters.
+		 * If these options are omitted, the new DB Instance defaults to the characteristics
+		 * of the DB Instance from which the DB Snapshot was created.
 		 *
 		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more
-		 * 
+		 *
 		 * @param  string  $SourceDBInstanceIdentifier
 		 * @param  bool	   $UseLatestRestorableTime
 		 * @param  date	   $RestoreTime
@@ -964,7 +964,7 @@
 		 * @param  string  $DBInstanceClass
 		 * @param  int	   $Port
 		 * @param  string  $AvailabilityZone
-		 * @return object  $response 
+		 * @return object  $response
 		 */
 		public function RestoreDBInstanceToPointInTime($SourceDBInstanceIdentifier,
 															$UseLatestRestorableTime = false,
@@ -980,33 +980,33 @@
 					"UseLatestRestorableTime"		=> $UseLatestRestorableTime,
 					"RestoreTime"					=> $RestoreTime,
 					"TargetDBInstanceIdentifier"	=> $TargetDBInstanceIdentifier
-					);		
-			
-			
-			$this->CutNullArgs(func_get_args(), __FUNCTION__, &$request_args);
-					
+					);
+
+
+			$this->CutNullArgs(func_get_args(), __FUNCTION__, $request_args);
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
-		
-		
+
+
 		/**
 		 * Returns information about events related to your DB Instances, DB Security Groups,
 		 * and DB Parameter Groups for up to the past 14 days.
-		 * 
+		 *
 		 * You can get events specific to a particular DB Instance or DB Security Group
 		 * by providing the name as a parameter. By default, the past hour of events are returned.
-		 * 
-		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more	 * 
+		 *
+		 * @link http://docs.amazonwebservices.com/AmazonRDS/latest/APIReference/ learn more	 *
 		 *
 		 * @param	string	$SourceIdentifie
-		 * @param	string	$SourceType 
-		 * @param	date	$StartTime 
-		 * @param	date	$EndTime 
-		 * @param	int		$Duration 
-		 * @param	int		$MaxRecords 
-		 * @param	string	$Marker 
+		 * @param	string	$SourceType
+		 * @param	date	$StartTime
+		 * @param	date	$EndTime
+		 * @param	int		$Duration
+		 * @param	int		$MaxRecords
+		 * @param	string	$Marker
 		 * @return  object	$response
 		 *
 		 */
@@ -1019,14 +1019,14 @@
 												$Marker		= null)
 		{
 			$request_args = array(
-					"Action"					=> "DescribeEvents",				
-					);		
-			
-			
-			$this->CutNullArgs(func_get_args(), __FUNCTION__, &$request_args);	
-			
+					"Action"					=> "DescribeEvents",
+					);
+
+
+			$this->CutNullArgs(func_get_args(), __FUNCTION__, $request_args);
+
 			$response = $this->Request("GET", "/", $request_args);
-			
+
 			return $response;
 		}
 	}

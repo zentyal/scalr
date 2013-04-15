@@ -67,6 +67,12 @@ class Scalr_UI_Controller_Platforms_Cloudstack extends Scalr_UI_Controller
 			$domainId = $platform->getConfigVariable(Modules_Platforms_Cloudstack::DOMAIN_ID, $this->getEnvironment(), false);
 
 			$networks = $cs->listNetworks("", $accountName, $domainId);
+            
+            $data['networks'][] = array(
+                'id' => '',
+                'name' => 'Do not use network offering'
+            );
+            
 			foreach ($networks as $network) {
 				$data['networks'][] = array(
 						'id' => (string)$network->id,

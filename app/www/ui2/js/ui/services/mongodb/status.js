@@ -276,7 +276,7 @@ Scalr.regPage('Scalr.ui.services.mongodb.status', function (loadParams, modulePa
 					store: logsStore,
 					dock: 'top',
 					items: [{
-						xtype: 'tbfilterfield',
+						xtype: 'filterfield',
 						store: logsStore
 					}]
 				}]

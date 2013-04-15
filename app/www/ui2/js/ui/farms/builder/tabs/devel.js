@@ -4,14 +4,12 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.devel', function () {
 		cache: {},
 
 		isEnabled: function (record) {
-			
-			var pageParameters = Ext.urlDecode(window.location.search.substring(1));
-			return (pageParameters['devel'] == 1);
+			return Scalr.flags['betaMode'];
 		},
 
 		getDefaultValues: function (record) {
 			return {
-				'user-data.scm_branch': 'trunk',
+				'user-data.scm_branch': 'master',
 				'user-data.szr_version': ''
 			};
 		},
@@ -19,7 +17,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.devel', function () {
 		showTab: function (record) {
 			var settings = record.get('settings');
 
-			this.down('[name="user-data.scm_branch"]').setValue(settings['user-data.scm_branch'] || 'trunk');
+			this.down('[name="user-data.scm_branch"]').setValue(settings['user-data.scm_branch'] || 'master');
 			this.down('[name="user-data.szr_version"]').setValue(settings['user-data.szr_version'] || '');
 		},
 

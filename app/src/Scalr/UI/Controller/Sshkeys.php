@@ -31,7 +31,7 @@ class Scalr_UI_Controller_Sshkeys extends Scalr_UI_Controller
 			$fileName = "{$sshKey->cloudKeyName}.{$sshKey->cloudLocation}.private.pem";
 		else
 			$fileName = "{$sshKey->cloudKeyName}.private.pem";
-		
+
 		$this->response->setHeader('Pragma', 'private');
 		$this->response->setHeader('Cache-control', 'private, must-revalidate');
 		$this->response->setHeader('Content-type', 'plain/text');
@@ -58,7 +58,7 @@ class Scalr_UI_Controller_Sshkeys extends Scalr_UI_Controller
 			$fileName = "{$sshKey->cloudKeyName}.{$sshKey->cloudLocation}.public.pem";
 		else
 			$fileName = "{$sshKey->cloudKeyName}.public.pem";
-		
+
 		$this->response->setHeader('Pragma', 'private');
 		$this->response->setHeader('Cache-control', 'private, must-revalidate');
 		$this->response->setHeader('Content-type', 'plain/text');
@@ -79,16 +79,10 @@ class Scalr_UI_Controller_Sshkeys extends Scalr_UI_Controller
 
 		if ($sshKey->type == Scalr_SshKey::TYPE_GLOBAL) {
 			if ($sshKey->platform == 'ec2') {
-				$AmazonEC2Client = Scalr_Service_Cloud_Aws::newEc2(
-					$sshKey->cloudLocation,
-					$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::PRIVATE_KEY),
-					$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::CERTIFICATE)
-				);
-
-				$AmazonEC2Client->DeleteKeyPair($sshKey->cloudKeyName);
-				
+				$aws = $this->getEnvironment()->aws($sshKey->cloudLocation);
+				$aws->ec2->keyPair->delete($sshKey->cloudKeyName);
 				$sshKey->delete();
-				
+
 				$this->response->success();
 			} else {
 				$sshKey->delete();
@@ -96,12 +90,13 @@ class Scalr_UI_Controller_Sshkeys extends Scalr_UI_Controller
 		} else {
 			//TODO:
 		}
-		
+
 		$this->response->success("SSH key successfully removed");
 	}
-	
+
 	public function regenerateAction()
 	{
+		$env = $this->getEnvironment();
 		$this->request->defineParams(array(
 			'sshKeyId' => array('type' => 'int')
 		));
@@ -111,26 +106,19 @@ class Scalr_UI_Controller_Sshkeys extends Scalr_UI_Controller
 
 		if ($sshKey->type == Scalr_SshKey::TYPE_GLOBAL) {
 			if ($sshKey->platform == 'ec2') {
-				$AmazonEC2Client = Scalr_Service_Cloud_Aws::newEc2(
-					$sshKey->cloudLocation,
-					$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::PRIVATE_KEY),
-					$this->getEnvironment()->getPlatformConfigValue(Modules_Platforms_Ec2::CERTIFICATE)
-				);
+				$aws = $env->aws($sshKey->cloudLocation);
+				$aws->ec2->keyPair->delete($sshKey->cloudKeyName);
+				$result = $aws->ec2->keyPair->create($sshKey->cloudKeyName);
 
-				$AmazonEC2Client->DeleteKeyPair($sshKey->cloudKeyName);
-
-				$result = $AmazonEC2Client->CreateKeyPair($sshKey->cloudKeyName);
-				if ($result->keyMaterial) {
+				if (!empty($result->keyMaterial)) {
 					$sshKey->setPrivate($result->keyMaterial);
-
 					$pubKey = $sshKey->generatePublicKey();
-					if (!$pubKey)
+					if (!$pubKey) {
 						throw new Exception("Keypair generation failed");
-
+					}
 					$oldKey = $sshKey->getPublic();
 
 					$sshKey->setPublic($pubKey);
-
 					$sshKey->save();
 
 					$dbFarm = DBFarm::LoadByID($sshKey->farmId);
@@ -145,7 +133,7 @@ class Scalr_UI_Controller_Sshkeys extends Scalr_UI_Controller
 					$this->response->success();
 				}
 			} else {
-				//TODO:
+				//TODO: regenerate ssh key for the different platforms
 			}
 		} else {
 			//TODO:
@@ -159,8 +147,8 @@ class Scalr_UI_Controller_Sshkeys extends Scalr_UI_Controller
 	{
 		$this->request->defineParams(array(
 			'sshKeyId' => array('type' => 'int'),
-			'farmId' => array('type' => 'int'),
-			'sort' => array('type' => 'json')
+			'farmId'   => array('type' => 'int'),
+			'sort'     => array('type' => 'json')
 		));
 
 		$sql = 'SELECT id FROM ssh_keys WHERE env_id = ? AND :FILTER:';
@@ -190,9 +178,8 @@ class Scalr_UI_Controller_Sshkeys extends Scalr_UI_Controller
 				'id'				=> $sshKey->id,
 				'type'				=> ($sshKey->type == Scalr_SshKey::TYPE_GLOBAL) ? "{$sshKey->type} ({$sshKey->platform})" : $sshKey->type,
 				'cloud_key_name'	=> $sshKey->cloudKeyName,
-				//'fingerprint'	=> $sshKey->getFingerprint(),
-				'farm_id'		=> $sshKey->farmId,
-				'cloud_location'=> $sshKey->cloudLocation
+				'farm_id'		    => $sshKey->farmId,
+				'cloud_location'    => $sshKey->cloudLocation
 			);
 		}
 

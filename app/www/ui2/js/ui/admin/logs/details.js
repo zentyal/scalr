@@ -83,7 +83,7 @@ Scalr.regPage('Scalr.ui.admin.logs.details', function (loadParams, moduleParams)
 					}]
 				}
 			}, ' ', {
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}]
 		}]

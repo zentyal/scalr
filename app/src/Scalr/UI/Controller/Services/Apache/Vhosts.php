@@ -26,24 +26,26 @@ class Scalr_UI_Controller_Services_Apache_Vhosts extends Scalr_UI_Controller
 		));
 
 		foreach ($this->getParam('vhosts') as $vhostId) {
-			$dbFarmId = $this->db->GetOne("SELECT farm_id FROM apache_vhosts WHERE id = ? AND env_id = ?",
+			$info = $this->db->GetRow("SELECT id, farm_id FROM apache_vhosts WHERE id = ? AND env_id = ?",
 				array($vhostId, $this->getEnvironmentId())
 			);
 
-			if ($dbFarmId) {
+			if ($info['id']) {
 				$this->db->Execute("DELETE FROM apache_vhosts WHERE id = ? AND env_id = ?",
 					array($vhostId, $this->getEnvironmentId())
 				);
 
-				$dbFarm = DBFarm::LoadByID($dbFarmId);
-
-				$servers = $dbFarm->GetServersByFilter(array('status' => array(SERVER_STATUS::INIT, SERVER_STATUS::RUNNING)));
-				foreach ($servers as $dBServer)
-				{
-					if ($dBServer->GetFarmRoleObject()->GetRoleObject()->hasBehavior(ROLE_BEHAVIORS::NGINX) ||
-						$dBServer->GetFarmRoleObject()->GetRoleObject()->hasBehavior(ROLE_BEHAVIORS::APACHE))
-						$dBServer->SendMessage(new Scalr_Messaging_Msg_VhostReconfigure());
-				}
+                if ($info['farm_id']) {
+    				$dbFarm = DBFarm::LoadByID($info['farm_id']);
+    
+    				$servers = $dbFarm->GetServersByFilter(array('status' => array(SERVER_STATUS::INIT, SERVER_STATUS::RUNNING)));
+    				foreach ($servers as $dBServer)
+    				{
+    					if ($dBServer->GetFarmRoleObject()->GetRoleObject()->hasBehavior(ROLE_BEHAVIORS::NGINX) ||
+    						$dBServer->GetFarmRoleObject()->GetRoleObject()->hasBehavior(ROLE_BEHAVIORS::APACHE))
+    						$dBServer->SendMessage(new Scalr_Messaging_Msg_VhostReconfigure());
+    				}
+                }
 			}
 		}
 
@@ -56,11 +58,12 @@ class Scalr_UI_Controller_Services_Apache_Vhosts extends Scalr_UI_Controller
 		$this->user->getPermissions()->validate($vHost);
 
 		$options = unserialize($vHost->templateOptions);
-
 		$farms = self::loadController('Farms')->getList();
 
-		$this->request->setParams(array('farmId' => $vHost->farmId));
-		$farmRoles = self::loadController('Roles', 'Scalr_UI_Controller_Farms')->getList();
+		if ($vHost->farmId) {
+            $this->request->setParams(array('farmId' => $vHost->farmId));
+            $farmRoles = self::loadController('Roles', 'Scalr_UI_Controller_Farms')->getList();
+        }
 
 		if ($vHost->isSslEnabled) {
 			$info = openssl_x509_parse($vHost->sslCert, false);
@@ -74,7 +77,7 @@ class Scalr_UI_Controller_Services_Apache_Vhosts extends Scalr_UI_Controller
 		}
 
 		$this->response->page('ui/services/apache/vhosts/create.js', array(
-			'farmWidget' => self::loadController('Farms')->getFarmWidget(array('farmId' => $vHost->farmId, 'farmRoleId' => $vHost->farmRoleId), $this->farmWidgetOptions),
+			'farmWidget' => self::loadController('Farms')->getFarmWidget(array('farmId' => $vHost->farmId ? $vHost->farmId : "", 'farmRoleId' => $vHost->farmRoleId ? $vHost->farmRoleId : ""), $this->farmWidgetOptions),
 			'vhostId' => $vHost->id,
 			'domainName' => $vHost->domainName,
 			'isSslEnabled' => (int)$vHost->isSslEnabled,
@@ -141,7 +144,9 @@ class Scalr_UI_Controller_Services_Apache_Vhosts extends Scalr_UI_Controller
 			if(!$this->getParam('logsDir'))
 				$err['logsDir'] = _("Logs directory required");
 
-			if ($this->db->GetOne("SELECT id FROM apache_vhosts WHERE env_id=? AND `name` = ? AND id != ?", array($this->getEnvironmentId(), $this->getParam('domainName'), $this->getParam('vhostId'))))
+			if ($this->db->GetOne("SELECT id FROM apache_vhosts WHERE env_id=? AND `name` = ? AND id != ? AND farm_id = ?", 
+                array($this->getEnvironmentId(), $this->getParam('domainName'), $this->getParam('vhostId'), $this->getParam('farmId')))
+            )
 				$err['domainName'] = "'{$this->getParam('domainName')}' virtualhost already exists";
 
 		} catch (Exception $e) {

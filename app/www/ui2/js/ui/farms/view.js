@@ -91,7 +91,7 @@ Scalr.regPage('Scalr.ui.farms.view', function (loadParams, moduleParams) {
 				})
 			}, { text: "Alerts", width: 90, dataIndex: 'alerts', align:'center', sortable: false, xtype: 'templatecolumn',
 				tpl: '<tpl if="status == 1">'+
-					'<tpl if="alerts &gt; 0"><span style="color:red;">{alerts}</span> [<a href="/#/alerts/view?farmId={id}&status=failed">View</a>]<tpl else><span style="color:green;">0</span></tpl>'+
+					'<tpl if="alerts &gt; 0"><span style="color:red;">{alerts}</span> [<a href="#/alerts/view?farmId={id}&status=failed">View</a>]<tpl else><span style="color:green;">0</span></tpl>'+
 				'<tpl else><img src="/ui2/images/icons/false.png" /></tpl>'
 			}, {
 				text: 'Lock', width: 55, dataIndex: 'lock', fixed: true, resizable: false, sortable: false, tdCls: 'scalr-ui-farms-view-td-lock', xtype: 'templatecolumn', tpl:
@@ -326,7 +326,7 @@ Scalr.regPage('Scalr.ui.farms.view', function (loadParams, moduleParams) {
 										hidden: !data.isMysqlRunning,
 										xtype: 'displayfield',
 										fieldCls: 'x-form-field-warning',
-										value: 'The bundle will not include MySQL data. <a href=\'#/dbmsr/status?farmId='+data.farmId+'&type=mysql\'>Click here if you wish to bundle and save MySQL data</a>.'
+										value: 'Server snapshot will not include database data. You can create db data bundle on database manager page.'
 									}, {
 										xtype: 'fieldset',
 										title: 'Synchronization settings',
@@ -415,22 +415,22 @@ Scalr.regPage('Scalr.ui.farms.view', function (loadParams, moduleParams) {
 					itemId: 'option.mysql2',
 					iconCls: 'x-menu-icon-mysql',
 					text: 'MySQL status',
-					href: "#/dbmsr/status?farmId={id}&type=mysql2"
+					href: "#/db/manager/dashboard?farmId={id}&type=mysql2"
 				}, {
 					itemId: 'option.percona',
 					iconCls: 'x-menu-icon-percona',
 					text: 'Percona Server status',
-					href: "#/dbmsr/status?farmId={id}&type=percona"
+					href: "#/db/manager/dashboard?farmId={id}&type=percona"
 				}, {
 					itemId: 'option.postgresql',
 					iconCls: 'x-menu-icon-postgresql',
 					text: 'PostgreSQL status',
-					href: "#/dbmsr/status?farmId={id}&type=postgresql"
+					href: "#/db/manager/dashboard?farmId={id}&type=postgresql"
 				}, {
 					itemId: 'option.redis',
 					iconCls: 'x-menu-icon-redis',
 					text: 'Redis status',
-					href: "#/dbmsr/status?farmId={id}&type=redis"
+					href: "#/db/manager/dashboard?farmId={id}&type=redis"
 				}, {
 					itemId: 'option.rabbitmq',
 					iconCls: 'x-menu-icon-rabbitmq',
@@ -581,7 +581,7 @@ Scalr.regPage('Scalr.ui.farms.view', function (loadParams, moduleParams) {
 			xtype: 'scalrpagingtoolbar',
 			store: store,
 			dock: 'top',
-			afterItems: [{
+			beforeItems: [{
 				ui: 'paging',
 				iconCls: 'x-tbar-add',
 				handler: function() {
@@ -589,8 +589,17 @@ Scalr.regPage('Scalr.ui.farms.view', function (loadParams, moduleParams) {
 				}
 			}],
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
+			}, ' ', {
+				xtype: 'button',
+				text: 'Show only my farms',
+				enableToggle: true,
+				width: 150,
+				toggleHandler: function (field, checked) {
+					store.proxy.extraParams.showOnlyMy = checked ? '1' : '';
+					store.loadPage(1);
+				}
 			}]
 		}]
 	});

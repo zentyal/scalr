@@ -3,19 +3,21 @@ class Scalr_Account_Group extends Scalr_Model
 {	
 	protected $dbTableName = 'account_groups';
 	protected $dbPrimaryKey = "id";
-	protected $dbMessageKeyNotFound = "Group #%s not found in database";
+	protected $dbMessageKeyNotFound = "ACL #%s not found in database";
 
 	protected $dbPropertyMap = array(
 		'id'			=> 'id',
 		'team_id'		=> 'teamId',
 		'name'			=> 'name',
-		'is_active'		=> 'isActive'
+		'is_active'		=> 'isActive',
+		'color'			=> 'color'
 	);
 	
 	public
 		$teamId,
 		$name,
-		$isActive;
+		$isActive,
+		$color;
 
 	/**
 	 * 

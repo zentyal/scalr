@@ -17,12 +17,12 @@ use Scalr\Service\Aws\AbstractHandler;
 abstract class AbstractCloudWatchHandler extends AbstractHandler
 {
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractHandler::getServiceNames()
-	 */
-	public function getServiceNames()
-	{
-		return array(Aws::SERVICE_INTERFACE_CLOUD_WATCH);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractHandler::getServiceNames()
+     */
+    public function getServiceNames()
+    {
+        return array(Aws::SERVICE_INTERFACE_CLOUD_WATCH);
+    }
 }

@@ -55,6 +55,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.servicesconfig', function () {
 					fieldLabel: behavior,
 					valueField: 'id',
 					displayField: 'name',
+					//disabled: !config_presets[behavior],
 					editable: false,
 					queryMode: 'local',
 					behavior: behavior,

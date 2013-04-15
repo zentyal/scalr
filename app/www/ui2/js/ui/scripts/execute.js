@@ -41,11 +41,12 @@ Scalr.regPage('Scalr.ui.scripts.execute', function (loadParams, moduleParams) {
 						fR.setValue('');
 
 						if (r) {
-							fR.store.load({ data: r.get('revisions')} );
+							fR.store.loadData(r.get('revisions'));
 							fR.store.sort('revision', 'DESC');
+							fR.store.insert(0, { revision: -1, revisionName: 'Latest', fields: fR.store.first().get('fields') });
 
 							if (!moduleParams['eventName']) {
-								fR.setValue(fR.store.getAt(0).get('revision'));
+								fR.setValue(fR.store.first().get('revision'));
 
 								form.down('[name="scriptTimeout"]').setValue(r.get('timeout'));
 								form.down('[name="scriptIsSync"]').setValue(r.get('issync'));
@@ -67,11 +68,11 @@ Scalr.regPage('Scalr.ui.scripts.execute', function (loadParams, moduleParams) {
 			},{
 				xtype: 'combo',
 				store: {
-					fields: [{ name: 'revision', type: 'int' }, 'fields' ],
+					fields: [{ name: 'revision', type: 'int' }, 'revisionName', 'fields' ],
 					proxy: 'object'
 				},
 				valueField: 'revision',
-				displayField: 'revision',
+				displayField: 'revisionName',
 				editable: false,
 				queryMode: 'local',
 				name: 'scriptVersion',

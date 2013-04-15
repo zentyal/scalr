@@ -25,9 +25,11 @@
 		
 		public function handleMessage(Scalr_Messaging_Msg $message, DBServer $dbServer)
 		{
+			parent::handleMessage($message, $dbServer);
+                
 			if (!$message->cfCloudController)
 				return;
-			
+            
 			switch (get_class($message))
 			{
 				case "Scalr_Messaging_Msg_HostUp":

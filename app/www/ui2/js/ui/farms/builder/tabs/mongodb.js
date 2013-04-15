@@ -12,8 +12,13 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.mongodb', function () {
 				var default_storage_engine = 'ebs';
 			else if (record.get('platform') == 'rackspace') 
 				var default_storage_engine = 'eph';
-			else if (record.get('platform') == 'cloudstack') 
+			else if (record.get('platform') == 'gce') 
+				var default_storage_engine = 'gce_persistent';
+			else if (record.get('platform') == 'cloudstack' || record.get('platform') == 'idcf') 
 				var default_storage_engine = 'csvol';
+			else if (record.get('platform') == 'openstack' || record.get('platform') == 'rackspacengus' || record.get('platform') == 'rackspacenguk') 
+				var default_storage_engine = 'cinder';
+				
 			
 			
 			return {
@@ -32,16 +37,29 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.mongodb', function () {
 			}
 			else if (record.get('platform') == 'rackspace') {
 				this.down('[name="mongodb.data_storage.engine"]').store.load({
-					data: ['eph']
+					data: [{name:'eph', description:'Ephemeral device'}]
 				});
 			}
-			else if (record.get('platform') == 'cloudstack') {
+			else if (record.get('platform') == 'cloudstack' || record.get('platform') == 'idcf') {
 				this.down('[name="mongodb.data_storage.engine"]').store.load({
-					data: ['csvol']
+					data: [{name:'csvol', description:'Cloudstack Block Device'}]
+				});
+			}
+			else if (record.get('platform') == 'gce') {
+				this.down('[name="mongodb.data_storage.engine"]').store.load({
+					data: [{name:'gce_persistent', description:'GCE persistent disk'}]
+				});
+			}
+			else if (record.get('platform') == 'openstack' || record.get('platform') == 'rackspacengus' || record.get('platform') == 'rackspacenguk') {
+				this.down('[name="mongodb.data_storage.engine"]').store.load({
+					data: [{name:'cinder', description:'Cinder Block Device'}]
 				});
 			}
 			
-			if (settings['mongodb.data_storage.engine'] == 'ebs' || settings['mongodb.data_storage.engine'] == 'csvol') {
+			if (settings['mongodb.data_storage.engine'] == 'ebs' || 
+				settings['mongodb.data_storage.engine'] == 'csvol' || 
+				settings['mongodb.data_storage.engine'] == 'cinder' || 
+				settings['mongodb.data_storage.engine'] == 'gce_persistent') {
 				this.down('[name="mongodb.data_storage.ebs.size"]').setValue(settings['mongodb.data_storage.ebs.size']);
 			}
 
@@ -84,7 +102,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.mongodb', function () {
 
 			settings['mongodb.data_storage.engine'] = this.down('[name="mongodb.data_storage.engine"]').getValue();
 			
-			if (settings['mongodb.data_storage.engine'] == 'ebs' || settings['mongodb.data_storage.engine'] == 'csvol') {
+			if (settings['mongodb.data_storage.engine'] == 'ebs' || settings['mongodb.data_storage.engine'] == 'csvol' || settings['mongodb.data_storage.engine'] == 'cinder' || settings['mongodb.data_storage.engine'] == 'gce_persistent') {
 				if (record.get('new')) 
 					settings['mongodb.data_storage.ebs.size'] = this.down('[name="mongodb.data_storage.ebs.size"]').getValue();
 			}
@@ -123,7 +141,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.mongodb', function () {
 						this.up('#mongodb').down('[name="ebs_settings"]').hide();
 						this.up('#mongodb').down('[name="raid_settings"]').hide();
 						
-						if (this.getValue() == 'ebs' || this.getValue() == 'csvol') {
+						if (this.getValue() == 'ebs' || this.getValue() == 'csvol' || this.getValue() == 'cinder') {
 							this.up('#mongodb').down('[name="ebs_settings"]').show();
 						}
 						
@@ -146,7 +164,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.mongodb', function () {
 				name: 'mongodb.data_storage.ebs.size',
 				validator: function(value) {
 					if (parseInt(value) < 10 || parseInt(value) > 1000)
-						return "EBS size should be from 10 GB to 1000 GB";
+						return "Disk size should be from 10 GB to 1000 GB";
 					
 					return true;
 				}

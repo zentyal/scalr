@@ -104,7 +104,10 @@ Ext.define('Scalr.ui.DnsZonesField',{
 		listeners: {
 			afterrender: function () {
 				Ext.get(this.el.down('img')).on('click', function () {
-					this.up('panel').fixScrollTop();
+					var panel = this.up('panel');
+					if (panel.fixScrollTop) {
+						panel.fixScrollTop();
+					}
 					this.up('dnsfield').up().remove(this.up('dnsfield'));
 				}, this);
 			}
@@ -114,14 +117,16 @@ Ext.define('Scalr.ui.DnsZonesField',{
 	plugins: {
 		ptype: 'addfield',
 		handler: function () {
-			this.up('panel').fixScrollTop();
-			this.up('panel').suspendLayout = true;
+			var panel = this.up('panel');
+			if (panel.fixScrollTop) {
+				panel.fixScrollTop();
+			}
+			panel.suspendLayouts();
 			
 			this.getPlugin('addfield').hide();
 			this.addNewDnsfield();
 			
-			this.up('panel').suspendLayout = false;
-			this.up('panel').updateLayout();
+			panel.resumeLayouts(true);
 		}
 	},
 	

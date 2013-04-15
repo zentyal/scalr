@@ -18,29 +18,29 @@ use Scalr\Service\Aws\CloudWatch\AbstractCloudWatchDataType;
  */
 class MetricDatumData extends AbstractCloudWatchDataType
 {
-	/**
-	 * List of the public properties
-	 * which is managed by magic getter and setters internally.
-	 *
-	 * @var  array
-	 */
-	protected $_properties = array('dimensions', 'statisticValues');
+    /**
+     * List of the public properties
+     * which is managed by magic getter and setters internally.
+     *
+     * @var  array
+     */
+    protected $_properties = array('dimensions', 'statisticValues');
 
-	/**
-	 * The name of the metric.
-	 *
-	 * Length constraints: Minimum length of 1. Maximum length of 255.
-	 *
-	 * @var string
-	 */
-	public $metricName;
+    /**
+     * The name of the metric.
+     *
+     * Length constraints: Minimum length of 1. Maximum length of 255.
+     *
+     * @var string
+     */
+    public $metricName;
 
-	/**
-	 * The time stamp used for the metric. If not specified, the default value is set to
-	 * the time the metric data was received.
-	 *
-	 * @var \DateTime
-	 */
-	public $timestamp;
+    /**
+     * The time stamp used for the metric. If not specified, the default value is set to
+     * the time the metric data was received.
+     *
+     * @var \DateTime
+     */
+    public $timestamp;
 
 }

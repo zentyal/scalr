@@ -49,10 +49,10 @@ class Scalr_Messaging_Msg_Deploy extends Scalr_Messaging_Msg {
 		
 		$this->preDeployRoutines = new stdClass();
 		$this->preDeployRoutines->body = $preDeployRoutines;
-		$this->preDeployRoutines->execTimeout = 300;
+		$this->preDeployRoutines->execTimeout = 900;
 		
 		$this->postDeployRoutines = new stdClass();
 		$this->postDeployRoutines->body = $postDeployRoutines;
-		$this->postDeployRoutines->execTimeout = 300;
+		$this->postDeployRoutines->execTimeout = 900;
 	}
 }

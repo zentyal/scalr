@@ -196,6 +196,8 @@
 		
 		public function handleMessage(Scalr_Messaging_Msg $message, DBServer $dbServer)
 		{
+			parent::handleMessage($message, $dbServer);
+                
 			try {
 				$dbFarmRole = $dbServer->GetFarmRoleObject();
 			} catch (Exception $e) {}
@@ -465,7 +467,7 @@
 				$volumeConfig->type = $dbFarmRole->GetSetting(static::ROLE_DATA_STORAGE_ENGINE);
 				//$volumeConfig->fstype = 'xfs';
 	
-				if (in_array($volumeConfig->type, array(MYSQL_STORAGE_ENGINE::EBS, MYSQL_STORAGE_ENGINE::CSVOL))) {
+				if (in_array($volumeConfig->type, array(MYSQL_STORAGE_ENGINE::EBS, MYSQL_STORAGE_ENGINE::CSVOL, MYSQL_STORAGE_ENGINE::CINDER, MYSQL_STORAGE_ENGINE::GCE_PERSISTENT))) {
 					$volumeConfig->size = $dbFarmRole->GetSetting(static::ROLE_DATA_STORAGE_EBS_SIZE);
 				}
 				elseif ($volumeConfig->type == MYSQL_STORAGE_ENGINE::RAID_EBS) {

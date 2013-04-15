@@ -4,7 +4,7 @@ Ext.define('Scalr.ui.ScriptEventView', {
 
 	scalrModuleData: {},
 	store: {
-		fields: [ 'role_script_id', 'script_id', 'script_name', 'event_name', 'target', 'issync', 'timeout', 'version', 'params', 'order_index' ],
+		fields: [ 'role_script_id', 'script_id', 'script_name', 'event_name', 'target', 'issync', 'timeout', 'version', 'params', { name: 'order_index', type: 'int' }],
 		groupField: 'event_name',
 		sorters: [ 'order_index' ],
 		proxy: 'object'

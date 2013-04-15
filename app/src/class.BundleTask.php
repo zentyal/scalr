@@ -111,7 +111,8 @@
 					
 				case "started":
 					
-					$this->dateStarted = date("Y-m-d H:i:s");
+                    if (!$this->dateStarted)
+					   $this->dateStarted = date("Y-m-d H:i:s");
 					
 					break;
 			}

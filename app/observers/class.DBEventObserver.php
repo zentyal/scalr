@@ -11,21 +11,21 @@
 		 */
 		public $ObserverName = 'DB';
 		
-		public function OnMetricCheckFailed(MetricCheckFailedEvent $event) {
+		public function OnCheckFailed(CheckFailedEvent $event) {
 			
             $serverAlerts = new Alerts($event->dBServer);
-			$hasActiveAlert = $serverAlerts->hasActiveAlert($event->metric);
+			$hasActiveAlert = $serverAlerts->hasActiveAlert($event->check);
 			if (!$hasActiveAlert) {
-				$serverAlerts->createAlert($event->metric, $event->details);
+				$serverAlerts->createAlert($event->check, $event->details);
 			}
 		}
 		
-		public function OnMetricCheckRecovered(MetricCheckRecoveredEvent $event) {
+		public function OnCheckRecovered(CheckRecoveredEvent $event) {
 			
 			$serverAlerts = new Alerts($event->dBServer);
-			$hasActiveAlert = $serverAlerts->hasActiveAlert($event->metric);
+			$hasActiveAlert = $serverAlerts->hasActiveAlert($event->check);
 			if ($hasActiveAlert) {
-				$serverAlerts->solveAlert($event->metric);
+				$serverAlerts->solveAlert($event->check);
 			}
 		}
 		
@@ -289,7 +289,7 @@
 				
 				PlatformFactory::NewPlatform($event->DBServer->platform)->TerminateServer($event->DBServer);
 				
-				$BundleTask->Log("Termintation request has been sent");
+				$BundleTask->Log("Termination request has been sent");
 				
 				Scalr_Server_History::init($event->DBServer)->markAsTerminated("RoleBuilder temporary server", true);
 				
@@ -441,6 +441,8 @@
 		{
 			$event->DBServer->status = SERVER_STATUS::RUNNING;
 			
+            $this->DB->Execute("UPDATE servers_history SET scu_collecting = '1' WHERE server_id = ?", array($event->DBServer->serverId));
+            
 			if ($event->ReplUserPass)
 				$event->DBServer->GetFarmRoleObject()->SetSetting(DBFarmRole::SETTING_MYSQL_STAT_PASSWORD, $event->ReplUserPass);
 			
@@ -533,6 +535,8 @@
 			$event->DBServer->status = SERVER_STATUS::TERMINATED;
 			$event->DBServer->dateShutdownScheduled = date("Y-m-d H:i:s");
 			
+            $this->DB->Execute("UPDATE servers_history SET scu_collecting = '0' WHERE server_id = ?", array($event->DBServer->serverId));
+            
 			//TODO: move to alerts;
 			$this->DB->Execute("UPDATE server_alerts SET status='resolved' WHERE server_id = ?", array($event->DBServer->serverId));
 			

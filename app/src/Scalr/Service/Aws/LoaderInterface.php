@@ -12,18 +12,18 @@ namespace Scalr\Service\Aws;
 interface LoaderInterface
 {
 
-	/**
-	 * Loads xml into loader
-	 *
-	 * @param   string    $xml  XML
-	 * @return  mixed     Returns result of loading
-	 */
-	public function load($xml);
+    /**
+     * Loads xml into loader
+     *
+     * @param   string    $xml  XML
+     * @return  mixed     Returns result of loading
+     */
+    public function load($xml);
 
-	/**
-	 * Gets result object that is loaded
-	 *
-	 * @return   mixed  Returns result of loading
-	 */
-	public function getResult();
+    /**
+     * Gets result object that is loaded
+     *
+     * @return   mixed  Returns result of loading
+     */
+    public function getResult();
 }

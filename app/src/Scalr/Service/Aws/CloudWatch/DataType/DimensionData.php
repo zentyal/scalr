@@ -15,40 +15,40 @@ use Scalr\Service\Aws\CloudWatch\AbstractCloudWatchDataType;
  */
 class DimensionData extends AbstractCloudWatchDataType
 {
-	/**
-	 * List of external identifier names.
-	 *
-	 * @var array
-	 */
-	protected $_externalKeys = array('metricName');
+    /**
+     * List of external identifier names.
+     *
+     * @var array
+     */
+    protected $_externalKeys = array('metricName');
 
-	/**
-	 * The name of the dimension
-	 *
-	 * Length constraints: Minimum length of 1. Maximum length of 255.
-	 *
-	 * @var string
-	 */
-	public $name;
+    /**
+     * The name of the dimension
+     *
+     * Length constraints: Minimum length of 1. Maximum length of 255.
+     *
+     * @var string
+     */
+    public $name;
 
-	/**
-	 * The value representing the dimension measurement
-	 *
-	 * Length constraints: Minimum length of 1. Maximum length of 255.
-	 *
-	 * @var string
-	 */
-	public $value;
+    /**
+     * The value representing the dimension measurement
+     *
+     * Length constraints: Minimum length of 1. Maximum length of 255.
+     *
+     * @var string
+     */
+    public $value;
 
-	/**
-	 * Convenient constructor
-	 *
-	 * @param   string     $name  optional The name of the dimension
-	 * @param   string     $value optional The value representing the dimension measurement
-	 */
-	public function __construct($name = null, $value = null)
-	{
-		$this->name = $name;
-		$this->value = $value;
-	}
+    /**
+     * Convenient constructor
+     *
+     * @param   string     $name  optional The name of the dimension
+     * @param   string     $value optional The value representing the dimension measurement
+     */
+    public function __construct($name = null, $value = null)
+    {
+        $this->name = $name;
+        $this->value = $value;
+    }
 }

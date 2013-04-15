@@ -99,7 +99,7 @@ Scalr.regPage('Scalr.ui.security.groups.view', function (loadParams, moduleParam
 			store: store,
 			dock: 'top',
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}, ' ', {
 				xtype: 'fieldcloudlocation',

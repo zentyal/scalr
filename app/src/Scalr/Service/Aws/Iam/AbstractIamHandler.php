@@ -17,12 +17,12 @@ use Scalr\Service\Aws\AbstractHandler;
 abstract class AbstractIamHandler extends AbstractHandler
 {
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractHandler::getServiceNames()
-	 */
-	public function getServiceNames()
-	{
-		return array(Aws::SERVICE_INTERFACE_IAM);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractHandler::getServiceNames()
+     */
+    public function getServiceNames()
+    {
+        return array(Aws::SERVICE_INTERFACE_IAM);
+    }
 }

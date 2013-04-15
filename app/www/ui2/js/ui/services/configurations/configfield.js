@@ -46,7 +46,7 @@ Ext.define('Scalr.ui.ConfigField',{
 			afterrender: function () {
 				Ext.get(this.el.down('img')).on('click', function () {
 					var val = this.up('configfield').getValue();
-					if (val && val.key != '' && val.value != '') {
+					if (val && val.key != '') {
 						val.value = '*unset*';
 						this.up('configfield').setValue(val);
 					} else {
@@ -132,7 +132,7 @@ Ext.define('Scalr.ui.ConfigField',{
 		});
 
 		var values = { key: vals['key'], value: vals['value'], configFile: this.configFile};
-		if (values.value != '') {
+		if (values.key != '') {
 			return values;
 		} else {
 			return null;

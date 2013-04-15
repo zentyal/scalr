@@ -14,39 +14,39 @@ use Scalr\Service\Aws\CloudWatch\AbstractCloudWatchDataType;
  */
 class StatisticSetData extends AbstractCloudWatchDataType
 {
-	/**
-	 * List of external identifier names.
-	 *
-	 * @var array
-	 */
-	protected $_externalKeys = array('metricName');
+    /**
+     * List of external identifier names.
+     *
+     * @var array
+     */
+    protected $_externalKeys = array('metricName');
 
-	/**
-	 * The maximum value of the sample set.
-	 *
-	 * @var float
-	 */
-	public $maximum;
+    /**
+     * The maximum value of the sample set.
+     *
+     * @var float
+     */
+    public $maximum;
 
-	/**
-	 * The minimum value of the sample set.
-	 *
-	 * @var float
-	 */
-	public $minimum;
+    /**
+     * The minimum value of the sample set.
+     *
+     * @var float
+     */
+    public $minimum;
 
-	/**
-	 * The number of samples used for the statistic set.
-	 *
-	 * @var float
-	 */
-	public $sampleCount;
+    /**
+     * The number of samples used for the statistic set.
+     *
+     * @var float
+     */
+    public $sampleCount;
 
-	/**
-	 * The sum of values for the sample set.
-	 *
-	 * @var float
-	 */
-	public $sum;
+    /**
+     * The sum of values for the sample set.
+     *
+     * @var float
+     */
+    public $sum;
 
 }

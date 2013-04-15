@@ -8,7 +8,7 @@ Scalr.regPage('Scalr.ui.schedulertasks.create', function (loadParams, modulePara
 	}
 	var form = Ext.create('Ext.form.Panel', {
 		bodyCls: 'x-panel-body-frame',
-		width: 1059,
+		width: 1100,
 		title: 'Scheduler tasks &raquo; ' + (moduleParams['task'] ? ('Edit &raquo; ' + moduleParams['task']['name']) : 'Create'),
 		fieldDefaults: {
 			anchor: '100%',
@@ -124,9 +124,18 @@ Scalr.regPage('Scalr.ui.schedulertasks.create', function (loadParams, modulePara
 					allowBlank: false,
 					width: 38
 				}, {
+					xtype: 'combo',
+					store: [ 'minutes', 'hours', 'days' ],
+					editable: false,
+					queryMode: 'local',
+					margin: '0 0 0 3',
+					width: 85,
+					value: 'minutes',
+					name: 'restartEveryMeasure'
+				}, {
 					xtype: 'displayfield',
 					margin: '0 0 0 3',
-					value: 'minutes till'
+					value: 'till'
 				}, {
 					xtype: 'combo',
 					editable: false,
@@ -335,6 +344,11 @@ Scalr.regPage('Scalr.ui.schedulertasks.create', function (loadParams, modulePara
 							task['endTime'] = values['endTimeDate'] + ' ' + values['endTimeTime'];
 						}
 
+						if (values['restartEveryMeasure'] == 'days')
+							task['restartEveryReal'] = values['restartEvery'] * 60 * 24;
+						else if (values['restartEveryMeasure'] == 'hours')
+							task['restartEveryReal'] = values['restartEvery'] * 60;
+
 						Scalr.Request({
 							processBox: {
 								type: 'save'
@@ -375,7 +389,27 @@ Scalr.regPage('Scalr.ui.schedulertasks.create', function (loadParams, modulePara
 				endTimeTime: task['endTime'].split(' ')[1]
 			});
 		}
+		if (task['restartEvery']) {
+			task['restartEveryMeasure'] = 'minutes';
+
+			if (! (task['restartEvery'] % 60)) {
+				task['restartEvery'] = task['restartEvery'] / 60;
+				task['restartEveryMeasure'] = 'hours';
+			}
+
+			if (! (task['restartEvery'] % 24)) {
+				task['restartEvery'] = task['restartEvery'] / 24;
+				task['restartEveryMeasure'] = 'days';
+			}
+
+			form.getForm().setValues({
+				restartEvery: task['restartEvery'],
+				restartEveryMeasure: task['restartEveryMeasure']
+			});
+		}
+
 		if (executionOptions['scriptId']) {
+			executionOptions['scriptVersion'] = parseInt(executionOptions['scriptVersion']);
 			for (var i in executionOptions['scriptOptions']) {
 				scriptOptionsValue['scriptOptions[' + i + ']'] = executionOptions['scriptOptions'][i];
 			}

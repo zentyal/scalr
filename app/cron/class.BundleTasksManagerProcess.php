@@ -22,6 +22,9 @@
             ));
                         
             $this->Logger->info("Found ".count($this->ThreadArgs)." bundle tasks.");
+            
+            $this->crypto = new Scalr_Util_CryptoTool(MCRYPT_TRIPLEDES, MCRYPT_MODE_CFB, 24, 8);
+            $this->cryptoKey = @file_get_contents(APPPATH. "/etc/.cryptokey");
         }
         
         public function OnEndForking()
@@ -101,6 +104,8 @@
          		
          		
          		case SERVER_SNAPSHOT_CREATION_STATUS::STARING_SERVER:
+                    $BundleTask->setDate('started');
+                    
          		case SERVER_SNAPSHOT_CREATION_STATUS::PREPARING_ENV:
          		case SERVER_SNAPSHOT_CREATION_STATUS::INTALLING_SOFTWARE:
          			
@@ -204,11 +209,16 @@
          			
          			try {
          				
+                        if (in_array($DBServer->platform, array(SERVER_PLATFORMS::RACKSPACENG_UK, SERVER_PLATFORMS::RACKSPACENG_US)))
+                            $platform = SERVER_PLATFORMS::OPENSTACK;
+                        else
+                            $platform = $DBServer->platform;
+                        
 	         			$options = array(
 							'server-id' 	=> $DBServer->serverId,
 							'role-name' 	=> $BundleTask->roleName,
 							'crypto-key' 	=> $DBServer->GetProperty(SERVER_PROPERTIES::SZR_KEY),
-							'platform' 		=> $DBServer->platform,
+							'platform' 		=> $platform,
 							'behaviour' 	=> trim(str_replace("base", "", $behaviors)),
 							'queryenv-url' 	=> CONFIG::$HTTP_PROTO."://".CONFIG::$EVENTHANDLER_URL."/query-env",
 							'messaging-p2p.producer-url' => CONFIG::$HTTP_PROTO."://".CONFIG::$EVENTHANDLER_URL."/messaging"
@@ -226,6 +236,21 @@
 						
 						$scalarizrBranch = $DBServer->GetProperty(SERVER_PROPERTIES::SZR_DEV_SCALARIZR_BRANCH);
 						$scriptContents = @file_get_contents(APPPATH."/templates/services/role_builder/chef_import.tpl");
+                        
+                        /*
+                        %CHEF_SERVER_URL%
+                        %CHEF_VALIDATOR_NAME%
+                        %CHEF_VALIDATOR_KEY%
+                        %CHEF_ENVIRONMENT%
+                        %CHEF_ROLE_NAME%
+                         */
+                         
+                        $chefServerId = $DBServer->GetProperty(SERVER_PROPERTIES::SZR_IMPORTING_CHEF_SERVER_ID);
+                        if ($chefServerId) {
+                            $chefServerInfo = $db->GetRow("SELECT * FROM services_chef_servers WHERE id=?", array($chefServerId));
+                            $chefServerInfo['v_auth_key'] = $this->crypto->decrypt($chefServerInfo['v_auth_key'], $this->cryptoKey);
+                        }
+                        
 						$scriptContents = str_replace(array(
 							"%PLATFORM%",
 							"%BEHAVIOURS%",
@@ -239,21 +264,23 @@
 							"%CHEF_VALIDATOR_KEY%", 
 							"%CHEF_ENVIRONMENT%", 
 							"%CHEF_ROLE%", 
+							"%CHEF_ROLE_NAME%",
 							"%CHEF_NODE_NAME%",
 							"\r\n"
 						), array(
-							$DBServer->platform,
+							$platform,
 							trim(str_replace("base", "", str_replace(",", " ", $behaviors))),
 							$command,
 							$scalarizrBranch ? '1' : '0',
 							$scalarizrBranch,
 							$recipes,
 							'0',
-							'',
-							'',
-							'',
-							'',
-							'',
+							$chefServerInfo['url'],
+							$chefServerInfo['v_username'],
+							$chefServerInfo['v_auth_key'],
+							$DBServer->GetProperty(SERVER_PROPERTIES::SZR_IMPORTING_CHEF_ENVIRONMENT),
+							$DBServer->GetProperty(SERVER_PROPERTIES::SZR_IMPORTING_CHEF_ROLE_NAME),
+							$DBServer->GetProperty(SERVER_PROPERTIES::SZR_IMPORTING_CHEF_ROLE_NAME),
 							'',
 							"\n"
 						), $scriptContents);
@@ -600,8 +627,7 @@
          				
          				try {
          					$DBRole = DBRole::createFromBundleTask($BundleTask);
-         				} catch (Exception $e)
-         				{
+         				} catch (Exception $e) {
          					$BundleTask->SnapshotCreationFailed("Role creation failed due to internal error ({$e->getMessage()}). Please try again.");
          					return;
          				}

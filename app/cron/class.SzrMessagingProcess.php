@@ -8,7 +8,7 @@
         public $Logger;
         public $IsDaemon = true;
         private $DaemonMtime;
-        private $DaemonMemoryLimit = 20; // in megabytes 
+        private $DaemonMemoryLimit = 60; // in megabytes 
                 
     	public function __construct()
         {

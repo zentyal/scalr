@@ -2,6 +2,67 @@
 	
 	class ScalrAPI_2_3_0 extends ScalrAPI_2_2_0
 	{
+		public function FarmGetDnsEndpoints($FarmID)
+		{
+			try {
+				$DBFarm = DBFarm::LoadByID($FarmID);
+				if ($DBFarm->EnvID != $this->Environment->id)
+					throw new Exception("N");
+			}
+			catch(Exception $e) {
+				throw new Exception(sprintf("Farm #%s not found", $FarmID));
+			}
+			
+			$response = $this->CreateInitialResponse();
+			
+			$haveMysqlRole = (bool)$this->DB->GetOne("SELECT id FROM farm_roles WHERE role_id IN (SELECT role_id FROM role_behaviors WHERE behavior IN (?,?,?)) AND farmid=? AND platform != ?",
+					array(ROLE_BEHAVIORS::MYSQL, ROLE_BEHAVIORS::MYSQL2, ROLE_BEHAVIORS::PERCONA, $FarmID, SERVER_PLATFORMS::RDS)
+			);
+			if ($haveMysqlRole) {
+				$response->mysql = new stdClass();
+				$response->mysql->master = new stdClass();
+				$response->mysql->master->private = "int.master.mysql.{$DBFarm->Hash}.scalr-dns.net";
+				$response->mysql->master->public = "ext.master.mysql.{$DBFarm->Hash}.scalr-dns.net";
+				$response->mysql->slave = new stdClass();
+				$response->mysql->slave->private = "int.slave.mysql.{$DBFarm->Hash}.scalr-dns.net";
+				$response->mysql->slave->public = "ext.slave.mysql.{$DBFarm->Hash}.scalr-dns.net";
+			}
+			
+			$havePgRole = (bool)$this->DB->GetOne("SELECT id FROM farm_roles WHERE role_id IN (SELECT role_id FROM role_behaviors WHERE behavior=?) AND farmid=? AND platform != ?",
+					array(ROLE_BEHAVIORS::POSTGRESQL, $FarmID, SERVER_PLATFORMS::RDS)
+			);
+			if ($havePgRole) {
+				$response->postgresql = new stdClass();
+				$response->postgresql->master = new stdClass();
+				$response->postgresql->master->private = "int.master.postgresql.{$DBFarm->Hash}.scalr-dns.net";
+				$response->postgresql->master->public = "ext.master.postgresql.{$DBFarm->Hash}.scalr-dns.net";
+				$response->postgresql->slave = new stdClass();
+				$response->postgresql->slave->private = "int.slave.postgresql.{$DBFarm->Hash}.scalr-dns.net";
+				$response->postgresql->slave->public = "ext.slave.postgresql.{$DBFarm->Hash}.scalr-dns.net";
+			}
+			
+			$haveRedisRole = (bool)$this->DB->GetOne("SELECT id FROM farm_roles WHERE role_id IN (SELECT role_id FROM role_behaviors WHERE behavior=?) AND farmid=? AND platform != ?",
+					array(ROLE_BEHAVIORS::REDIS, $FarmID, SERVER_PLATFORMS::RDS)
+			);
+			if ($haveRedisRole) {
+				$response->redis = new stdClass();
+				$response->redis->master = new stdClass();
+				$response->redis->master->private = "int.master.redis.{$DBFarm->Hash}.scalr-dns.net";
+				$response->redis->master->public = "ext.master.redis.{$DBFarm->Hash}.scalr-dns.net";
+				$response->redis->slave = new stdClass();
+				$response->redis->slave->private = "int.slave.redis.{$DBFarm->Hash}.scalr-dns.net";
+				$response->redis->slave->public = "ext.slave.redis.{$DBFarm->Hash}.scalr-dns.net";
+			}
+			
+			/*
+			$haveCFController = (bool)$this->DB->GetOne("SELECT id FROM farm_roles WHERE role_id IN (SELECT role_id FROM role_behaviors WHERE behavior=?) AND farmid=? AND platform != ?",
+					array(ROLE_BEHAVIORS::CF_CLOUD_CONTROLLER, $FarmID, SERVER_PLATFORMS::RDS)
+			);
+			*/
+			
+			return $response;
+		}
+		
 		public function FarmClone($FarmID)
 		{
 			$response = $this->CreateInitialResponse();
@@ -22,6 +83,142 @@
 			
 			return $response;
 		}
+        
+        public function ScriptingLogsList($FarmID, $ServerID = null, $EventID = null, $StartFrom = 0, $RecordsLimit = 20)
+        {
+            $farminfo = $this->DB->GetRow("SELECT clientid FROM farms WHERE id=? AND env_id=?",
+                array($FarmID, $this->Environment->id)
+            );
+            
+            if (!$farminfo)
+                throw new Exception(sprintf("Farm #%s not found", $FarmID));
+                
+            $sql = "SELECT * FROM scripting_log WHERE farmid='{$FarmID}'";
+            if ($ServerID)
+                $sql .= " AND server_id=".$this->DB->qstr($ServerID);
+                
+            if ($EventID)
+                $sql .= " AND event_id=".$this->DB->qstr($EventID);
+                
+            $total = $this->DB->GetOne(preg_replace('/\*/', 'COUNT(*)', $sql, 1));
+        
+            $sql .= " ORDER BY id DESC";
+            
+            $start = $StartFrom ? (int) $StartFrom : 0;
+            $limit = $RecordsLimit ? (int) $RecordsLimit : 20;
+            $sql .= " LIMIT {$start}, {$limit}";
+            
+            $response = $this->CreateInitialResponse();
+            $response->TotalRecords = $total;
+            $response->StartFrom = $start;
+            $response->RecordsLimit = $limit;
+            $response->LogSet = new stdClass();
+            $response->LogSet->Item = array();
+            
+            $rows = $this->DB->Execute($sql);
+            while ($row = $rows->FetchRow())
+            {
+                $itm = new stdClass();
+                $itm->ServerID = $row['server_id'];
+                $itm->Message = $row['message'];
+                $itm->Timestamp = strtotime($row['dtadded']);
+                $itm->ScriptName = $row['script_name'];
+                $itm->ExecTime = $row['exec_time'];
+                $itm->ExecExitCode = $row['exec_exitcode'];
+                
+                if (stristr($row['event'], 'CustomEvent'))
+                    $itm->Event = "Manual";
+                elseif (stristr($row['event'], 'APIEvent'))
+                    $itm->Event = "API";
+                else
+                    $itm->Event = $row['event'];
+                
+                $response->LogSet->Item[] = $itm;
+            }
+            
+            return $response;
+        }
+        
+        public function FarmRoleParametersList($FarmRoleID)
+        {
+            try
+            {
+                $DBFarmRole = DBFarmRole::LoadByID($FarmRoleID);
+                $DBFarm = DBFarm::LoadByID($DBFarmRole->FarmID);
+                if ($DBFarm->EnvID != $this->Environment->id)
+                    throw new Exception("N");
+            }
+            catch(Exception $e)
+            {
+                throw new Exception(sprintf("FarmRole ID #%s not found", $FarmRoleID));
+            }
+            
+            $response = $this->CreateInitialResponse();
+            $response->ParamSet = new stdClass();
+            $response->ParamSet->Item = array();
+            
+            $rParams = $DBFarmRole->GetRoleObject()->getParameters();
+            foreach ($rParams as $p) {
+                $val = $this->DB->GetOne("SELECT value FROM farm_role_options WHERE farm_roleid = ? AND hash = ?", array($DBFarmRole->ID, $p['hash']));
+                if (!$val)
+                    $val = $p['defval'];
+                
+                $itm = new stdClass();
+                $itm->{"Name"} = $p['hash'];
+                $itm->{"Value"} = $val;
+                $itm->{"FullName"} = $p['name'];
+                
+                $response->ParamSet->Item[] = $itm;
+            }
+            
+            return $response;
+        }
+        
+        public function FarmRoleUpdateParameterValue($FarmRoleID, $ParamName, $ParamValue) {
+            try
+            {
+                $DBFarmRole = DBFarmRole::LoadByID($FarmRoleID);
+                $DBFarm = DBFarm::LoadByID($DBFarmRole->FarmID);
+                if ($DBFarm->EnvID != $this->Environment->id)
+                    throw new Exception("N");
+            }
+            catch(Exception $e)
+            {
+                throw new Exception(sprintf("FarmRole ID #%s not found", $FarmRoleID));
+            }
+            
+            $updated = false;
+            $rParams = $DBFarmRole->GetRoleObject()->getParameters();
+            foreach ($rParams as $p) {
+                if ($p['hash'] == $ParamName) {
+                    $id = $this->DB->GetOne("SELECT id FROM farm_role_options WHERE farm_roleid = ? AND hash = ?", array($DBFarmRole->ID, $p['hash']));
+                    if ($id) {
+                        $updated = true;
+                        $this->DB->Execute("UPDATE farm_role_options SET
+                            value       = ? WHERE id = ?
+                        ", array($ParamValue, $id));
+                    } else {
+                        $updated = true;
+                        $this->DB->Execute("INSERT INTO farm_role_options SET
+                            farmid      = ?,
+                            farm_roleid = ?,
+                            name        = ?,
+                            value       = ?,
+                            hash        = ? 
+                            ON DUPLICATE KEY UPDATE name = ?
+                        ", array($DBFarm->ID, $DBFarmRole->ID, $p['name'], $ParamValue, $p['hash'], $p['name']));
+                    }
+                }
+            }
+            
+            if (!$updated)
+                throw new Exception(sprintf("Parameter '%s' not defined for specified role", array($ParamName)));
+            
+            $response = $this->CreateInitialResponse();
+            $response->Result = true; 
+            
+            return $response;
+        }
 		
 		public function EnvironmentsList()
 		{
@@ -93,6 +290,97 @@
 			return $response;
 		}
 		
+		public function GlobalVariableSet($ParamName, $ParamValue, $FarmRoleID = 0, $FarmID = 0)
+		{
+			try {
+			    if ($FarmRoleID != 0) {
+    				$DBFarmRole = DBFarmRole::LoadByID($FarmRoleID);
+    				$DBFarm = DBFarm::LoadByID($DBFarmRole->FarmID);
+    				$scope = Scalr_Scripting_GlobalVariables::SCOPE_FARMROLE;
+			    } elseif ($FarmID != 0) {
+			        $DBFarm = DBFarm::LoadByID($FarmID);
+			        $scope = Scalr_Scripting_GlobalVariables::SCOPE_FARM;
+			        $FarmRoleID = 0;
+			    } else
+			        throw new Exception ("FarmID or FarmRoleID should be specitied");
+			    
+				if ($DBFarm->EnvID != $this->Environment->id)
+					throw new Exception("N");
+			}
+			catch(Exception $e) {
+				throw new Exception(sprintf("FarmRole ID #%s not found", $FarmRoleID));
+			}
+			
+			$globalVariables = new Scalr_Scripting_GlobalVariables($this->Environment->id, $scope);
+			$globalVariables->setValues(
+				array(array(
+					'name' 	=> $ParamName,
+					'value'	=> $ParamValue,
+					'flagFinal' => 0,
+					'flagRequired' => 0,
+					'scope' => $scope	
+				)),
+				0,
+				$DBFarm->ID,
+				$FarmRoleID
+			);
+			
+			$response = $this->CreateInitialResponse();
+			$response->Result = true;
+			
+			return $response;
+		}
+		
+        public function GlobalVariablesList($ServerID = null, $FarmID = null, $FarmRoleID = null, $RoleID = null)
+        {
+            $response = $this->CreateInitialResponse();
+            $response->VariableSet = new stdClass();
+            $response->VariableSet->Item = array();
+            
+            if ($ServerID) {
+                $DBServer = DBServer::LoadByID($ServerID);
+                if ($DBServer->envId != $this->Environment->id)
+                    throw new Exception(sprintf("Server ID #%s not found", $ServerID));
+                
+                $globalVariables = new Scalr_Scripting_GlobalVariables($this->Environment->id, Scalr_Scripting_GlobalVariables::SCOPE_FARMROLE);
+                $vars = $globalVariables->listVariables($DBServer->roleId, $DBServer->farmId, $DBServer->farmRoleId);
+            } elseif ($FarmID) {
+                $DBFarm = DBFarm::LoadByID($FarmID);
+                if ($DBFarm->EnvID != $this->Environment->id)
+                    throw new Exception(sprintf("Farm ID #%s not found", $FarmID));
+                
+                $globalVariables = new Scalr_Scripting_GlobalVariables($this->Environment->id, Scalr_Scripting_GlobalVariables::SCOPE_FARM);
+                $vars = $globalVariables->listVariables(null, $DBFarm->ID, null);
+            } elseif ($RoleID) {
+                $DBRole = DBRole::LoadByID($RoleID);
+                if ($DBRole->envId != $this->Environment->id)
+                    throw new Exception(sprintf("Role ID #%s not found", $RoleID));
+                
+                $globalVariables = new Scalr_Scripting_GlobalVariables($this->Environment->id, Scalr_Scripting_GlobalVariables::SCOPE_ROLE);
+                $vars = $globalVariables->listVariables($RoleID, null, null);
+            } elseif ($FarmRoleID) {
+                $DBFarmRole = DBFarmRole::LoadByID($FarmRoleID);
+                if ($DBFarmRole->GetFarmObject()->EnvID != $this->Environment->id)
+                    throw new Exception(sprintf("FarmRole ID #%s not found", $FarmRoleID));
+                
+                $globalVariables = new Scalr_Scripting_GlobalVariables($this->Environment->id, Scalr_Scripting_GlobalVariables::SCOPE_FARMROLE);
+                $vars = $globalVariables->listVariables($DBFarmRole->RoleID, $DBFarmRole->FarmID, $DBFarmRole->ID);
+            } else {
+                $globalVariables = new Scalr_Scripting_GlobalVariables($this->Environment->id, Scalr_Scripting_GlobalVariables::SCOPE_ENVIRONMENT);
+                $vars = $globalVariables->listVariables();
+            }
+            
+            foreach ($vars as $k => $v) {
+                $itm = new stdClass();
+                $itm->{"Name"} = $k;
+                $itm->{"Value"} = $v;
+                
+                $response->VariableSet->Item[] = $itm;    
+            }
+            
+            return $response;
+        }
+        
 		public function DmSourcesList()
 		{
 			$response = $this->CreateInitialResponse();

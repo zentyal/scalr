@@ -91,7 +91,7 @@ Scalr.regPage('Scalr.ui.tools.aws.ec2.elb.view', function (loadParams, modulePar
 			store: store,
 			dock: 'top',
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}, ' ', {
 				xtype: 'fieldcloudlocation',

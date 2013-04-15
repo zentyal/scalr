@@ -312,15 +312,26 @@ class Scalr_UI_Controller_Farms_Roles extends Scalr_UI_Controller
 			'dir' => array('type' => 'string', 'default' => 'ASC')
 		));
 
-		$sql = "SELECT * from farm_roles WHERE farmid=".$this->db->qstr($this->getParam('farmId'));
+		$sql = 'SELECT farm_roles.* FROM farm_roles JOIN roles ON farm_roles.role_id = roles.id WHERE farmid = ? AND :FILTER:';
+		$params = array($this->getParam('farmId'));
 
-		if ($this->getParam('roleId'))
-			$sql .= " AND role_id=".$this->db->qstr($this->getParam('roleId'));
+		if ($this->getParam('roleId')) {
+			$sql .= ' AND role_id = ?';
+			$params[] = $this->getParam('roleId');
+		}
 
-		if ($this->getParam('farmRoleId'))
-			$sql .= " AND id=".$this->db->qstr($this->getParam('farmRoleId'));
+		if ($this->getParam('farmRoleId')) {
+			$sql .= ' AND farm_roles.id = ?';
+			$params[] = $this->getParam('farmRoleId');
+		}
 
-		$response = $this->buildResponseFromSql($sql, array("role_id", "platform"));
+		$response = $this->buildResponseFromSql(
+			$sql,
+			array('platform'),
+			array('name'),
+			$params
+		);
+
 		foreach ($response['data'] as &$row) {
 			$row["running_servers"] = $this->db->GetOne("SELECT COUNT(*) FROM servers WHERE farm_roleid='{$row['id']}' AND status IN ('Pending', 'Initializing', 'Running', 'Temporary')");
 			$row["non_running_servers"] = $this->db->GetOne("SELECT COUNT(*) FROM servers WHERE farm_roleid='{$row['id']}' AND status NOT IN ('Pending', 'Initializing', 'Running', 'Temporary')");

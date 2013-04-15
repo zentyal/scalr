@@ -33,7 +33,6 @@
         public function StartThread($farminfo)
         {
             $db = Core::GetDBInstance();
-            $snmpClient = new Scalr_Net_Snmp_Client();
             
             $DBFarm = DBFarm::LoadByID($farminfo['id']);
 

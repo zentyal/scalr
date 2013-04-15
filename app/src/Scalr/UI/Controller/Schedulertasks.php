@@ -59,29 +59,28 @@ class Scalr_UI_Controller_Schedulertasks extends Scalr_UI_Controller
 
 		switch($task->targetType) {
 			case Scalr_SchedulerTask::TARGET_FARM:
-				try {
-					$farmWidget = self::loadController('Farms')->getFarmWidget(array(
-						'farmId' => $task->targetId
-					), 'addAll');
-				} catch (Exception $e) {}
+				$farmWidget = self::loadController('Farms')->getFarmWidget(array(
+					'farmId' => $task->targetId
+				), 'addAll');
 			break;
 
 			case Scalr_SchedulerTask::TARGET_ROLE:
-				try {
-					$farmWidget = self::loadController('Farms')->getFarmWidget(array(
-						'farmRoleId' => $task->targetId
-					), 'addAll');
-				} catch (Exception $e) {}
+				$farmWidget = self::loadController('Farms')->getFarmWidget(array(
+					'farmRoleId' => $task->targetId
+				), 'addAll');
 				break;
 
 			case Scalr_SchedulerTask::TARGET_INSTANCE:
-				$serverArgs = explode(':', $task->targetId);
 				try {
-					$DBServer = DBServer::LoadByFarmRoleIDAndIndex($serverArgs[0], $serverArgs[1]);
+					$DBServer = DBServer::LoadByFarmRoleIDAndIndex($task->targetId, $task->targetServerIndex);
 					$farmWidget = self::loadController('Farms')->getFarmWidget(array(
 						'serverId' => $DBServer->serverId
 					), 'addAll');
-				} catch(Exception $e) {}
+				} catch (Exception $e) {
+					$farmWidget = self::loadController('Farms')->getFarmWidget(array(
+						'farmRoleId' => $task->targetId
+					), 'addAll');
+				}
 				break;
 
 			default: break;
@@ -102,11 +101,11 @@ class Scalr_UI_Controller_Schedulertasks extends Scalr_UI_Controller
 			'sort' => array('type' => 'json')
 		));
 
-		$sql = 'SELECT id, name, type, target_id as targetId, target_type as targetType, start_time as startTime,
+		$sql = 'SELECT id, name, type, target_id as targetId, target_server_index as targetServerIndex, target_type as targetType, start_time as startTime,
 			end_time as endTime, last_start_time as lastStartTime, restart_every as restartEvery, config, order_index as orderIndex,
 			status, timezone FROM `scheduler` WHERE `env_id` = ? AND :FILTER:';
 
-		$response = $this->buildResponseFromSql(
+		$response = $this->buildResponseFromSql2(
 			$sql,
 			array('id', 'name', 'type', 'startTime', 'endTime', 'lastStartTime', 'timezone', 'orderIndex', 'status', 'timezone'),
 			array('id', 'name'),
@@ -132,9 +131,8 @@ class Scalr_UI_Controller_Schedulertasks extends Scalr_UI_Controller
 					break;
 
 				case Scalr_SchedulerTask::TARGET_INSTANCE:
-					$serverArgs = explode(':', $row['targetId']);
 					try {
-						$DBServer = DBServer::LoadByFarmRoleIDAndIndex($serverArgs[0],$serverArgs[1]);
+						$DBServer = DBServer::LoadByFarmRoleIDAndIndex($row['targetId'], $row['targetServerIndex']);
 						$row['targetName'] = "({$DBServer->remoteIp})";
 						$DBFarmRole = $DBServer->GetFarmRoleObject();
 						$row['targetFarmId'] = $DBServer->farmId;
@@ -148,12 +146,12 @@ class Scalr_UI_Controller_Schedulertasks extends Scalr_UI_Controller
 			}
 
 			$row['type'] = Scalr_SchedulerTask::getTypeByName($row['type']);
-			$row['startTime'] = $row['startTime'] ? Scalr_Util_DateTime::convertDateTime(new DateTime($row['startTime']), $row['timezone'])->format('M j, Y H:i:s') : 'Now';
-			$row['endTime'] = $row['endTime'] ? Scalr_Util_DateTime::convertDateTime(new DateTime($row['endTime']), $row['timezone'])->format('M j, Y H:i:s') : 'Never';
-			$row['lastStartTime'] = $row['lastStartTime'] ? Scalr_Util_DateTime::convertDateTime(new DateTime($row['lastStartTime']), $row['timezone'])->format('M j, Y H:i:s') : '';
+			$row['startTime'] = $row['startTime'] ? Scalr_Util_DateTime::convertTz($row['startTime']) : 'Now';
+			$row['endTime'] = $row['endTime'] ? Scalr_Util_DateTime::convertTz($row['endTime']) : 'Never';
+			$row['lastStartTime'] = $row['lastStartTime'] ? Scalr_Util_DateTime::convertTz($row['lastStartTime']) : '';
 
 			$row['config'] = unserialize($row['config']);
-			$row['config']['scriptName'] = $this->db->GetOne("SELECT name FROM scripts WHERE id=?", array($row['config']['scriptId']));
+			$row['config']['scriptName'] = $this->db->GetOne("SELECT name FROM scripts WHERE id = ? and clientid = ?", array($row['config']['scriptId'], $this->user->getAccountId()));
 		}
 
 		$this->response->data($response);
@@ -198,20 +196,20 @@ class Scalr_UI_Controller_Schedulertasks extends Scalr_UI_Controller
 		$params = array();
 
 		$timezone = new DateTimeZone($this->getParam('timezone'));
-		$startTm = $this->getParam('startTime') ? new DateTime($this->getParam('startTime')) : NULL;
-		$endTm = $this->getParam('endTime') ? new DateTime($this->getParam('endTime')) : NULL;
+		$startTm = $this->getParam('startTime') ? new DateTime($this->getParam('startTime'), $timezone) : NULL;
+		$endTm = $this->getParam('endTime') ? new DateTime($this->getParam('endTime'), $timezone) : NULL;
 
 		if ($startTm)
-			Scalr_Util_DateTime::convertDateTime($startTm, NULL, $timezone);
+			Scalr_Util_DateTime::convertDateTime($startTm, NULL);
 
 		if ($endTm)
-			Scalr_Util_DateTime::convertDateTime($endTm, NULL, $timezone);
+			Scalr_Util_DateTime::convertDateTime($endTm, NULL);
 
 		if ($startTm && $endTm && $endTm < $startTm)
 			$this->request->addValidationErrors('endTimeDate', array('End time must be greater then start time'));
 
 		$curTm = new DateTime();
-		if ($startTm && $startTm < $curTm)
+		if ($startTm && $startTm < $curTm && !$task->id)
 			$this->request->addValidationErrors('startTimeDate', array('Start time must be greater then current time'));
 
 		switch ($this->getParam('type')) {
@@ -219,14 +217,16 @@ class Scalr_UI_Controller_Schedulertasks extends Scalr_UI_Controller
 				if($this->getParam('serverId')) {
 					$dbServer = DBServer::LoadByID($this->getParam('serverId'));
 					$this->user->getPermissions()->validate($dbServer);
-					$task->targetId = $this->getParam('farmRoleId').':'.$dbServer->index;
+
+					$task->targetId = $dbServer->GetFarmRoleObject()->ID;
+					$task->targetServerIndex = $dbServer->index;
 					$task->targetType = Scalr_SchedulerTask::TARGET_INSTANCE;
 				}
 				else {
 					if($this->getParam('farmRoleId')) {
 						$dbFarmRole = DBFarmRole::LoadByID($this->getParam('farmRoleId'));
 						$this->user->getPermissions()->validate($dbFarmRole);
-						$task->targetId = $this->getParam('farmRoleId');
+						$task->targetId = $dbFarmRole->ID;
 						$task->targetType = Scalr_SchedulerTask::TARGET_ROLE;
 					}
 					else {
@@ -290,7 +290,7 @@ class Scalr_UI_Controller_Schedulertasks extends Scalr_UI_Controller
 		$task->timezone = $this->getParam('timezone');
 		$task->startTime = $startTm ? $startTm->format('Y-m-d H:i:s') : NULL;
 		$task->endTime = $endTm ? $endTm->format('Y-m-d H:i:s') : NULL;
-		$task->restartEvery = $this->getParam('restartEvery');
+		$task->restartEvery = $this->getParam('restartEveryReal') ? $this->getParam('restartEveryReal') : $this->getParam('restartEvery');
 		$task->config = $params;
 		
 		$task->save();
@@ -337,6 +337,31 @@ class Scalr_UI_Controller_Schedulertasks extends Scalr_UI_Controller
 		$this->response->success("Selected task(s) successfully suspended");
 	}
 
+	public function xExecuteAction()
+	{
+		$this->request->defineParams(array(
+			'tasks' => array('type' => 'json')
+		));
+		$executed = array();
+
+		foreach ($this->getParam('tasks') as $taskId) {
+			$task = new Scalr_SchedulerTask();
+			$task->loadById($taskId);
+			$this->user->getPermissions()->validate($task);
+
+			if ($task->status != Scalr_SchedulerTask::STATUS_ACTIVE)
+				continue;
+
+			if ($task->execute())
+				$executed[] = $task->name;
+		}
+
+		if (count($executed))
+			$this->response->success("Task(s): " . implode($executed, ', ') . " successfully executed");
+		else
+			$this->response->warning('Target of task could not be found');
+	}
+
 	public function xDeleteAction()
 	{
 		$this->request->defineParams(array(
@@ -350,98 +375,5 @@ class Scalr_UI_Controller_Schedulertasks extends Scalr_UI_Controller
 		}
 
 		$this->response->success("Selected task(s) successfully removed");
-	}
-
-	public function xTransferAction()
-	{
-		foreach ($this->db->GetAll('SELECT * FROM scheduler_tasks WHERE client_id = ?', array($this->user->getAccountId())) as $taskOld) {
-			$task = Scalr_SchedulerTask::init();
-			$task->name = $taskOld['task_name'];
-			$task->type = $taskOld['task_type'];
-			$task->targetId = $taskOld['target_id'];
-			$task->targetType = $taskOld['target_type'];
-			$task->timezone = $taskOld['timezone'];
-
-			$timezone = new DateTimeZone($taskOld['timezone']);
-			$startTm = new DateTime($taskOld['start_time_date']);
-			$endTm = new DateTime($taskOld['end_time_date']);
-			$lastStartTm = new DateTime($taskOld['last_start_time']);
-
-			// old time in timezone (from record) to server time (timezone leave for UI)
-			Scalr_Util_DateTime::convertDateTime($startTm, null, $timezone);
-			Scalr_Util_DateTime::convertDateTime($endTm, null, $timezone);
-			Scalr_Util_DateTime::convertDateTime($lastStartTm, null, $timezone);
-
-			$task->startTime = $startTm->format('Y-m-d H:i:s');
-			$task->endTime = $endTm->format('Y-m-d H:i:s');
-			$task->lastStartTime = $taskOld['last_start_time'] ? $lastStartTm->format('Y-m-d H:i:s') : NULL;
-
-			switch($taskOld['target_type']) {
-				case SCRIPTING_TARGET::FARM:
-					try {
-						$DBFarm = DBFarm::LoadByID($taskOld['target_id']);
-					} catch ( Exception  $e) {
-						continue 2;
-					}
-					break;
-
-				case SCRIPTING_TARGET::ROLE:
-					try {
-						$DBFarmRole = DBFarmRole::LoadByID($taskOld['target_id']);
-						$a = $DBFarmRole->GetRoleObject()->name;
-						$a = $DBFarmRole->FarmID;
-						$a = $DBFarmRole->GetFarmObject()->Name;
-					} catch (Exception $e) {
-						continue 2;
-					}
-					break;
-
-				case SCRIPTING_TARGET::INSTANCE:
-					$serverArgs = explode(':', $taskOld['target_id']);
-					try {
-						$DBServer = DBServer::LoadByFarmRoleIDAndIndex($serverArgs[0], $serverArgs[1]);
-						$a = "({$DBServer->remoteIp})";
-						$DBFarmRole = $DBServer->GetFarmRoleObject();
-						$a = $DBServer->farmId;
-						$a = $DBFarmRole->GetFarmObject()->Name;
-						$a = $DBServer->farmRoleId;
-						$a = $DBFarmRole->GetRoleObject()->name;
-					} catch(Exception $e) {
-						continue 2;
-					}
-					break;
-			}
-
-			$config = unserialize($taskOld['task_config']);
-			$r = array();
-			switch ($task->type) {
-				case Scalr_SchedulerTask::SCRIPT_EXEC:
-					$r['scriptId'] = (string)$config['script_id']; unset($config['script_id']);
-					$r['scriptIsSync'] = (string)$config['issync']; unset($config['issync']);
-					$r['scriptTimeout'] = (string)$config['timeout']; unset($config['timeout']);
-					$r['scriptVersion'] = (string)$config['revision']; unset($config['revision']);
-					$r['scriptOptions'] = $config;
-					break;
-				case Scalr_SchedulerTask::LAUNCH_FARM:
-					break;
-				case Scalr_SchedulerTask::TERMINATE_FARM:
-					$r['deleteDNSZones'] = $config['deleteDNS'];
-					$r['deleteCloudObjects'] = ($config['keep_elastic_ips'] == '1' || $config['keep_ebs'] == '1') ? NULL : '1';
-					break;
-			}
-			$task->config = $r;
-
-			$task->restartEvery = $taskOld['restart_every'];
-			$task->orderIndex = $taskOld['order_index'];
-			$task->status = $taskOld['status'];
-			$task->accountId = $taskOld['client_id'];
-			$task->envId = $taskOld['env_id'];
-
-			$task->save();
-		}
-
-		$this->db->Execute('DELETE FROM scheduler_tasks WHERE client_id = ?', array($this->user->getAccountId()));
-
-		$this->response->success('All tasks transfered successfully');
 	}
 }

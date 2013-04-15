@@ -37,18 +37,17 @@ Scalr.regPage('Scalr.ui.security.groups.edit', function (loadParams, moduleParam
 					{ header: 'From port', width: 100, sortable: true, dataIndex: 'fromPort' },
 					{ header: 'To port', width: 100, sortable: true, dataIndex: 'toPort' },
 					{ header: 'CIDR IP', width: 270, sortable: true, dataIndex: 'cidrIp' },
-					{ header: 'Comment', width: 296, sortable: true, dataIndex: 'comment' },
-					{ header: '&nbsp;', width: 30, sortable: false, dataIndex: 'id', align:'left', xtype: 'templatecolumn',
-						tpl: '<img class="delete" src="/ui2/images/icons/delete_icon_16x16.png">'
+					{ header: 'Comment', flex: 1, sortable: true, dataIndex: 'comment' },
+					{ header: '&nbsp;', width: 36, sortable: false, dataIndex: 'id', align: 'center', xtype: 'templatecolumn',
+						tpl: '<img class="delete" src="/ui2/images/icons/delete_icon_16x16.png">',
+						listeners: {
+							click: function(view, cell, recordIndex, cellIndex, e, record) {
+								if (e.getTarget('img.delete'))
+									view.store.remove(record);
+							}
+						}
 					}
 				],
-
-				listeners: {
-					itemclick: function (view, record, item, index, e) {
-						if (e.getTarget('img.delete'))
-							view.store.remove(record);
-					}
-				},
 
 				dockedItems: [{
 					xtype: 'toolbar',
@@ -171,9 +170,15 @@ Scalr.regPage('Scalr.ui.security.groups.edit', function (loadParams, moduleParam
 					{ header: 'From port', width: 100, sortable: true, dataIndex: 'fromPort' },
 					{ header: 'To port', width: 100, sortable: true, dataIndex: 'toPort' },
 					{ header: 'Security Group', width: 270, sortable: true, dataIndex: 'sg' },
-					{ header: 'Comment', width: 296, sortable: true, dataIndex: 'comment' },
-					{ header: '&nbsp;', width: 30, sortable: false, dataIndex: 'id', align:'left', xtype: 'templatecolumn',
-						tpl: '<img class="delete" src="/ui2/images/icons/delete_icon_16x16.png">'
+					{ header: 'Comment', flex: 1, sortable: true, dataIndex: 'comment' },
+					{ header: '&nbsp;', width: 36, sortable: false, dataIndex: 'id', align: 'center', xtype: 'templatecolumn',
+						tpl: '<img class="delete" src="/ui2/images/icons/delete_icon_16x16.png">',
+						listeners: {
+							click: function(view, cell, recordIndex, cellIndex, e, record) {
+								if (e.getTarget('img.delete'))
+									view.store.remove(record);
+							}
+						}
 					}
 				],
 

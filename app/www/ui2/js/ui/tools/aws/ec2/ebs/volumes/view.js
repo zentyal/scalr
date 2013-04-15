@@ -90,8 +90,15 @@ Scalr.regPage('Scalr.ui.tools.aws.ec2.ebs.volumes.view', function (loadParams, m
 				'<tpl if="!autoAttach"><img src="/ui2/images/icons/false.png" /></tpl>'
 			}, {
 				xtype: 'optionscolumn',
+				getVisibility: function (record) {
+					if (record.get('status') == 'deleting' || record.get('status') == 'deleted')
+						return false;
+					
+					return true;
+				},
 				getOptionVisibility: function (item, record) {
 					if (item.itemId == 'option.attach' || item.itemId == 'option.detach' || item.itemId == 'option.attachSep') {
+						
 						if (!record.get('mysqMasterVolume')) {
 							if (item.itemId == 'option.attachSep')
 								return true;
@@ -212,47 +219,62 @@ Scalr.regPage('Scalr.ui.tools.aws.ec2.ebs.volumes.view', function (loadParams, m
 		multiSelect: true,
 		selModel: {
 			selType: 'selectedmodel',
-			selectedMenu: [{
-				text: 'Delete',
-				iconCls: 'x-menu-icon-delete',
-				request: {
-					confirmBox: {
-						msg: 'Delete selected EBS volume(s): %s ?',
-						type: 'delete'
-					},
-					processBox: {
-						msg: 'Deleting selected EBS volume(s) ...',
-						type: 'delete'
-					},
-					url: '/tools/aws/ec2/ebs/volumes/xRemove/',
-					dataHandler: function (records) {
-						var data = [];
-						this.confirmBox.objects = [];
-						for (var i = 0, len = records.length; i < len; i++) {
-							data.push(records[i].get('volumeId'));
-							this.confirmBox.objects.push(records[i].get('volumeId'));
-						}
-						return { volumeId: Ext.encode(data), cloudLocation: store.proxy.extraParams.cloudLocation };
-					}
-				}
-			}]
+			getVisibility: function(record) {
+				return record.get('status') == 'deleting' ? false : true;
+			}
+		},
+
+		listeners: {
+			selectionchange: function(selModel, selections) {
+				var toolbar = this.down('scalrpagingtoolbar');
+				toolbar.down('#delete').setDisabled(!selections.length);
+			}
 		},
 
 		dockedItems: [{
 			xtype: 'scalrpagingtoolbar',
 			store: store,
 			dock: 'top',
-			afterItems: [{
+			beforeItems: [{
 				ui: 'paging',
 				iconCls: 'x-tbar-add',
 				handler: function() {
 					Scalr.event.fireEvent('redirect', '#/tools/aws/ec2/ebs/volumes/create');
 				}
 			}],
+			afterItems: [{
+				ui: 'paging',
+				itemId: 'delete',
+				disabled: true,
+				iconCls: 'x-tbar-delete',
+				tooltip: 'Delete',
+				handler: function() {
+					var request = {
+						confirmBox: {
+							type: 'delete',
+							msg: 'Delete selected EBS volume(s): %s ?'
+						},
+						processBox: {
+							type: 'delete'
+						},
+						url: '/tools/aws/ec2/ebs/volumes/xRemove/',
+						success: function() {
+							store.load();
+						}
+					}, records = this.up('grid').getSelectionModel().getSelection(), volumes = [];
+
+					request.confirmBox.objects = [];
+					for (var i = 0, len = records.length; i < len; i++) {
+						volumes.push(records[i].get('volumeId'));
+						request.confirmBox.objects.push(records[i].get('volumeId'))
+					}
+					request.params = { volumeId: Ext.encode(volumes), cloudLocation: store.proxy.extraParams.cloudLocation };
+					Scalr.Request(request);
+				}
+			}],
 			items: [{
-				xtype: 'tbfilterfield',
-				store: store,
-				iconCls: 'no-icon'
+				xtype: 'filterfield',
+				store: store
 			}, ' ', {
 				xtype: 'fieldcloudlocation',
 				itemId: 'cloudLocation',

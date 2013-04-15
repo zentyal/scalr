@@ -53,7 +53,7 @@ Scalr.regPage('Scalr.ui.tools.aws.s3.buckets', function (loadParams, moduleParam
 						return ( (record.data.enabled == "false") && record.data[ 'cfid' ] );
 	
 					case "option.delete_dist":
-						return ( record.data[ 'cfid' ] );
+						return ( record.data[ 'cfid' ] && record.get('status') == 'Deployed' && record.get('enabled') == 'false' );
 	
 					case "option.create_dist":
 							return ( !record.data[ 'cfid' ] );
@@ -195,7 +195,7 @@ Scalr.regPage('Scalr.ui.tools.aws.s3.buckets', function (loadParams, moduleParam
 				}
 			}],
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}]
 		}]

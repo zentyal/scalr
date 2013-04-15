@@ -24,7 +24,7 @@ Scalr.regPage('Scalr.ui.dm.applications.create', function (loadParams, modulePar
                 layout: 'hbox',
                 items: [{
                     fieldLabel: 'Source',
-                    width: 795,
+                    flex: 1,
                     xtype: 'combo',
                     allowBlank: false,
                     editable: false,

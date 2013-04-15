@@ -14,7 +14,7 @@
 		$pathChunks = explode('/', $path);
 		$version = array_shift($pathChunks);
 		$path = '/' . $path;
-		
+
 		//if (! $envId)
 			//throw new Exception('Environment not defined');
 		// TODO: how to check if needed ?
@@ -35,7 +35,8 @@
 		if ($validToken != $token)
 			throw new Exception("Invalid authentification token");
 
-		Scalr_UI_Request::initializeInstance(Scalr_UI_Request::REQUEST_TYPE_API, $user->id, $envId);
+		$request = Scalr_UI_Request::initializeInstance(Scalr_UI_Request::REQUEST_TYPE_API, $user->id, $envId);
+		$request->requestApiVersion = intval(trim($version, 'v'));
 		// prepate input data
 		$postDataConvert = array();
 		foreach (json_decode($postData, true) as $key => $value) {

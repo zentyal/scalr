@@ -28,6 +28,7 @@
     	function __construct() {
         	$this->logger = Logger::getLogger(__CLASS__);
         	$this->serializer = new Scalr_Messaging_XmlSerializer();
+            $this->jsonSerializer = new Scalr_Messaging_JsonSerializer();
         	$this->db = Core::GetDBInstance();
         }
         
@@ -86,7 +87,14 @@
             
        		while ($row = $rs->FetchRow()) {
        			try {
-       				$message = $this->serializer->unserialize($row["message"]);
+       			    if ($row["message"])
+                        $message = $this->serializer->unserialize($row["message"]);
+                    else {
+                        $message = $this->jsonSerializer->unserialize($row["json_message"]);
+                    }
+                    
+                    $message->messageIpAddress = $row['ipaddress']; 
+                    
        				$event = null;
        				
        				$startTime = microtime(true);
@@ -110,7 +118,55 @@
        							$message->id
        						));
        						
-       						if ($message->status == 'error') {
+                            if ($message->status == 'ok') {
+                                if ($message->name == 'Grow MySQL/Percona data volume') {
+                                    $volumeConfig = $message->data;
+                                    
+                                    $oldVolumeId = $dbserver->GetFarmRoleObject()->GetSetting(Scalr_Db_Msr::VOLUME_ID);
+                                    $engine = $dbserver->GetFarmRoleObject()->GetSetting(Scalr_Db_Msr::DATA_STORAGE_ENGINE);
+                                    
+                                    try {                   
+                                        $storageVolume = Scalr_Storage_Volume::init();
+                                        try {
+                                            $storageVolume->loadById($volumeConfig->id);
+                                            $storageVolume->setConfig($volumeConfig);
+                                            $storageVolume->save();
+                                        } catch (Exception $e) {
+                                            if (strpos($e->getMessage(), 'not found')) {
+                                                $storageVolume->loadBy(array(
+                                                    'id'            => $volumeConfig->id,
+                                                    'client_id'     => $dbserver->clientId,
+                                                    'env_id'        => $dbserver->envId,
+                                                    'name'          => "'{$volumeConfig->tags->service}' data volume",
+                                                    'type'          => $engine,
+                                                    'platform'      => $dbserver->platform,
+                                                    'size'          => $volumeConfig->size,
+                                                    'fstype'        => $volumeConfig->fstype,
+                                                    'purpose'       => $volumeConfig->tags->service,
+                                                    'farm_roleid'   => $dbserver->farmRoleId,
+                                                    'server_index'  => $dbserver->index
+                                                ));
+                                                $storageVolume->setConfig($volumeConfig);
+                                                $storageVolume->save(true);
+                                            } else
+                                                throw $e;
+                                        }
+
+                                        $dbserver->GetFarmRoleObject()->SetSetting(Scalr_Db_Msr::VOLUME_ID, $volumeConfig->id);
+                                        if ($engine == MYSQL_STORAGE_ENGINE::EBS) {
+                                            $dbserver->GetFarmRoleObject()->SetSetting(Scalr_Db_Msr::DATA_STORAGE_EBS_SIZE, $volumeConfig->size);
+                                        } elseif ($engine == MYSQL_STORAGE_ENGINE::RAID_EBS) {
+                                            $dbserver->GetFarmRoleObject()->SetSetting(Scalr_Db_Msr::DATA_STORAGE_RAID_DISK_SIZE, $volumeConfig->size);
+                                        }
+                                        
+                                        // Remove old
+                                        $storageVolume->delete($oldVolumeId);
+                                    }
+                                    catch(Exception $e) {
+                                        Logger::getLogger(__CLASS__)->error(new FarmLogMessage($dbserver->farmId, "Cannot save storage volume: {$e->getMessage()}"));
+                                    }
+                                }
+                            } elseif ($message->status == 'error') {
        							if ($message->name == 'Initialization')	{
        								$dbserver->SetProperty(SERVER_PROPERTIES::SZR_IS_INIT_FAILED, 1);
        							}
@@ -154,12 +210,53 @@
 									$msg
 								));
        						}
+       					} elseif ($message instanceof Scalr_Messaging_Msg_UpdateControlPorts) {
+       					    $apiPort = $message->api;
+                            $ctrlPort = $message->messaging;
+                            $snmpPort = $message->snmp;
+                            
+                            // Check API port;
+                            $currentApiPort = $dbserver->GetProperty(SERVER_PROPERTIES::SZR_API_PORT);
+                            if (!$currentApiPort)
+                                $currentApiPort = 8010;
+                            if ($apiPort && $apiPort != $currentApiPort) {
+                                $this->logger->warn(new FarmLogMessage($dbserver->farmId, "Scalarizr API port was changed from {$currentApiPort} to {$apiPort}"));
+                                $dbserver->SetProperty(SERVER_PROPERTIES::SZR_API_PORT, $apiPort);
+                            }
+                            
+                            // Check Control port
+                            $currentCtrlPort = $dbserver->GetProperty(SERVER_PROPERTIES::SZR_CTRL_PORT);
+                            if (!$currentCtrlPort)
+                                $currentCtrlPort = 8013;
+                            if ($ctrlPort && $ctrlPort != $currentCtrlPort) {
+                                $this->logger->warn(new FarmLogMessage($dbserver->farmId, "Scalarizr Control port was changed from {$currentCtrlPort} to {$ctrlPort}"));
+                                $dbserver->SetProperty(SERVER_PROPERTIES::SZR_CTRL_PORT, $ctrlPort);
+                            }
+                              
+                            //Check SNMP port
+                            $currentSnmpPort = $dbserver->GetProperty(SERVER_PROPERTIES::SZR_SNMP_PORT);
+                            if (!$currentSnmpPort)
+                                $currentSnmpPort = 8014;
+                            if ($snmpPort && $snmpPort != $currentSnmpPort) {
+                                $this->logger->warn(new FarmLogMessage($dbserver->farmId, "Scalarizr SNMP port was changed from {$currentSnmpPort} to {$snmpPort}"));
+                                $dbserver->SetProperty(SERVER_PROPERTIES::SZR_SNMP_PORT, $snmpPort);
+                            }  
+                            
        					} elseif ($message instanceof Scalr_Messaging_Msg_Win_HostDown) {
        						$status = PlatformFactory::NewPlatform($dbserver->platform)->GetServerRealStatus($dbserver);
        						if ($status->isRunning()) {
        							$event = new RebootBeginEvent($dbserver);
        						} else {
-       							$event = new HostDownEvent($dbserver);
+       						    if ($dbserver->platform == SERVER_PLATFORMS::EC2) {
+                                    if (!$status->isTerminated()) {
+                                        //Stopping
+                                        $this->logger->error(new FarmLogMessage($dbserver->farmId, "Server is in '{$status->getName()}' state. Ignoring HostDown event."));
+                                        $isStopping = true;
+                                    }
+                                }
+                                
+                                if (!$isStopping)
+       							  $event = new HostDownEvent($dbserver);
        						}
        						
        					} elseif ($message instanceof  Scalr_Messaging_Msg_Win_PrepareBundleResult) {
@@ -215,12 +312,8 @@
 								$message->eventName,
 								$dbserver->envId
 							));
-							if (!$isEventExist)
-								continue;
-							
-							$this->logger->fatal("FireEvent: {$message->eventName}: ".serialize((array)$message->params));
-							
-	       					$event = new CustomEvent($dbserver, $message->eventName, (array)$message->params);
+							if ($isEventExist)
+	       					    $event = new CustomEvent($dbserver, $message->eventName, (array)$message->params);
 	       				}
 	       				
 	       				/********* MONGODB *********/
@@ -266,6 +359,15 @@
 	       							$isMoving = true;
 	       						}
 	       					}
+                            
+                            if (in_array($dbserver->platform, array(SERVER_PLATFORMS::OPENSTACK, SERVER_PLATFORMS::RACKSPACENG_US, SERVER_PLATFORMS::RACKSPACENG_UK))) {
+                                $p = PlatformFactory::NewPlatform($dbserver->platform);
+                                $status = $p->GetServerRealStatus($dbserver)->getName();
+                                if (stristr($status, 'REBOOT') || stristr($status, 'HARD_REBOOT')) {
+                                    $this->logger->error(new FarmLogMessage($dbserver->farmId, "Rackspace server is in {$status} state. Ignoring HostDown message."));
+                                    $isRebooting = true;
+                                }
+                            }
 	       					
 	       					if ($dbserver->platform == SERVER_PLATFORMS::EC2) {
 	       						//TODO: Check is is stopping or shutting-down procedure.
@@ -278,8 +380,11 @@
 	       						}
 	       					}
 	       					
-	       					if (!$isMoving && !$isStopping)
+	       					if (!$isMoving && !$isStopping && !$isRebooting)
 	       						$event = new HostDownEvent($dbserver);
+                            
+                            if ($isRebooting)
+                                $event = new RebootBeginEvent($dbserver);
 	       					
 	       				} elseif ($message instanceof Scalr_Messaging_Msg_RebootStart) {
 	       					$event = new RebootBeginEvent($dbserver);
@@ -555,11 +660,20 @@
         	
        		if ($dbserver->status == SERVER_STATUS::IMPORTING) {
        			
-				if ($message->behaviour && !$dbserver->remoteIp) {
-					$dbserver->remoteIp = $message->remoteIp;
-					$dbserver->localIp = $message->localIp;
+       		    if (!$dbserver->remoteIp || !$dbserver->localIp) {
+					if ($message->remoteIp && $dbserver->platform != SERVER_PLATFORMS::IDCF)
+						$dbserver->remoteIp = $message->remoteIp;
 					
-					$dbserver->SetProperty(SERVER_PROPERTIES::SZR_IMPORTING_BEHAVIOR, implode(",", $message->behaviour));
+					if ($message->localIp)
+						$dbserver->localIp = $message->localIp;
+					
+					if (!$message->behaviour)
+						$message->behaviour = array('base'); 
+					
+                    if ((!$dbserver->remoteIp || $dbserver->localIp == $dbserver->remoteIp) && $message->messageIpAddress != $dbserver->remoteIp)
+                        $dbserver->remoteIp = $message->messageIpAddress;
+                    
+					$dbserver->SetProperty(SERVER_PROPERTIES::SZR_IMPORTING_BEHAVIOR, @implode(",", $message->behaviour));
 					
 					$dbserver->save();
 				}
@@ -605,8 +719,8 @@
        				case SERVER_PLATFORMS::UCLOUD:
        				case SERVER_PLATFORMS::CLOUDSTACK:
        					$dbserver->SetProperties(array(
-	       					CLOUDSTACK_SERVER_PROPERTIES::SERVER_ID => $message->{$dbserver->platform}->instanceId,
-		       				CLOUDSTACK_SERVER_PROPERTIES::CLOUD_LOCATION => $message->{$dbserver->platform}->availZone,
+	       					CLOUDSTACK_SERVER_PROPERTIES::SERVER_ID => $message->cloudstack->instanceId,
+		       				CLOUDSTACK_SERVER_PROPERTIES::CLOUD_LOCATION => $message->cloudstack->availZone,
 		       				SERVER_PROPERTIES::ARCHITECTURE => $message->architecture,
 	       				));
        					break;
@@ -647,6 +761,9 @@
        					break;
        				case SERVER_PLATFORMS::OPENSTACK:
        					$env = $dbserver->GetEnvironmentObject();
+                        
+                        //BUG HERE
+                        
 				       	$os = Scalr_Service_Cloud_Openstack::newNovaCC(
 				       		$env->getPlatformConfigValue(Modules_Platforms_Openstack::API_URL, true, $dbserver->GetProperty(OPENSTACK_SERVER_PROPERTIES::CLOUD_LOCATION)),
 							$env->getPlatformConfigValue(Modules_Platforms_Openstack::USERNAME, true, $dbserver->GetProperty(OPENSTACK_SERVER_PROPERTIES::CLOUD_LOCATION)),
@@ -718,6 +835,9 @@
         
         private function onHostInit($message, DBServer $dbserver) {
        		if ($dbserver->status == SERVER_STATUS::PENDING) {
+       		    
+                $platform = PlatformFactory::NewPlatform($dbserver->platform);
+                
        			// Update server crypto key
        			$srv_props = array();	
        			if ($message->cryptoKey) {
@@ -725,19 +845,16 @@
        				$srv_props[SERVER_PROPERTIES::SZR_KEY_TYPE] = SZR_KEY_TYPE::PERMANENT;
        			}
 
+                $srv_props[SERVER_PROPERTIES::SZR_SNMP_PORT] = $message->snmpPort;
+
 				if (!in_array($dbserver->platform, array(SERVER_PLATFORMS::CLOUDSTACK, SERVER_PLATFORMS::IDCF, SERVER_PLATFORMS::UCLOUD))) {
-       				$srv_props[SERVER_PROPERTIES::SZR_SNMP_PORT] = $message->snmpPort;
        				$remoteIp = $message->remoteIp;
 				} else {
-					
-					$platform = PlatformFactory::NewPlatform($dbserver->platform);
-					
 					if ($dbserver->farmRoleId) {
 						$dbFarmRole = $dbserver->GetFarmRoleObject();
 						$networkType = $dbFarmRole->GetSetting(DBFarmRole::SETTING_CLOUDSTACK_NETWORK_TYPE);
 						if ($networkType == 'Direct') {
 							$remoteIp = $message->localIp;
-							$srv_props[SERVER_PROPERTIES::SZR_SNMP_PORT] = $message->snmpPort;
 						}
 						else {
 							$sharedIp = $dbFarmRole->GetSetting(DBFarmRole::SETTING_CLOUDSTACK_SHARED_IP_ADDRESS);
@@ -751,10 +868,57 @@
 					}
 					else {
 						$remoteIp = $message->localIp;
-						$srv_props[SERVER_PROPERTIES::SZR_SNMP_PORT] = $message->snmpPort;
 					}
 				}
-				
+                
+                if (in_array($dbserver->platform, array(SERVER_PLATFORMS::OPENSTACK))) {
+                    if ($dbserver->farmRoleId) {
+                        $dbFarmRole = $dbserver->GetFarmRoleObject();
+                        $ipPool = $dbFarmRole->GetSetting(DBFarmRole::SETTING_OPENSTACK_IP_POOL);
+                        if ($ipPool) {
+                            //TODO:
+                            $osClient = $dbserver->GetEnvironmentObject()->openstack(
+                                $dbserver->platform, 
+                                $dbserver->GetProperty(OPENSTACK_SERVER_PROPERTIES::CLOUD_LOCATION)
+                            );
+                            
+                            //Check free existing IP
+                            $ips = $osClient->servers->floatingIps->list($ipPool);
+                            foreach ($ips as $ip) {
+                                if (!$ip->instance_id) {
+                                    $ipAddress = $ip->ip;
+                                    break;
+                                }
+                            }
+                            
+                            // If no free IP allocate new from pool
+                            if (!$ipAddress) {
+                                $ip = $osClient->servers->floatingIps->createFloatingIp($ipPool);
+                                $ipAddress = $ip->ip;
+                            }
+                            
+                            // Associate floating IP with Instance
+                            $osClient->servers->addFloatingIp($dbserver->GetCloudServerID(), $ipAddress);
+                            $remoteIp = $ipAddress;
+                        } else {
+                            if ($message->remoteIp)
+                                $remoteIp = $message->remoteIp;
+                            else
+                                $remoteIp = $message->localIp;
+                        }
+                    } 
+                    else {
+                        $remoteIp = $message->localIp;
+                    }
+                }
+
+                if (!$remoteIp) {
+                    $ips = $platform->GetServerIPAddresses($dbserver);
+                    $remoteIp = $ips['remoteIp'];
+                }
+                
+                $dbserver->remoteIp = $remoteIp;
+                
 				//Update auto-update settings
 				//TODO: Check auto-update client version
 				if ($dbserver->IsSupported('0.7.225')) {
@@ -811,9 +975,12 @@
 				);
        			
        		} else {
+       		    /*
        			$this->logger->error("Strange situation. Received HostInit message"
        					. " from server '{$dbserver->serverId}' ({$message->remoteIp})"
        					. " with state {$dbserver->status}!");
+                */
+                //TOOD: Check if instance terminating we probably can cancel termination and continue initialization
        		}        
         }
         

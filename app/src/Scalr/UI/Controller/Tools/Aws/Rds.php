@@ -10,7 +10,7 @@ class Scalr_UI_Controller_Tools_Aws_Rds extends Scalr_UI_Controller
 
 		return true;
 	}
-	
+
 	public function logsAction()
 	{
 		$this->response->page('ui/tools/aws/rds/logs.js');
@@ -18,27 +18,24 @@ class Scalr_UI_Controller_Tools_Aws_Rds extends Scalr_UI_Controller
 
 	public function xListLogsAction()
 	{
-		$amazonRDSClient = Scalr_Service_Cloud_Aws::newRds(
-		$this->environment->getPlatformConfigValue(Modules_Platforms_Ec2::ACCESS_KEY),
-		$this->environment->getPlatformConfigValue(Modules_Platforms_Ec2::SECRET_KEY),
-		$this->getParam('cloudLocation')
-		);
-		
-		$aws_response = $amazonRDSClient->DescribeEvents($this->getParam('name'), $this->getParam('type'));
-		$events = (array)$aws_response->DescribeEventsResult->Events;
-		if (!is_array($events['Event']))
-			$events['Event'] = array($events['Event']);
-		foreach ($events['Event'] as $event) {
-			if ($event->Message) {
+		$aws = $this->getEnvironment()->aws($this->getParam('cloudLocation'));
+
+		$request = new \Scalr\Service\Aws\Rds\DataType\DescribeEventRequestData();
+		$request->sourceIdentifier = $this->getParam('name') ?: null;
+		$request->sourceType = $this->getParam('type') ?: null;
+		$events = $aws->rds->event->describe($request);
+		$logs = array();
+		/* @var $event \Scalr\Service\Aws\Rds\DataType\EventData */
+		foreach ($events as $event) {
+			if ($event->message) {
 				$logs[] = array(
-						'Message'	=> (string)$event->Message,
-						'Date'	=> (string)$event->Date,
-						'SourceIdentifier'	=> (string)$event->SourceIdentifier,
-						'SourceType'		=> (string)$event->SourceType
+					'Message' => $event->message,
+					'Date' => $event->date,
+					'SourceIdentifier' => $event->sourceIdentifier,
+					'SourceType' => $event->sourceType,
 				);
 			}
 		}
-
 		$response = $this->buildResponseFromData($logs, array('Date', 'Message'));
 		foreach ($response['data'] as &$row) {
 			$row['Date'] = Scalr_Util_DateTime::convertTz($row['Date']);

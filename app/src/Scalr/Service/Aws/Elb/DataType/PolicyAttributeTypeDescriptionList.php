@@ -15,36 +15,36 @@ use Scalr\Service\Aws\DataType\ListDataType;
 class PolicyAttributeTypeDescriptionList extends AbstractElbListDataType
 {
 
-	/**
-	 * List of external identifier names.
-	 *
-	 * @var array
-	 */
-	protected $_externalKeys = array(
-		'loadBalancerName',
-		'policyTypeName'
-	);
+    /**
+     * List of external identifier names.
+     *
+     * @var array
+     */
+    protected $_externalKeys = array(
+        'loadBalancerName',
+        'policyTypeName'
+    );
 
-	/**
-	 * Constructor
-	 *
-	 * @param array|PolicyAttributeTypeDescriptionData  $aListData  PolicyAttributeTypeDescriptionData
-	 */
-	public function __construct($aListData = null)
-	{
-		parent::__construct(
-			$aListData,
-			array('attributeTypeName'),
-			'Scalr\\Service\\Aws\\Elb\\DataType\\PolicyAttributeTypeDescriptionData'
-		);
-	}
+    /**
+     * Constructor
+     *
+     * @param array|PolicyAttributeTypeDescriptionData  $aListData  PolicyAttributeTypeDescriptionData
+     */
+    public function __construct($aListData = null)
+    {
+        parent::__construct(
+            $aListData,
+            array('attributeTypeName'),
+            'Scalr\\Service\\Aws\\Elb\\DataType\\PolicyAttributeTypeDescriptionData'
+        );
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
-	 */
-	public function getQueryArray($uriParameterName = 'AttributeTypeNames')
-	{
-		return parent::getQueryArray($uriParameterName);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
+     */
+    public function getQueryArray($uriParameterName = 'AttributeTypeNames', $member = true)
+    {
+        return parent::getQueryArray($uriParameterName);
+    }
 }

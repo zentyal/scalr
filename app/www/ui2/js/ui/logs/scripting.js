@@ -31,7 +31,7 @@ Scalr.regPage('Scalr.ui.logs.scripting', function (loadParams, moduleParams) {
 			reload: false,
 			maximize: 'all'
 		},
-		//scalrReconfigureParams: { farmId: '' },
+		scalrReconfigureParams: { eventId: '', serverId: '' },
 		store: store,
 		stateId: 'grid-scripting-view',
 		stateful: true,
@@ -104,7 +104,7 @@ Scalr.regPage('Scalr.ui.logs.scripting', function (loadParams, moduleParams) {
 			store: store,
 			dock: 'top',
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}, ' ', {
 				xtype: 'combo',

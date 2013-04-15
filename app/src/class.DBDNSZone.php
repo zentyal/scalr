@@ -621,6 +621,8 @@
 				throw new Exception("Connection failed: {$e->getMessage()}");
 			}
 			
+            $pdnsDb->BeginTrans();
+            
            	$pdnsDomainId = $pdnsDb->GetOne("SELECT id FROM domains WHERE name = ? AND scalr_dns_type = 'global'", array($this->zoneName));
 			
 			// Remove domain from powerdns
@@ -741,6 +743,8 @@
 					));
 				}
 			}
+
+            $this->db->CommitTrans(); 
 		}
 		
 		public function save ($update_system_records = false) {

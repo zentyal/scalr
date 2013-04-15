@@ -101,7 +101,7 @@ Ext.define('Scalr.ui.StoreReaderObject', {
 
 		for (var i in data) {
 			if (Ext.isString(data[i]))
-				result[result.length] = { id: i, name: data[i] }; // format id => name
+				result[result.length] = {id: i, name: data[i]}; // format id => name
 			else
 				result[result.length] = data[i];
 		}
@@ -230,330 +230,6 @@ Ext.define('Scalr.ui.SwitchViewPlugin', {
 	}
 });
 
-Ext.define('Scalr.ui.PagingToolbar', {
-	extend: 'Ext.PagingToolbar',
-	alias: 'widget.scalrpagingtoolbar',
-
-	pageSizes: [10, 15, 25, 50, 100],
-	pageSizeMessage: '{0} items per page',
-	pageSizeStorageName: 'grid-ui-page-size',
-	autoRefresh: 0,
-	autoRefreshTask: 0,
-	height: 33,
-	prependButtons: true,
-	afterItems: [],
-
-	checkRefreshHandler: function (item, enabled) {
-		if (enabled) {
-			this.autoRefresh = item.autoRefresh;
-			this.gridContainer.autoRefresh = this.autoRefresh;
-			this.gridContainer.saveState();
-			if (this.autoRefresh) {
-				clearInterval(this.autoRefreshTask);
-				this.autoRefreshTask = setInterval(this.refreshHandler, this.autoRefresh * 1000);
-				this.down('#refresh').setIconCls('x-tbar-autorefresh');
-			} else {
-				clearInterval(this.autoRefreshTask);
-				this.down('#refresh').setIconCls('x-tbar-loading');
-			}
-		}
-	},
-
-	getPagingItems: function() {
-		var me = this;
-
-		var items = [ '->', {
-			itemId: 'first',
-			//tooltip: me.firstText,
-			overflowText: me.firstText,
-			iconCls: Ext.baseCSSPrefix + 'tbar-page-first',
-			ui: 'paging',
-			disabled: true,
-			handler: me.moveFirst,
-			scope: me
-		},{
-			itemId: 'prev',
-			//tooltip: me.prevText,
-			overflowText: me.prevText,
-			iconCls: Ext.baseCSSPrefix + 'tbar-page-prev',
-			ui: 'paging',
-			disabled: true,
-			handler: me.movePrevious,
-			scope: me
-		},
-			me.beforePageText,
-			{
-				xtype: 'textfield',
-				itemId: 'inputItem',
-				name: 'inputItem',
-				cls: Ext.baseCSSPrefix + 'tbar-page-number',
-				maskRe: /[0123456789]/,
-				minValue: 1,
-				enableKeyEvents: true,
-				selectOnFocus: true,
-				submitValue: false,
-				// mark it as not a field so the form will not catch it when getting fields
-				isFormField: false,
-				width: 40,
-				listeners: {
-					scope: me,
-					keydown: me.onPagingKeyDown,
-					blur: me.onPagingBlur
-				}
-			},{
-				xtype: 'tbtext',
-				itemId: 'afterTextItem',
-				text: Ext.String.format(me.afterPageText, 1)
-			},
-			{
-				itemId: 'next',
-				//tooltip: me.nextText,
-				overflowText: me.nextText,
-				iconCls: Ext.baseCSSPrefix + 'tbar-page-next',
-				ui: 'paging',
-				disabled: true,
-				handler: me.moveNext,
-				scope: me
-			},{
-				itemId: 'last',
-				//	tooltip: me.lastText,
-				overflowText: me.lastText,
-				iconCls: Ext.baseCSSPrefix + 'tbar-page-last',
-				ui: 'paging',
-				disabled: true,
-				handler: me.moveLast,
-				scope: me
-			},
-			'-',
-			{
-				itemId: 'refresh',
-				//	tooltip: me.refreshText,
-				overflowText: me.refreshText,
-				iconCls: Ext.baseCSSPrefix + 'tbar-loading',
-				ui: 'paging',
-				handler: me.doRefresh,
-				scope: me
-			}];
-
-		if (this.afterItems.length) {
-			items = Ext.Array.merge(items, this.afterItems);
-		}
-
-		return items;
-	},
-
-	getPageSize: function() {
-		var pageSize = 0;
-		if (Ext.state.Manager.get(this.pageSizeStorageName, 'auto') != 'auto')
-			pageSize= Ext.state.Manager.get(this.pageSizeStorageName, 'auto');
-		else {
-			var panel = this.up('panel'), view = (panel.getLayout().type == 'card') ? panel.getLayout().getActiveItem().view : panel;
-			if (Ext.isDefined(panel.height) && view && view.rendered)
-				pageSize = Math.floor(view.el.getHeight() / 26); // row's height
-		}
-		return pageSize;
-	},
-
-	setPageSizeAndLoad: function() {
-		// TODO check this code, move to gridContainer
-		var panel = this.up('panel'), view = (panel.getLayout().type == 'card') ? panel.getLayout().getActiveItem().view : panel;
-		if (Ext.isDefined(panel.height) && view && view.rendered) {
-			panel.store.pageSize = this.getPageSize();
-			if (Ext.isObject(this.data)) {
-				panel.store.loadData(this.data.data);
-				panel.store.totalCount = this.data.total;
-			} else
-				panel.store.load();
-		}
-	},
-
-	initComponent: function () {
-		this.callParent();
-
-		this.on('added', function (comp, container) {
-			this.gridContainer = container;
-
-			this.gridContainer.scalrReconfigure = function (loadParams) {
-				if (this.scalrReconfigureParams)
-					Ext.applyIf(loadParams, this.scalrReconfigureParams);
-				Ext.apply(this.store.proxy.extraParams, loadParams);
-			};
-			this.refreshHandler = Ext.Function.bind(function () {
-				this.store.load();
-			}, this.gridContainer);
-
-			this.gridContainer.on('activate', function () {
-				if (this.store.pageSize != this.getPageSize() || !this.data)
-					this.setPageSizeAndLoad();
-				if (this.autoRefresh)
-					this.autoRefreshTask = setInterval(this.refreshHandler, this.autoRefresh * 1000);
-			}, this);
-
-			this.gridContainer.on('deactivate', function () {
-				clearInterval(this.autoRefreshTask);
-			}, this);
-
-			this.gridContainer.store.on('load', function () {
-				if (this.autoRefreshTask) {
-					clearInterval(this.autoRefreshTask);
-					if (this.autoRefresh)
-						this.autoRefreshTask = setInterval(this.refreshHandler, this.autoRefresh * 1000);
-				}
-			}, this);
-
-			this.gridContainer.on('staterestore', function(comp) {
-				this.autoRefresh = comp.autoRefresh || 0;
-				if (this.autoRefresh)
-					this.down('#refresh').setIconCls('x-tbar-autorefresh');
-			}, this);
-		});
-	}
-});
-
-Ext.define('Scalr.ui.GridRadioColumn', {
-	extend: 'Ext.grid.column.Column',
-	alias: ['widget.radiocolumn'],
-
-	initComponent: function(){
-		var me = this;
-		me.hasCustomRenderer = true;
-		me.callParent(arguments);
-	},
-	width: 35,
-
-	processEvent: function(type, view, cell, recordIndex, cellIndex, e, record) {
-		var me = this;
-		if (type == 'click' && e.getTarget('input.x-form-radio')) {
-			view.store.each(function(r) {
-				r.set(me.dataIndex, false);
-			})
-			record.set(me.dataIndex, true);
-		}
-		return this.callParent(arguments);
-	},
-
-	defaultRenderer: function(value, meta, record) {
-		var result = '<div ';
-		if (value)
-			result += 'class="x-form-cb-checked" '
-		result += 'style="text-align: center" ><input type="button" class="x-form-field x-form-radio" /></div>';
-
-		return result;
-	}
-});
-
-Ext.define('Scalr.ui.GridOptionsColumn', {
-	extend: 'Ext.grid.column.Column',
-	alias: 'widget.optionscolumn',
-
-	text: '&nbsp;',
-	hideable: false,
-	width: 116,
-	fixed: true,
-	align: 'center',
-	tdCls: 'x-grid-row-options-cell',
-
-	constructor: function () {
-		this.callParent(arguments);
-
-		this.sortable = false;
-		this.optionsMenu = Ext.create('Ext.menu.Menu', {
-			items: this.optionsMenu,
-			listeners: {
-				click: function (menu, item, e) {
-					if (item) {
-						if (Ext.isFunction (item.menuHandler)) {
-							item.menuHandler(item);
-							e.preventDefault();
-						} else if (Ext.isObject(item.request)) {
-							var r = Scalr.utils.CloneObject(item.request);
-							r.params = r.params || {};
-
-							if (Ext.isObject(r.confirmBox))
-								r.confirmBox.msg = new Ext.Template(r.confirmBox.msg).applyTemplate(item.record.data);
-
-							if (Ext.isFunction(r.dataHandler)) {
-								r.params = Ext.apply(r.params, r.dataHandler(item.record));
-								delete r.dataHandler;
-							}
-
-							Scalr.Request(r);
-							e.preventDefault();
-						}
-					}
-				}
-			}
-		});
-
-		this.optionsMenu.doAutoRender();
-	},
-
-	showOptionsMenu: function (view, record) {
-		this.optionsMenu.suspendLayouts();
-		this.beforeShowOptions(record, this.optionsMenu);
-		this.optionsMenu.show();
-
-		this.optionsMenu.items.each(function (item) {
-			var display = this.getOptionVisibility(item, record);
-			item.record = record;
-			item[display ? "show" : "hide"]();
-			if (display && item.href) {
-				// Update item link
-				if (! this.linkTplsCache[item.id]) {
-					this.linkTplsCache[item.id] = new Ext.Template(item.href).compile();
-				}
-				var tpl = this.linkTplsCache[item.id];
-				if (item.rendered)
-					item.el.down('a').dom.href = tpl.apply(record.data);
-			}
-		}, this);
-
-		this.optionsMenu.resumeLayouts();
-		this.optionsMenu.doLayout();
-
-		var btnEl = Ext.get(view.getNode(record)).down('div.x-grid-row-options'), xy = btnEl.getXY(), sizeX = xy[1] + btnEl.getHeight() + this.optionsMenu.getHeight();
-		// menu shouldn't overflow window size
-		if (sizeX > Scalr.application.getHeight()) {
-			xy[1] -= sizeX - Scalr.application.getHeight();
-		}
-
-		this.optionsMenu.setPosition([xy[0] - (this.optionsMenu.getWidth() - btnEl.getWidth()), xy[1] + btnEl.getHeight() + 1]);
-	},
-
-	initComponent: function () {
-		this.callParent(arguments);
-
-		this.on('boxready', function () {
-			this.up('panel').on('itemclick', function (view, record, item, index, e) {
-				var btnEl = Ext.get(e.getTarget('div.x-grid-row-options'));
-				if (! btnEl)
-					return;
-
-				this.showOptionsMenu(view, record);
-			}, this);
-		});
-	},
-
-	renderer: function (value, meta, record, rowIndex, colIndex) {
-		if (this.headerCt.getHeaderAtIndex(colIndex).getVisibility(record))
-			return '<div class="x-grid-row-options">Actions<div class="x-grid-row-options-trigger"></div></div>';
-	},
-
-	linkTplsCache: {},
-
-	getVisibility: function (record) {
-		return true;
-	},
-
-	getOptionVisibility: function (item, record) {
-		return true;
-	},
-
-	beforeShowOptions: function (record, menu) {
-
-	}
-});
-
 Ext.define('Scalr.ui.GridSelectionModel', {
 	alias: 'selection.selectedmodel',
 	extend: 'Ext.selection.CheckboxModel',
@@ -564,36 +240,37 @@ Ext.define('Scalr.ui.GridSelectionModel', {
 
 	constructor: function () {
 		this.callParent(arguments);
+		if (this.selectedMenu) {
+			this.selectedMenu = Ext.create('Ext.menu.Menu', {
+				items: this.selectedMenu,
+				listeners: {
+					scope: this,
+					click: function (menu, item, e) {
+						if (! Ext.isDefined(item))
+							return;
 
-		this.selectedMenu = Ext.create('Ext.menu.Menu', {
-			items: this.selectedMenu,
-			listeners: {
-				scope: this,
-				click: function (menu, item, e) {
-					if (! Ext.isDefined(item))
-						return;
+						var store = this.store, records = this.selected.items, r = Scalr.utils.CloneObject(Ext.apply({}, item.request));
+						r.params = r.params || {};
+						r.params = Ext.apply(r.params, r.dataHandler(records));
 
-					var store = this.store, records = this.selected.items, r = Scalr.utils.CloneObject(Ext.apply({}, item.request));
-					r.params = r.params || {};
-					r.params = Ext.apply(r.params, r.dataHandler(records));
+						if (Ext.isFunction(r.success)) {
+							r.success = Ext.Function.createSequence(r.success, function() {
+								store.load();
+							});
+						} else {
+							r.success = function () {
+								store.load();
+							};
+						}
+						delete r.dataHandler;
 
-					if (Ext.isFunction(r.success)) {
-						r.success = Ext.Function.createSequence(r.success, function() {
-							store.load();
-						});
-					} else {
-						r.success = function () {
-							store.load();
-						};
+						Scalr.Request(r);
 					}
-					delete r.dataHandler;
-
-					Scalr.Request(r);
 				}
-			}
-		});
+			});
 
-		this.selectedMenu.doAutoRender();
+			this.selectedMenu.doAutoRender();
+		}
 	},
 
 	bindComponent: function () {
@@ -606,13 +283,16 @@ Ext.define('Scalr.ui.GridSelectionModel', {
 
 	getHeaderConfig: function() {
 		var c = this.callParent();
-		c.width = 55;
+		c.width = this.selectedMenu ? 55 : 36; // should be 36, after remove arrow
 		c.minWidth = c.width;
 		c.headerId = 'scalrSelectedModelCheckbox';
-		c.text = '<div class="arrow"></div>';
+		if (this.selectedMenu) {
+			c.text = '<div class="arrow"></div>';
+		}
 		return c;
 	},
 
+	// required in all cases
 	getVisibility: function (record) {
 		return true;
 	},
@@ -652,44 +332,44 @@ Ext.define('Scalr.ui.GridSelectionModel', {
 	onSelectChange: function() {
 		this.callParent(arguments);
 
-		if (! this.highlightArrow) {
-			this.highlightArrow = true;
+			if (! this.highlightArrow) {
+				this.highlightArrow = true;
 
-			var view     = this.views[0],
-				headerCt = view.headerCt,
-				checkHd  = headerCt.child('gridcolumn[isCheckerHd]');
+				var view     = this.views[0],
+					headerCt = view.headerCt,
+					checkHd  = headerCt.child('gridcolumn[isCheckerHd]');
 
-			Ext.create('Ext.fx.Animator', {
-				target: checkHd.el.down('div.arrow'),
-				duration: 3000,
-				iterations: 3,
-				keyframes: {
-					0: {
-						opacity: 1
-					},
-					10: {
-						opacity: 0.3
-					},
-					20: {
-						opacity: 1
+				Ext.create('Ext.fx.Animator', {
+					target: checkHd.el.down('div.arrow'),
+					duration: 3000,
+					iterations: 3,
+					keyframes: {
+						0: {
+							opacity: 1
+						},
+						10: {
+							opacity: 0.3
+						},
+						20: {
+							opacity: 1
+						}
 					}
-				}
-			});
-		}
+				});
+			}
 
-		// check to see if all records are selected
-		var me = this, selections = [];
-		Ext.each(me.store.getRange(), function (record) {
-			if (this.getVisibility(record))
-				selections.push(record);
-		}, this);
+			// check to see if all records are selected
+			var me = this, selections = [];
+			Ext.each(me.store.getRange(), function (record) {
+				if (this.getVisibility(record))
+					selections.push(record);
+			}, this);
 
-		var hdSelectStatus = this.selected.getCount() === selections.length;
-		this.toggleUiHeader(hdSelectStatus);
+			var hdSelectStatus = this.selected.getCount() === selections.length;
+			this.toggleUiHeader(hdSelectStatus);
 	},
 
 	onHeaderClick: function(headerCt, header, e) {
-		if (header.isCheckerHd && !e.getTarget('span.x-column-header-text', 1)) {
+		if (header.isCheckerHd && !e.getTarget('span.x-column-header-text', 1) && this.selectedMenu) {
 			// show menu only if it's not span
 			var btnEl = Ext.get(e.getTarget('div.x-column-header-checkbox')), xy = btnEl.getXY();
 
@@ -703,6 +383,9 @@ Ext.define('Scalr.ui.GridSelectionModel', {
 			e.stopEvent();
 		} else {
 			this.callParent(arguments);
+			if (!header.el.hasCls(Ext.baseCSSPrefix + 'grid-hd-checker-on')) {
+				this.refreshLastFocused();
+			}
 		}
 	},
 
@@ -836,6 +519,14 @@ Ext.define('Scalr.ui.GridSelectionModel', {
         }
     },
 	
+	refreshLastFocused: function() {
+		var record = this.getLastFocused();
+		this.setLastFocused(null);
+		if (record) {
+			this.setLastFocused(record);
+		}
+	},
+	
     selectWithEvent: function(record, e, keepExisting) {
         var me = this;
 
@@ -845,6 +536,9 @@ Ext.define('Scalr.ui.GridSelectionModel', {
                     me.doDeselect(record, false);
                 } else if (e.shiftKey && me.lastFocused) {
                     me.selectRange(me.lastFocused, record, true);
+					if (!me.isSelected(record)) {
+						me.fireEvent('selectionchange', me, me.getSelection());
+					}
                 } else if (e.ctrlKey) {
                     me.doSelect(record, true, false);
                 } else if (me.isSelected(record) && !e.shiftKey && !e.ctrlKey && me.selected.getCount() > 1) {
@@ -1742,241 +1436,6 @@ Ext.define('Ext.ux.BoxReorderer', {
 /*
  * Toolbar fields
  */
-Ext.define('Scalr.ui.ToolbarCloudLocation', {
-	extend: 'Ext.form.field.ComboBox',
-	alias: 'widget.fieldcloudlocation',
-
-	localParamName: 'grid-ui-default-cloud-location',
-	fieldLabel: 'Location',
-	labelWidth: 53,
-	width: 358,
-	matchFieldWidth: false,
-	listConfig: {
-		width: 'auto',
-		minWidth: 300
-	},
-	iconCls: 'no-icon',
-	displayField: 'name',
-	valueField: 'id',
-	editable: false,
-	queryMode: 'local',
-	setCloudLocation: function () {
-		if (this.cloudLocation) {
-			this.setValue(this.cloudLocation);
-		} else {
-			var cloudLocation = Ext.state.Manager.get(this.localParamName);
-			if (cloudLocation) {
-				var ind = this.store.find('id', cloudLocation);
-				if (ind != -1)
-					this.setValue(cloudLocation);
-				else
-					this.setValue(this.store.getAt(0).get('id'));
-			} else {
-				this.setValue(this.store.getAt(0).get('id'));
-			}
-		}
-		this.gridStore.proxy.extraParams.cloudLocation = this.getValue();		
-	},
-	listeners: {
-		change: function () {
-			if (! this.getValue())
-				this.setCloudLocation();
-		},
-		select: function () {
-			Ext.state.Manager.set(this.localParamName, this.getValue());
-			this.gridStore.proxy.extraParams.cloudLocation = this.getValue();
-			this.gridStore.loadPage(1);
-		},
-		added: function () {
-			this.setCloudLocation();
-		}
-	}
-});
-
-Ext.define('Scalr.ui.ToolbarFieldFilter', {
-	extend: 'Ext.form.field.Trigger',
-	alias: 'widget.tbfilterfield',
-
-	hideLabel: true,
-	width: 250,
-	cls: 'x-form-trigger-filter',
-	trigger1Cls: 'x-form-clear-trigger',
-	trigger2Cls: 'x-form-search-trigger',
-	triggerWidth: 24,
-
-	hasSearch: false,
-	paramName: 'query',
-	prevValue: '',
-	emptyText: 'Search',
-
-	validationEvent: false,
-	validateOnBlur: false,
-
-	initComponent: function () {
-		if (this.store.proxy.extraParams['query'] != '')
-			this.value = this.store.proxy.extraParams['query'];
-
-		this.callParent(arguments);
-
-		this.on('specialkey', function(f, e) {
-			if(e.getKey() == e.ENTER){
-				e.stopEvent();
-				(this.hasSearch && this.getRawValue() == this.prevValue )? this.onTrigger1Click() : this.onTrigger2Click();
-			}
-		}, this);
-	},
-
-	initTrigger: function () {
-		var me = this,
-			triggerCell = me.triggerCell;
-
-		me.callParent(arguments);
-
-		triggerCell.elements[0].setVisibilityMode(Ext.core.Element.DISPLAY);
-		triggerCell.elements[0].hide();
-		me.updateLayout();
-	},
-
-	setValue: function (v) {
-		this.callParent(arguments);
-
-		if (v && v.length) {
-			this.prevValue = v;
-			this.store.proxy.extraParams[this.paramName] = v;
-			this.hasSearch = true;
-			if (this.rendered) {
-				this.triggerCell.elements[0].show();
-				this.updateLayout();
-			}
-		} else {
-			this.prevValue = '';
-		}
-	},
-
-	onTrigger1Click: function() {
-		if (this.hasSearch) {
-			this.setValue();
-			this.store.proxy.extraParams[this.paramName] = '';
-			this.store.load();
-			this.triggerCell.elements[0].hide();
-			this.updateLayout();
-			this.hasSearch = false;
-		}
-	},
-
-	onTrigger2Click : function() {
-		var v = this.getRawValue();
-		if (v.length < 1){
-			this.onTrigger1Click();
-			return;
-		}
-		this.prevValue = v;
-		this.store.proxy.extraParams[this.paramName] = v;
-		this.store.loadPage(1);
-		this.hasSearch = true;
-		this.triggerCell.elements[0].show();
-		this.updateLayout();
-	}
-});
-
-Ext.define('Scalr.ui.TreepanelFieldFilter', {
-	extend: 'Ext.form.field.Trigger',
-	alias: 'widget.treefilterfield',
-
-	hideLabel: true,
-	width: 250,
-	cls: 'x-form-trigger-filter',
-	trigger1Cls: 'x-form-clear-trigger',
-	trigger2Cls: 'x-form-search-trigger',
-	triggerWidth: 24,
-
-	hasSearch: false,
-	prevValue: '',
-	emptyText: 'Search',
-
-	validationEvent: false,
-	validateOnBlur: false,
-
-	initComponent: function () {
-		this.callParent(arguments);
-
-		this.on('specialkey', function(f, e) {
-			if(e.getKey() == e.ENTER){
-				e.stopEvent();
-				(this.hasSearch && this.getRawValue() == this.prevValue )? this.onTrigger1Click() : this.onTrigger2Click();
-			}
-		}, this);
-	},
-
-	initTrigger: function () {
-		var me = this,
-			triggerCell = me.triggerCell;
-
-		me.callParent(arguments);
-
-		triggerCell.elements[0].setVisibilityMode(Ext.core.Element.DISPLAY);
-		triggerCell.elements[0].hide();
-		me.updateLayout();
-	},
-
-	setValue: function (v) {
-		this.callParent(arguments);
-
-		if (v && v.length) {
-			this.prevValue = v;
-			this.store.proxy.extraParams[this.paramName] = v;
-			this.hasSearch = true;
-			if (this.rendered) {
-				this.triggerCell.elements[0].show();
-				this.updateLayout();
-			}
-		} else {
-			this.prevValue = '';
-		}
-	},
-
-	onTrigger1Click: function() {
-		if (this.hasSearch) {
-			this.setValue();
-			var trigger = this;
-			var treepanel = trigger.up('panel').down('treepanel');
-			Ext.each (treepanel.getRootNode().childNodes, function(farmItem) {
-				farmItem.cascadeBy(function(){
-					var el = Ext.get(treepanel.getView().getNodeByRecord(this));
-					el.setVisibilityMode(Ext.Element.DISPLAY);
-					el.setVisible(true);
-				});
-			});
-			this.triggerCell.elements[0].hide();
-			this.updateLayout();
-			this.hasSearch = false;
-		}
-	},
-
-	onTrigger2Click : function() {
-		var v = this.getRawValue();
-		if (v.length < 1){
-			this.onTrigger1Click();
-			return;
-		}
-		this.prevValue = v;
-		var trigger = this;
-		var treepanel = trigger.up('panel').down('treepanel');
-		Ext.each (treepanel.getRootNode().childNodes, function(farmItem) {
-			farmItem.cascadeBy(function(){
-				var el = Ext.get(treepanel.getView().getNodeByRecord(this));
-				el.setVisibilityMode(Ext.Element.DISPLAY);
-				if(this.get('text').search(trigger.getRawValue()) != -1 || trigger.getRawValue() == '')
-					el.setVisible(true);
-				else
-					el.setVisible(false);
-			});
-		});
-		this.hasSearch = true;
-		this.triggerCell.elements[0].show();
-		this.updateLayout();
-	}
-});
 
 Ext.define('Scalr.ui.ToolbarFieldSwitch', {
 	extend: 'Ext.toolbar.TextItem',
@@ -2033,7 +1492,8 @@ Ext.define('Scalr.ui.CustomButton', {
 	overCls: 'x-btn-custom-over',
 	pressedCls: 'x-btn-custom-pressed',
 	disabledCls: 'x-btn-custom-disabled',
-
+	tooltipType: 'qtip',
+	
 	initComponent: function() {
 		var me = this;
 		me.callParent(arguments);
@@ -2061,12 +1521,18 @@ Ext.define('Scalr.ui.CustomButton', {
 			me.addCls(me.pressedCls);
 
 		Ext.ButtonToggleManager.register(me);
+		
+        if (me.tooltip) {
+            me.setTooltip(me.tooltip, true);
+        }
+		
 	},
 
 	onDestroy: function() {
 		var me = this;
 		if (me.rendered) {
 			Ext.ButtonToggleManager.unregister(me);
+			me.clearTip();
 		}
 		me.callParent();
 	},
@@ -2110,280 +1576,39 @@ Ext.define('Scalr.ui.CustomButton', {
 		if (me.enableToggle && (me.allowDepress !== false || !me.pressed)) {
 			me.toggle();
 		}
-	}
-});
-
-Ext.define('Scalr.ui.FormFieldFarmRoles', {
-	extend: 'Ext.form.FieldSet',
-	alias: 'widget.farmroles',
-
-	layout: 'column',
-
-	initComponent: function() {
-		this.callParent(arguments);
-		this.params = this.params || {};
-		this.params.options = this.params.options || [];
-
-		var farmField = this.down('[name="farmId"]'), farmRoleField = this.down('[name="farmRoleId"]'), serverField = this.down('[name="serverId"]');
-		farmField.store.loadData(this.params['dataFarms'] || []);
-		farmField.setValue(this.params['farmId'] || '');
-
-		if (this.params.options.indexOf('requiredFarm') != -1)
-			farmField.allowBlank = false;
-
-		if (this.params.options.indexOf('requiredFarmRole') != -1)
-			farmRoleField.allowBlank = false;
-
-		if (this.params.options.indexOf('requiredServer') != -1)
-			serverField.allowBlank = false;
-
-		delete this.params['farmId'];
-		delete this.params['farmRoleId'];
-		delete this.params['serverId'];
-		this.fixWidth();
 	},
+	
+	setTooltip: function(tooltip, initial) {
+		var me = this;
 
-	fixWidth: function() {
-		var farmField = this.down('[name="farmId"]'), farmRoleField = this.down('[name="farmRoleId"]'), serverField = this.down('[name="serverId"]');
-
-		if (this.params.options.indexOf('disabledServer') != -1) {
-			farmField.columnWidth = 0.5;
-			farmRoleField.columnWidth = 0.5;
-		} else if (this.params.options.indexOf('disabledFarmRole') != -1) {
-			farmField.columnWidth = 1;
-		} else {
-			farmField.columnWidth = 1/3;;
-			farmRoleField.columnWidth = 1/3;
-			serverField.columnWidth = 1/3;
-		}
-	},
-
-	items: [{
-		xtype: 'combo',
-		hideLabel: true,
-		name: 'farmId',
-		store: {
-			fields: [ 'id', 'name' ],
-			proxy: 'object'
-		},
-		valueField: 'id',
-		displayField: 'name',
-		emptyText: 'Select a farm',
-		editable: false,
-		queryMode: 'local',
-		listeners: {
-			change: function () {
-				var me = this, fieldset = this.up('fieldset');
-
-				if (fieldset.params.options.indexOf('disabledFarmRole') != -1)
-					return;
-
-				if (fieldset.params.options.indexOf('disabledServer') == -1)
-					fieldset.down('[name="serverId"]').hide();
-
-				if (!this.getValue()) {
-					fieldset.down('[name="farmRoleId"]').hide();
-					return;
-				}
-
-				var successHandler = function(data) {
-					var field = fieldset.down('[name="farmRoleId"]');
-					field.show();
-					if (data['dataFarmRoles']) {
-						field.emptyText = 'Select a role';
-						field.reset();
-						field.store.loadData(data['dataFarmRoles']);
-
-						if (fieldset.params['farmRoleId']) {
-							field.setValue(fieldset.params['farmRoleId']);
-							delete fieldset.params['farmRoleId'];
-						} else {
-							if (fieldset.params.options.indexOf('addAll') != -1) {
-								field.setValue('0');
-							} else {
-								if (field.store.getCount() == 1)
-									field.setValue(field.store.first()); // preselect single element
-								else
-									field.setValue('');
-							}
-						}
-
-						field.enable();
-						field.clearInvalid();
-					} else {
-						field.store.removeAll();
-						field.emptyText = 'No roles';
-						field.reset();
-						field.disable();
-						if (field.allowBlank == false)
-							field.markInvalid('This field is required');
-					}
-				};
-
-				if (fieldset.params['dataFarmRoles']) {
-					successHandler(fieldset.params);
-					delete fieldset.params['dataFarmRoles'];
-				} else
-					Scalr.Request({
-						url: '/farms/xGetFarmWidgetRoles/',
-						params: { farmId: me.getValue(), options: fieldset.params['options'].join(',') },
-						processBox: {
-							type: 'load',
-							msg: 'Loading farm roles ...'
-						},
-						success: successHandler
-					});
+		if (me.rendered) {
+			if (!initial) {
+				me.clearTip();
 			}
-		}
-	}, {
-		xtype: 'combo',
-		hideLabel: true,
-		hidden: true,
-		name: 'farmRoleId',
-		store: {
-			fields: [ 'id', 'name', 'platform', 'role_id' ],
-			proxy: 'object'
-		},
-		valueField: 'id',
-		displayField: 'name',
-		emptyText: 'Select a role',
-		margin: '0 0 0 5',
-		editable: false,
-		queryMode: 'local',
-		listeners: {
-			change: function () {
-				var me = this, fieldset = this.up('fieldset');
-
-				if (fieldset.params.options.indexOf('disabledServer') != -1) {
-					fieldset.down('[name="serverId"]').hide();
-					return;
-				}
-
-				if (! me.getValue() || me.getValue() == '0') {
-					fieldset.down('[name="serverId"]').hide();
-					return;
-				}
-
-				var successHandler = function (data) {
-					var field = fieldset.down('[name="serverId"]');
-					field.show();
-					if (data['dataServers']) {
-						field.emptyText = 'Select a server';
-						field.reset();
-						field.store.load({ data: data['dataServers'] });
-
-						if (fieldset.params['serverId']) {
-							field.setValue(fieldset.params['serverId']);
-							delete fieldset.params['serverId'];
-						} else {
-							field.setValue(0);
-						}
-
-						field.enable();
-					} else {
-						field.emptyText = 'No running servers';
-						field.reset();
-						field.disable();
-					}
-				};
-
-				if (fieldset.params['dataServers']) {
-					successHandler(fieldset.params);
-					delete fieldset.params['dataServers'];
-				} else
-					Scalr.Request({
-						url: '/farms/xGetFarmWidgetServers',
-						params: { farmRoleId: me.getValue(), options: fieldset.params['options'].join(',') },
-						processBox: {
-							type: 'load',
-							msg: 'Loading servers ...'
-						},
-						success: successHandler
-					});
-			}
-		}
-	}, {
-		xtype: 'combo',
-		hideLabel: true,
-		hidden: true,
-		name: 'serverId',
-		store: {
-			fields: [ 'id', 'name' ],
-			proxy: 'object'
-		},
-		valueField: 'id',
-		displayField: 'name',
-		margin: '0 0 0 5',
-		editable: false,
-		queryMode: 'local'
-	}],
-
-	optionChange: function(action, key) {
-		var index = this.params.options.indexOf(key);
-
-		if (action == 'remove' && index != -1 || action == 'add' && index == -1) {
-			if (action == 'remove') {
-				this.params.options.splice(index, index);
+			if (Ext.isObject(tooltip)) {
+				Ext.tip.QuickTipManager.register(Ext.apply({
+					target: me.btnEl.id
+				},
+				tooltip));
+				me.tooltip = tooltip;
 			} else {
-				this.params.options.push(key);
+				me.btnEl.dom.setAttribute(me.getTipAttr(), tooltip);
 			}
-
-			switch(key) {
-				case 'disabledFarmRole':
-					if (action == 'add') {
-						this.down('[name="farmRoleId"]').hide();
-						this.down('[name="serverId"]').hide();
-					} else {
-						this.down('[name="farmId"]').fireEvent('change');
-					}
-					break;
-
-				case 'disabledServer':
-					if (action == 'add') {
-						this.down('[name="serverId"]').hide();
-					} else {
-						this.down('[name="farmRoleId"]').fireEvent('change');
-					}
-					break;
-			}
+		} else {
+			me.tooltip = tooltip;
 		}
-
-		this.fixWidth();
-		this.updateLayout();
+		return me;
 	},
-
-	syncItems: function () {
-		/*if (this.enableFarmRoleId && this.down('[name="farmId"]').getValue()) {
-			this.down('[name="farmId"]').fireEvent('change');
-		} else
-			this.down('[name="farmRoleId"]').hide();
-
-		if (! this.enableServerId)
-			this.down('[name="serverId"]').hide();*/
-	}
-});
-
-Ext.define('Scalr.ui.FormFieldTooltip', {
-	extend: 'Ext.form.DisplayField',
-	alias: 'widget.displayinfofield',
-	value: '',
-	info: '',
-	initComponent: function () {
-		// should use value for message
-		this.info = this.value || this.info;
-		this.value = '<img class="tipHelp" src="/ui2/images/icons/info_icon_16x16.png" style="cursor: help; height: 16px;">';
-
-		this.callParent(arguments);
+	
+	getTipAttr: function(){
+		return this.tooltipType == 'qtip' ? 'data-qtip' : 'title';
 	},
-	listeners: {
-		boxready: function () {
-			Ext.create('Ext.tip.ToolTip', {
-				target: this.el.down('img.tipHelp'),
-				dismissDelay: 0,
-				html: this.info
-			});
-		}
-	}
+	
+    clearTip: function() {
+        if (Ext.isObject(this.tooltip)) {
+            Ext.tip.QuickTipManager.unregister(this.btnEl);
+        }
+    }
 });
 
 Ext.define('Scalr.ui.GridPanelTool', {
@@ -2404,7 +1629,9 @@ Ext.define('Scalr.ui.GridPanelTool', {
 				columns: 2,
 				vertical: true
 		});
-		var columns = this.up('panel').columns;
+		var grid = this.up('panel'),
+			columns = grid.columns;
+			
 		for(var i in columns) {
 			if(columns[i].hideable) {
 				checkboxGroup.add({
@@ -2426,12 +1653,34 @@ Ext.define('Scalr.ui.GridPanelTool', {
 				name: 'autoRefresh'
 			}
 		});
-		return [columnsFieldset, autorefreshFieldset];
+		
+		var resetColumnsWidthFieldset = new Ext.form.FieldSet({
+			items: {
+				xtype: 'button',
+				text: '<span style="font-weight:normal">Reset columns width</span>',
+				handler: function(){
+					grid.suspendLayouts();
+					for (var i=0, len=columns.length; i<len; i++) {
+						if (columns[i].initialConfig.flex) {
+							columns[i].flex = columns[i].initialConfig.flex;
+							if (columns[i].width) {
+								delete columns[i].width;
+							}
+						} else if (columns[i].initialConfig.width) {
+							columns[i].width = columns[i].initialConfig.width;
+						}
+					}
+					grid.resumeLayouts(true);
+				}
+			}
+		});
+		return [columnsFieldset, resetColumnsWidthFieldset, autorefreshFieldset];
 	},
 
 	handler: function () {
 		var me = this;
-		var columns = me.up('panel').columns;
+		var grid = me.up('panel'),
+			columns = grid.columns;
 		Scalr.Confirm({
 			title: 'Grid settings',
 			form: me.gridSettingsForm(),
@@ -2442,6 +1691,7 @@ Ext.define('Scalr.ui.GridPanelTool', {
 					if(!data[columns[i].text] && columns[i].hideable)
 						columns[i].hide();
 				}
+				grid.fireEvent('resize');
 				if(data['autoRefresh'])
 					this.up('panel').down('scalrpagingtoolbar').checkRefreshHandler({'autoRefresh': data['autoRefresh']}, true);
 				else
@@ -2567,6 +1817,7 @@ Ext.define('Scalr.ui.MenuItemTop', {
 	}
 });
 
+// DEPRECATED, remove with old farm builder
 Ext.define('Scalr.ui.FormComboButton', {
 	extend: 'Ext.container.Container',
 	alias: 'widget.combobutton',
@@ -2639,8 +1890,14 @@ Ext.define('Scalr.ui.FormTextCodeMirror', {
 	
 	fieldSubTpl: '<div id="{id}"></div>',
 	enterIsSpecial: false,
+	mode: '', // set to prevent mode recognition
 	
 	setMode: function (cm) {
+		if (this.mode) {
+			cm.setOption('mode', this.mode);
+			return;
+		}
+
 		// #! ... /bin/(language)
 		var value = cm.getValue(), mode = /^#!.*\/bin\/(.*)$/.exec(Ext.String.trim(value.split("\n")[0]));
 		mode = mode && mode.length == 2 ? mode[1] : '';
@@ -2742,48 +1999,41 @@ Ext.define('Scalr.ui.FormTextCodeMirror', {
 Ext.define('Scalr.ui.FormFieldPassword', {
     extend: 'Ext.form.field.Text',
 	alias: 'widget.passwordfield',
+	
 	inputType:'password',
-	
 	allowBlank: false,
-
 	placeholder: '******',
+	initialValue: null,
 	
-	onBeforeRender: function() {
-		this.callParent(arguments);
-		if (this.originalValue === true) {
-			this.setValue(this.placeholder);
-		}
-	},
-	
-	onFocus: function() {
-		this.callParent(arguments);
-		if (this.originalValue === true && this.getValue() == this.placeholder) {
-			this.setValue('');
-			this.clearInvalid();
-		}
+	isPasswordEmpty: function(password) {
+		return Ext.isEmpty(password) || password === false;
 	},
 
-	onBlur: function() {
-		this.callParent(arguments);
-		if (this.originalValue === true && this.getValue() == '') {
-			this.setValue(this.placeholder);
-		}
-	},
-	
-	initValue: function() {
-		this.originalValue = this.value;
-		if (this.value === true) {
-			this.setValue(this.placeholder);
-		}
-		
-	},
-    getSubmitValue: function() {
-		if (this.originalValue && this.getValue() == this.placeholder) {
+    getSubmitData: function() {
+		if (!this.isPasswordEmpty(this.initialValue) && this.getValue() == this.placeholder ||
+			this.isPasswordEmpty(this.initialValue) && this.getValue() == '') {
 			return null;
 		} else {
 			return this.callParent(arguments);
 		}
-    }
+    },
+
+    getModelData: function() {
+		var data = {};
+        data[this.getName()] = this.getValue() != '' ? true : false;
+		return data;
+    },
+
+    setValue: function(value) {
+		this.initialValue = value;
+		if (!this.isPasswordEmpty(value)) {
+			value = this.placeholder;
+		} else {
+			value = '';
+		}
+		this.callParent(arguments);
+	}
+
 });
 
 Ext.define('Scalr.ui.PanelScrollFixPlugin', {
@@ -2821,7 +2071,7 @@ Ext.define('Scalr.ui.PanelScrollFixPlugin', {
 		me.saveScrollPosition();
 		me.client.on('afterlayout', function() {
 			me.restoreScrollPosition(exact);
-		}, me.client, { single: true });
+		}, me.client, {single: true});
 	},
 	
 	saveScrollPosition: function() {
@@ -2837,3 +2087,811 @@ Ext.define('Scalr.ui.PanelScrollFixPlugin', {
 	}
 });
 
+Ext.define('Scalr.ui.LeftMenu', {
+    extend: 'Ext.AbstractPlugin',
+    alias: 'plugin.leftmenu',
+	
+    disabled: false,
+	client:null,
+	menu: null,
+	menuVisible: false,
+	
+	currentMenuId: null,
+	currentItemId: null,
+	itemIdPrefix: 'leftmenu-',
+	
+	componentBodyCls: 'x-panel-leftmenu-body',
+	bodyCls: 'x-leftmenu',
+	itemCls: 'x-leftmenu-btn',
+	itemOverCls: 'x-leftmenu-btn-over',
+	itemPressedCls: 'x-leftmenu-btn-pressed',
+	
+	getMenus: function(menuId){
+		var menus = [];
+		switch (menuId) {
+			case 'account':
+				if (Scalr.user['type'] == 'AccountOwner' || Scalr.user['isTeamOwner']) {
+					menus.push({
+						itemId:'environments',
+						renderData: {
+							link: '#/account/environments',
+							icon: 'environments',
+							name: 'Environments'
+						}
+					});
+				}
+				menus.push({
+					itemId:'teams',
+					renderData: {
+						link: '#/account/teams',
+						icon: 'teams',
+						name: 'Teams'
+					}
+				});
+				menus.push({
+					itemId:'users',
+					renderData: {
+						link: '#/account/users',
+						icon: 'users',
+						name: 'Users'
+					}
+				});
+				if (Scalr.user['type'] == 'AccountOwner' || Scalr.user['isTeamOwner']) {
+					menus.push({
+						itemId:'groups',
+						onClick: function(e) {
+							if (!Scalr.flags['featureUsersPermissions']) {
+								Scalr.message.Warning('&laquo;Access control&raquo; feature is not available under your current billing plan.');
+								e.preventDefault();
+							}
+						},
+						renderData: {
+							link: '#/account/groups',
+							icon: 'access-control',
+							name: 'Access control'
+						}
+					});
+				}
+			break;
+		}
+		return menus;
+	},
+	
+	init: function(client) {
+		var me = this;
+		me.client = client;
+	},
+	
+	create: function() {
+		var me = this;
+		this.menu = Ext.create('Ext.panel.Panel', {
+			hidden: true,
+			layout: 'vbox',
+			bodyCls: this.bodyCls,
+			dock: 'left',
+			defaults: {
+				xtype: 'custombutton',
+				cls: this.itemCls,
+				enableToggle: true,
+				toggleGroup: 'leftmenu',
+				onClick: Ext.emptyFn,
+				overCls: this.itemOverCls,
+				pressedCls: this.itemPressedCls,
+				renderTpl:
+					'<div class="x-btn-inner"><a id="{id}-btnEl" href="{link}">'+
+						'<span class="x-btn-icon x-btn-icon-{icon}"></span><span class="x-btn-title">{name}</span>'+
+					'</a></div>'
+			},
+			listeners: {
+				beforeshow: function(){
+					if (me.menuVisible) {
+						me.client.body.addCls(me.componentBodyCls);
+					} else {
+						return false;
+					}
+				},
+				hide: function(){
+					me.client.body.removeCls(me.componentBodyCls);
+				}
+			}
+		});
+		this.client.addDocked(this.menu);
+	},
+	
+	set: function(options) {
+		var me = this;
+		if (options.menuId !== this.currentMenuId) {
+			this.menu.removeAll();
+			this.menu.addCls(this.bodyCls+'-'+options.menuId);
+			this.menu.add(Ext.Array.map(this.getMenus(options.menuId), function(item){
+				item.itemId = me.itemIdPrefix + item.itemId;
+				return item;
+			}));
+			this.currentMenuId = options.menuId;
+			this.currentItemId = null;
+		}
+		if (options.itemId !== this.currentItemId) {
+			this.menu.getComponent(me.itemIdPrefix + options.itemId).doToggle();
+			this.currentItemId = options.itemId;
+		}
+	},
+	
+	show: function(options) {
+		if (this.menu === null) {
+			this.create();
+		}
+		this.set(options);
+		this.menuVisible = true;
+		this.menu.show();
+	},
+	
+	hide: function() {
+		this.menuVisible = false;
+		this.menu.hide();
+	}
+	
+});
+
+Ext.define('Scalr.ui.RowPointer', {
+    extend: 'Ext.AbstractPlugin',
+    alias: 'plugin.rowpointer',
+	
+    disabled: false,
+	client:null,
+
+	cls: 'x-panel-columned-row-pointer',
+	addCls: null,
+	addOffset: 0,
+	thresholdOffset: 50,
+	hiddenOffset: -20,
+	throttle: 100,
+	
+	init: function(client) {
+		var me = this;
+		me.client = client;
+		me.throttledUpdatePointerPosition = Ext.Function.createThrottled(me.updatePointerPosition, me.throttle, me);
+		
+		client.on('afterrender', function() {
+			this.addCls(me.cls + (me.addCls ? ' ' + me.addCls  : ''));
+			
+			this.on('afterlayout', me.throttledUpdatePointerPosition, me);
+			this.getSelectionModel().on('focuschange', me.throttledUpdatePointerPosition, me);
+			this.view.el.on('scroll', me.throttledUpdatePointerPosition, me)
+
+			client.on('beforedestroy',  function() {
+				this.un('afterlayout', me.throttledUpdatePointerPosition, me);
+				this.getSelectionModel().un('focuschange', me.throttledUpdatePointerPosition, me);
+				this.view.el.un('scroll', me.throttledUpdatePointerPosition, me);
+			});
+			
+		});
+	},
+	
+	updatePointerPosition: function() {
+		var record = this.client.getSelectionModel().lastFocused,
+			offset;
+		if (record) {
+			offset = Ext.get(this.client.view.getNode(record)).getOffsetsTo(this.client.el)[1] + this.addOffset;
+			offset = offset < this.thresholdOffset ? this.hiddenOffset : offset;
+		} else {
+			offset = this.hiddenOffset;
+		}
+		this.client.el.setStyle('background-position','100% '+offset+'px');
+	}
+	
+});
+
+Ext.define('Scalr.ui.LiveSearch', {
+    extend: 'Ext.form.field.Trigger',
+    alias: 'widget.livesearch',
+	
+	fieldCls: 'x-form-field x-form-field-livesearch',
+	triggerCls: 'x-form-trigger-reset',
+
+	width: 200,
+	
+	fields: null,
+	store: null,
+	
+	name: 'livesearch',
+	hideLabel: true,
+	emptyText: 'Filter',
+	
+	initComponent: function(){
+		this.callParent(arguments);
+		this.on('change', function(me){
+			me.applyFilter();
+		}, this, {buffer: 300});
+	},
+	
+	afterRender: function() {
+		this.callParent(arguments);
+		this.triggerEl.hide();
+	},
+	
+    applyFilter: function() {
+		var me = this,
+			value= Ext.String.trim(this.getValue());
+		me.triggerEl[value != ''?'show':'hide']();
+		me.store.clearFilter();
+		if (value != '') {
+			me.store.filter({filterFn: function(record) {
+				var result = false
+					,r = new RegExp(Ext.String.escapeRegex(value), 'i');
+				for (var i=0, length=me.fields.length; i<length; i++) {
+					var fieldValue = Ext.isFunction(me.fields[i]) ? me.fields[i](record) : record.get(me.fields[i]);
+					result = (fieldValue+'').match(r);
+					if (result) {
+						break;
+					}
+				}
+				return result;
+			}});
+		}
+		this.fireEvent('afterfilter');
+    },
+	
+	reset: function() {
+		this.suspendEvents(false);
+		this.setValue('');
+		this.resumeEvents();
+		this.applyFilter();
+	},
+	
+	onTriggerClick: function() {
+		this.reset();
+	}
+	
+	
+});
+
+Ext.define('Scalr.ui.GridField', {
+    extend: 'Ext.grid.Panel',
+    mixins: {
+        //labelable: 'Ext.form.Labelable',
+        field: 'Ext.form.field.Field'
+    },
+    alias: 'widget.gridfield',
+	
+	multiSelect: true,
+	selModel: {
+		selType: 'selectedmodel',
+		injectCheckbox: 'first'
+	},
+	fieldReady: false,
+
+	allowBlank: true,
+
+	initComponent : function() {
+        var me = this;
+ 		me.callParent();
+		this.initField();
+        if (!me.name) {
+            me.name = me.getInputId();
+        }
+		
+		this.on('viewready', function(){
+			this.fieldReady = true;
+			this.setRawValue(this.value);
+		});
+		this.on('selectionchange', function(selModel, selected){
+			this.checkChange();
+		});
+		this.getStore().on('refresh', function(){
+			me.setRawValue(me.value);
+		});
+	},
+  
+	setValue: function(value) {
+		this.setRawValue(value);
+		return this.mixins.field.setValue.call(this, value);
+	},
+
+	setRawValue: function(value) {
+		if (this.fieldReady) {
+			var store = this.getStore(),
+				records = [];
+
+			value = value || [];
+			for (var i=0, len=value.length; i<len; i++) {
+				var record = store.getById(value[i]);
+				if (record) {
+					records.push(record);
+				}
+			}
+			this.getSelectionModel().select(records, false, true);
+		}
+	},
+
+    getInputId: function() {
+        return this.inputId || (this.inputId = this.id + '-inputEl');
+    },
+	
+    getRawValue: function() {
+		var ids = [];
+		this.getSelectionModel().selected.each(function(record){
+			ids.push(record.get('id'));
+		});
+		return ids;
+    },
+
+	getValue: function() {
+		return this.getRawValue();
+	},
+
+    getActiveError : function() {
+        return this.activeError || '';
+    },
+	
+   getSubmitData: function() {
+        var me = this,
+            data = null;
+        if (!me.disabled && me.submitValue) {
+            data = {};
+            data[me.getName()] = Ext.encode(me.getValue());
+        }
+        return data;
+    }
+	
+});
+
+Ext.define('Scalr.ui.FormFieldColor', {
+    extend: 'Ext.Component',
+    mixins: {
+        labelable: 'Ext.form.Labelable',
+        field: 'Ext.form.field.Field'
+    },
+    alias: 'widget.colorfield',
+	cls: 'x-form-colorpicker',
+    fieldSubTpl: [],
+
+	allowBlank: false,
+	componentLayout: 'field',
+	button:null,
+	backgroundColor: '#000000',
+	
+    initComponent : function() {
+        var me = this;
+		me.callParent();
+        me.initLabelable();
+        me.initField();
+        if (!me.name) {
+            me.name = me.getInputId();
+        }
+    },
+	
+    beforeRender: function(){
+        var me = this;
+        me.callParent(arguments);
+        me.beforeLabelableRender();
+    },
+	
+	afterRender: function() {
+		var me = this;
+		me.button = Ext.create('Ext.Button', {
+			renderTo: this.bodyEl,
+			height: 22,
+			padding: 0,
+			pressedCls: '',
+			menuActiveCls: '',
+			menu: {
+				xtype: 'colormenu', 
+				cls: 'x-form-colorpicker-menu',
+				allowReselect: true,
+				colors: ['333333', 'DF2200', 'AA00AA', '1A4D99', '3D690C', '006666', '6F8A02', '0C82C0', 'CA4B00', '671F92'],
+				listeners: {
+					select: function(picker, color){
+						me.setValue(color);
+					}
+				}
+			}
+		});
+		this.fieldReady = true;
+	},
+	
+    getInputId: function() {
+        return this.inputId || (this.inputId = this.id + '-inputEl');
+    },
+
+    initRenderTpl: function() {
+        var me = this;
+        me.renderTpl = me.getTpl('labelableRenderTpl');
+        return me.callParent();
+    },
+
+    initRenderData: function() {
+        return Ext.applyIf(this.callParent(), this.getLabelableRenderData());
+    },
+
+	setRawValue: function(value) {
+		if (this.fieldReady) {
+			var color = this.backgroundColor;
+			if (!Ext.isEmpty(value)) {
+				color = '#'+value;
+			}
+			this.button.el.down('.x-btn-inner').setStyle('background', color);
+		}
+	},
+ 
+	setValue: function(value) {
+		this.value = value;
+		this.setRawValue(value);
+		this.fireEvent('change', this, this.value);
+	},
+	
+    getRawValue: function() {
+		return this.value || '';
+    },
+
+	getValue: function() {
+		return this.getRawValue();
+	},
+	
+    setReadOnly: function(readOnly) {
+        var me = this;
+        readOnly = !!readOnly;
+        me.readOnly = readOnly;
+		if (this.fieldReady) {
+		}
+    }
+	
+});
+
+Ext.define('Scalr.ui.ChildStore', {
+	extend: 'Ext.data.Store',
+	parentStore: null,
+	parentUpdateInProgress: false,
+	selfUpdateInProgress: false,
+	constructor: function(){
+		var me = this;
+		if (arguments[0].parentStore) {
+			arguments[0].model = arguments[0].parentStore.getProxy().getModel().modelName;
+		}
+		me.callParent(arguments);
+		if (me.parentStore) {
+			this.loadRecords(this.parentStore.getRange());
+			
+			this.parentStore.on({
+				refresh: function(){
+					me.loadRecords(me.parentStore.getRange());
+				},
+				remove: function(store, record){
+					if (!me.parentUpdateInProgress) {
+						me.remove(record);
+					}
+				},
+				add: function(store, records, index){
+					if (!me.parentUpdateInProgress) {
+						me.selfUpdateInProgress = true;
+						me.insert(index, records);
+						me.selfUpdateInProgress = false;
+					}
+				}
+			});
+			
+			this.on({
+				remove: function(store, record){
+					me.parentUpdateInProgress = true;
+					me.parentStore.remove(record);
+					me.parentUpdateInProgress = false;
+				},
+				add: function(store, records, index){
+					if (!me.selfUpdateInProgress) {
+						me.parentUpdateInProgress = true;
+						me.parentStore.insert(index, records);
+						me.parentUpdateInProgress = false;
+					}
+				}
+			});
+		}
+	}
+});	
+
+Ext.define('Scalr.ui.FormPicker', {
+	extend:'Ext.form.field.Picker',
+	alias: 'widget.formpicker',
+	
+	onBoxReady: function() {
+		this.callParent(arguments);
+		this.on({
+			expand: function() {
+				//this.parseSearchString();
+			}
+		});
+	},
+	
+	createPicker: function() {
+		var me = this,
+			formDefaults = {
+				style: 'background:#F0F1F4;border-radius:4px;box-shadow: 0 1px 3px #7B8BA1;margin-top:1px',
+				fieldDefaults: {
+					anchor: '100%'
+				},
+				focusOnToFront: false,
+				padding: 12,
+				pickerField: me,
+				floating: true,
+				hidden: true,
+				ownerCt: this.ownerCt
+			};
+			
+		if (!this.form.dockedItems) {
+			this.form.dockedItems = {
+				xtype: 'container',
+				layout: {
+					type: 'hbox',
+					pack: 'center'
+				},
+				dock: 'bottom',
+				items: [{
+					xtype: 'button',
+					text: 'Search',
+					handler: function() {me.focus();
+						me.collapse();
+						//me.fireEvent('search');
+					}
+				}]
+			}
+		}
+		if (this.form.items) {
+			this.form.items.unshift({
+				xtype: 'textfield',
+				name: 'keywords',
+				fieldLabel: 'Has words',
+				labelAlign: 'top'
+			});
+		}
+		var form = Ext.create('Ext.form.Panel', Ext.apply(formDefaults, this.form));
+		form.getForm().getFields().each(function(){
+			if (this.xtype == 'combo') {
+				this.on('expand', function(){
+					this.picker.el.on('mousedown', function(e){
+						me.keepVisible = true;
+					});
+				}, this, {single: true})
+			}
+		})
+		return form;
+	},
+	
+	collapseIf: function(e) {
+		var me = this;
+		if (!me.keepVisible && !me.isDestroyed && !e.within(me.bodyEl, false, true) && !e.within(me.picker.el, false, true) && !me.isEventWithinPickerLoadMask(e)) {
+			me.collapse();
+		}
+		me.keepVisible = false;
+	}
+	
+});
+
+Ext.define('Scalr.ui.CloudLocationMap', {
+	extend: 'Ext.panel.Panel',
+	alias: 'widget.cloudlocationmap',
+	width: 210,
+	height: 100,
+	layout: 'absolute',
+	cls: 'scalr-ui-cloudlocationmap',
+	
+	sizes: {
+		common: {
+			width: 210,
+			height: 100,
+			bodyStyle: 'background: url(/ui2/images/maps.png) 0 -400px no-repeat'
+		},
+		large: {
+			width: 320,
+			height: 140,
+			bodyStyle: 'background: url(/ui2/images/maps_large.png) 0 -560px no-repeat'
+		}
+	},
+	size: 'common',
+	
+	mode: 'multi',
+	platforms: [],
+	regions: {
+		us: 0,
+		sa: 3,
+		eu: 2,
+		ap: 1,
+		unknown: 4,
+		all: 5
+	},
+	locations: {
+		ec2: {
+			'ap-northeast-1': {region: 'ap', x: {common: 125, large: 183}, y: {common:27, large: 40}},
+			'ap-southeast-1': {region: 'ap', x: {common: 95, large: 142}, y: {common:58, large: 81}},
+			'ap-southeast-2': {region: 'ap', x: {common: 133, large: 193}, y: {common:88, large: 118}},
+			'eu-west-1': {region: 'eu', x: {common: 75, large: 112}, y: {common:14, large: 18}},
+			'sa-east-1': {region: 'sa', x: {common: 114, large: 170}, y: {common:51, large: 71}},
+			'us-east-1': {region: 'us', x: {common: 145, large: 212}, y: {common:53, large: 74}},
+			'us-west-1': {region: 'us', x: {common: 43, large: 78}, y: {common:50, large: 66}},
+			'us-west-2': {region: 'us', x: {common: 35, large: 72}, y: {common:26, large: 40}}
+		},
+		rackspace: {
+			'rs-LONx': {region: 'eu', x: {common: 75, large: 120}, y: {common:14, large: 18}},//rs-LONx
+			'rs-ORD1': {region: 'us', x: {common: 120, large: 180}, y: {common:32, large: 44}}
+		},
+		rackspacengus: {
+			'DFW': {region: 'us', x: {common: 100, large: 154}, y: {common:60, large: 78}},
+			'ORD': {region: 'us', x: {common: 120, large: 180}, y: {common:32, large: 44}}
+		},
+		rackspacenguk: {
+			'LON': {region: 'eu', x: {common: 75, large: 120}, y: {common:14, large: 18}}
+		}
+	},
+	
+	initComponent: function() {
+		Ext.apply(this, this.sizes[this.size]);
+		this.locations.rds = this.locations.ec2;
+		this.on('render', function(){
+			this.locationTitle = Ext.DomHelper.append(this.el.dom, '<div class="title"></div>', true)
+		});
+		this.callParent(arguments);
+	},
+	
+	selectLocation: function(platform, location, locations){
+		locations = locations || [];
+		this.clearLocations();
+		if (location == 'all') {
+			this.setBodyStyle('background-position', this.getRegionPosition('all'));
+		} else if (this.locations[platform] && this.locations[platform][location]) {
+			var me = this,
+				selectedLocation = this.locations[platform][location];
+			this.setBodyStyle('background-position', this.getRegionPosition(selectedLocation.region));
+			if (selectedLocation.region != 'unknown') {
+				Ext.Object.each(this.locations[platform], function(key, value) {
+					if (value.region == selectedLocation.region && Ext.Array.contains(locations, key) || key == location) {
+						var title = key;
+						if (me.platforms[platform] && me.platforms[platform].locations[key]) {
+							title = me.platforms[platform].locations[key];
+						}
+						var el = Ext.DomHelper.append(me.el.dom, '<div data-location="'+Ext.util.Format.htmlEncode(key)+'" style="top:'+value.y[me.size]+'px;left:'+value.x[me.size]+'px" class="location'+(location == key ? ' selected' : '')+'" title="'+Ext.util.Format.htmlEncode(title)+'"></div>', true)
+						el.on('click', function(){
+							me.fireEvent('selectlocation', this.getAttribute('data-location'));
+						});
+
+						if (me.mode == 'single' && key == location) {
+							me.locationTitle.setHTML(title);
+							me.fixTitlePosition();
+						}
+					}
+				});
+			}
+		} else {
+			this.setBodyStyle('background-position', this.getRegionPosition('unknown'));
+		}
+	},
+	
+	fixTitlePosition: function() {
+		var loc = this.el.query('.location');
+		if (loc[0]) {
+			var el = Ext.fly(loc[0]);
+			//we are trying to avoid overlapping between title and location div
+			if (el.getTop(true) > this.height/2) {
+				this.locationTitle.setTop(el.getTop(true)-35);
+			} else {
+				this.locationTitle.setTop(el.getTop(true)+20);
+			}
+		}
+	},
+	
+	clearLocations: function() {
+		var loc = this.el.query('.location');
+		for (var i=0, len=loc.length; i<len; i++) {
+			Ext.removeNode(loc[i]);
+		}
+	},
+	
+	getRegionPosition: function(region) {
+		return '0 -' + (this.regions[region]*this.height) + 'px';
+	}
+	
+});
+
+Ext.define('Scalr.ui.data.View.DynEmptyText', {
+    extend: 'Ext.AbstractPlugin',
+    alias: 'plugin.dynemptytext',
+	
+    disabled: false,
+	client:null,
+	
+	onAddItemClick: Ext.emptyFn,
+	itemsTotal: null,
+	emptyText: 'No items were found to match your search.<p>Try modifying your search criteria or <a class="add-link" href="#">adding a new item</a></p>',
+	emptyTextNoItems: null,
+	
+	init: function(client) {
+		var me = this;
+		me.client = client;
+		client.on({
+			containerclick: {
+				fn: me.onContainerClick,
+				scope: me
+			},
+			boxready: function() {
+				client.store.on({
+					refresh: {
+						fn: me.updateEmptyText,
+						scope: me
+					},
+					add: {
+						fn: me.updateEmptyText,
+						scope: me
+					},
+					remove: {
+						fn: me.updateEmptyText,
+						scope: me
+					}
+				});
+				me.updateEmptyText();
+			},
+			beforedestroy: function() {
+				this.un('containerclick', me.onContainerClick, me);
+				this.store.un('refresh', me.updateEmptyText, me);
+				this.store.un('add', me.updateEmptyText, me);
+				this.store.un('remove', me.updateEmptyText, me);
+			}
+		});
+	},
+	
+	onContainerClick: function(comp, e){
+		var el = comp.el.query('a.add-link');
+		if (el.length && e.within(el[0])) {
+			this.onAddItemClick();
+			e.preventDefault();
+		}
+	},
+	
+	updateEmptyText: function() {
+		var client = this.client,
+			itemsTotal = client.store.snapshot ?  client.store.snapshot.length : client.store.data.length;
+
+		if (itemsTotal !== this.itemsTotal) {
+			var text = this.emptyText;
+			if (itemsTotal < 1) {
+				text = '<div class="x-grid-empty-inner x-grid-empty-arrow"><div class="x-grid-empty-arrow2"></div><div class="x-grid-empty-text">' + (this.emptyTextNoItems || this.emptyText) + '</div></div>';
+			} else {
+				text = '<div class="x-grid-empty-inner">' + text + '</div>';
+			}
+			client.emptyText = '<div class="' + Ext.baseCSSPrefix + 'grid-empty">' + text + '</div>';
+			var emptyDiv = client.el.query('.' + Ext.baseCSSPrefix + 'grid-empty');
+			if (emptyDiv.length) {
+				Ext.fly(emptyDiv[0]).setHTML(text);
+			}
+			this.itemsTotal = itemsTotal;
+		}
+	}
+});
+
+Ext.define('Ext.ux.form.ToolFieldSet', {
+    extend: 'Ext.form.FieldSet',
+    alias: 'widget.toolfieldset',
+    tools: [],
+
+    createLegendCt: function () {
+		var me = this,
+			legend = me.callParent(arguments);
+
+		if (Ext.isArray(me.tools)) {
+            for(var i = 0; i < me.tools.length; i++) {
+                legend.items.push(me.createToolCmp(me.tools[i]));
+            }
+        }
+		
+		return legend;
+    },
+
+    createToolCmp: function(toolCfg) {
+        var me = this;
+        Ext.apply(toolCfg, {
+            xtype:  'tool',
+			cls: 'x-tool-extra',
+            width:  15,
+            height: 15,
+            id:     me.id + '-tool-' + toolCfg.type,
+            scope:  me
+        });
+        return Ext.widget(toolCfg);
+    }
+
+});

@@ -27,39 +27,35 @@ class Scalr_UI_Controller_Admin_Accounts extends Scalr_UI_Controller
 	public function xListAccountsAction()
 	{
 		$this->request->defineParams(array(
-			'sort' => array('type' => 'string', 'default' => 'id'),
-			'dir' => array('type' => 'string', 'default' => 'ASC'),
+			'sort' => array('type' => 'json'),
 			'accountId' => array('type' => 'int')
 		));
 
-		$sql = "SELECT id, name, dtadded, status FROM clients WHERE 1=1";
-		
-		if ($this->getParam('accountId'))
-			$sql .= ' AND id = '.$this->db->qstr($this->getParam('accountId'));
-		
-		$chunks = explode("=", $this->getParam('query'));
-			
-		if ($chunks[0] == 'farm') {
-			$sql .= ' AND id IN (SELECT clientid FROM farms WHERE id LIKE '.$this->db->qstr("%".$chunks[1]."%").')';
-			$this->request->setParams(array('query' => ''));
-		}
-		
-		if ($chunks[0] == 'owner') {
-			$sql .= ' AND id IN (SELECT account_id FROM account_users WHERE `type` = '.$this->db->qstr(Scalr_Account_User::TYPE_ACCOUNT_OWNER).' AND email LIKE '.$this->db->qstr("%".$chunks[1]."%").')';
-			$this->request->setParams(array('query' => ''));
-		}
-		
-		if ($chunks[0] == 'user') {
-			$sql .= ' AND id IN (SELECT account_id FROM account_users WHERE email LIKE '.$this->db->qstr("%".$chunks[1]."%").')';
-			$this->request->setParams(array('query' => ''));
+		$sql = "SELECT id, name, dtadded, status FROM clients WHERE :FILTER:";
+		$args = array();
+
+		if ($this->getParam('farmId')) {
+			$sql .= ' AND id IN (SELECT clientid FROM farms WHERE id = ?)';
+			$args[] = $this->getParam('farmId');
 		}
 
-		if ($chunks[0] == 'env') {
-			$sql .= ' AND id IN (SELECT client_id FROM client_environments WHERE id LIKE "'.$this->db->qstr("%".$chunks[1]."%").'")';
-			$this->request->setParams(array('query' => ''));
+		if ($this->getParam('owner')) {
+			$sql .= ' AND id IN (SELECT account_id FROM account_users WHERE `type` = ? AND email LIKE ?)';
+			$args[] = Scalr_Account_User::TYPE_ACCOUNT_OWNER;
+			$args[] = '%' . $this->getParam('owner') . '%';
 		}
 
-		$response = $this->buildResponseFromSql($sql, array("id", "name"));
+		if ($this->getParam('user')) {
+			$sql .= ' AND id IN (SELECT account_id FROM account_users WHERE email LIKE ?)';
+			$args[] = '%' . $this->getParam('user') . '%';
+		}
+
+		if ($this->getParam('envId')) {
+			$sql .= ' AND id IN (SELECT client_id FROM client_environments WHERE id = ?)';
+			$args[] = $this->getParam('envId');
+		}
+
+		$response = $this->buildResponseFromSql2($sql, array('id', 'name', 'dtadded', 'status'), array('id', 'name'), $args);
 		foreach ($response['data'] as &$row) {
 			$account = Scalr_Account::init()->loadById($row['id']);
 			
@@ -205,7 +201,7 @@ class Scalr_UI_Controller_Admin_Accounts extends Scalr_UI_Controller
 			));
 
 			if (!$this->getParam('id')) {
-				$account->createEnvironment("default", true);
+				$account->createEnvironment("default");
 				$account->createUser($this->getParam('ownerEmail'), $this->getParam('ownerPassword'), Scalr_Account_User::TYPE_ACCOUNT_OWNER);
 			}
 		} catch (Exception $e) {
@@ -217,12 +213,28 @@ class Scalr_UI_Controller_Admin_Accounts extends Scalr_UI_Controller
 		$this->response->data(array('accountId' => $account->id));
 	}
 	
-	public function loginAsOwnerAction()
+	public function xGetUsersAction()
 	{
-		$account = Scalr_Account::init()->loadById($this->getParam(self::CALL_PARAM_NAME));
-		$owner = $account->getOwner();
-		
-		Scalr_Session::create($owner->getId());
-		$this->response->setRedirect('/');
+		$account = new Scalr_Account();
+		$account->loadById($this->getParam('accountId'));
+
+		$this->response->data(array(
+			'users' => $account->getUsers()
+		));
+	}
+
+	public function xLoginAsAction()
+	{
+		if ($this->getParam('accountId')) {
+			$account = new Scalr_Account();
+			$account->loadById($this->getParam('accountId'));
+			$user = $account->getOwner();
+		} else {
+			$user = new Scalr_Account_User();
+			$user->loadById($this->getParam('userId'));
+		}
+
+		Scalr_Session::create($user->getId(), true);
+		$this->response->success();
 	}
 }

@@ -59,8 +59,10 @@
 			$this->logger->info("Fetching completed farms...");
 	            
 			$rows = $this->db->GetAll("SELECT farms.id FROM farms 
-            	INNER JOIN clients ON clients.id = farms.clientid WHERE clients.status='Active'"
-            );
+            	INNER JOIN clients ON clients.id = farms.clientid 
+            	INNER JOIN client_environments ON client_environments.id = farms.env_id 
+            	WHERE clients.status='Active' AND client_environments.status = 'Active'
+            ");
 			foreach ($rows as $row) {
 				if ($this->db->GetOne("SELECT COUNT(*) FROM servers WHERE farm_id=?", array($row['id'])) != 0)
 					$workQueue->put($row['id']);
@@ -73,6 +75,9 @@
 			$this->cleanup();			
 			
 			$DBFarm = DBFarm::LoadByID($farmId);
+            
+            $account = Scalr_Account::init()->loadById($DBFarm->ClientID);
+            $payAsYouGoTime = $account->getSetting(Scalr_Account::SETTING_BILLING_PAY_AS_YOU_GO_DATE);
             
             $GLOBALS["SUB_TRANSACTIONID"] = abs(crc32(posix_getpid().$farmId));
             $GLOBALS["LOGGER_FARMID"] = $farmId;
@@ -90,14 +95,6 @@
             if ($DBFarm->Status == FARM_STATUS::TERMINATED && $servers_count == 0)
             	return;
             	
-           	/*
-           	O:8:"stdClass":1:{s:7:"servers";a:3:{i:0;O:8:"stdClass":9:{s:8:"progress";i:100;s:2:"id";i:20842485;s:7:"imageId";i:77;s:8:"flavorId";i:3;s:6:"status";s:6:"ACTIVE";s:4:"name";s:36:"4d63c9c4-6f2d-4c16-9c1e-623ef2b70da8";s:6:"hostId";s:32:"1de22da589d35371f10ef232b77a6ede";s:9:"addresses";O:8:"stdClass":2:{s:6:"public";a:1:{i:0;s:13:"50.57.122.122";}s:7:"private";a:1:{i:0;s:13:"10.182.160.86";}}s:8:"metadata";O:8:"stdClass":0:{}}i:1;O:8:"stdClass":9:{s:8:"progress";i:100;s:2:"id";i:20842486;s:7:"imageId";i:77;s:8:"flavorId";i:3;s:6:"status";s:6:"ACTIVE";s:4:"name";s:36:"df6f3f67-0cfb-482d-9307-3d394dd009a1";s:6:"hostId";s:32:"00a70eb9f5b7e667d4f1ff3d8c5ef496";s:9:"addresses";O:8:"stdClass":2:{s:6:"public";a:1:{i:0;s:13:"50.57.122.131";}s:7:"private";a:1:{i:0;s:13:"10.182.160.89";}}s:8:"metadata";O:8:"stdClass":0:{}}i:2;O:8:"stdClass":9:{s:8:"progress";i:100;s:2:"id";i:20842516;s:7:"imageId";i:77;s:8:"flavorId";i:3;s:6:"status";s:6:"ACTIVE";s:4:"name";s:36:"27128bc2-1da8-4cef-b527-0b916309ae7e";s:6:"hostId";s:32:"254b44d9672258f1d7d189ab85627842";s:9:"addresses";O:8:"stdClass":2:{s:6:"public";a:1:{i:0;s:13:"50.57.122.140";}s:7:"private";a:1:{i:0;s:14:"10.182.160.112";}}s:8:"metadata";O:8:"stdClass":0:{}}}}
-           	O:8:"stdClass":1:{s:7:"servers";a:3:{i:0;O:8:"stdClass":9:{s:8:"progress";i:100;s:2:"id";i:20842485;s:7:"imageId";i:77;s:8:"flavorId";i:3;s:6:"status";s:6:"ACTIVE";s:4:"name";s:36:"4d63c9c4-6f2d-4c16-9c1e-623ef2b70da8";s:6:"hostId";s:32:"1de22da589d35371f10ef232b77a6ede";s:9:"addresses";O:8:"stdClass":2:{s:6:"public";a:1:{i:0;s:13:"50.57.122.122";}s:7:"private";a:1:{i:0;s:13:"10.182.160.86";}}s:8:"metadata";O:8:"stdClass":0:{}}i:1;O:8:"stdClass":9:{s:8:"progress";i:100;s:2:"id";i:20842486;s:7:"imageId";i:77;s:8:"flavorId";i:3;s:6:"status";s:6:"ACTIVE";s:4:"name";s:36:"df6f3f67-0cfb-482d-9307-3d394dd009a1";s:6:"hostId";s:32:"00a70eb9f5b7e667d4f1ff3d8c5ef496";s:9:"addresses";O:8:"stdClass":2:{s:6:"public";a:1:{i:0;s:13:"50.57.122.131";}s:7:"private";a:1:{i:0;s:13:"10.182.160.89";}}s:8:"metadata";O:8:"stdClass":0:{}}i:2;O:8:"stdClass":9:{s:8:"progress";i:100;s:2:"id";i:20842516;s:7:"imageId";i:77;s:8:"flavorId";i:3;s:6:"status";s:6:"ACTIVE";s:4:"name";s:36:"27128bc2-1da8-4cef-b527-0b916309ae7e";s:6:"hostId";s:32:"254b44d9672258f1d7d189ab85627842";s:9:"addresses";O:8:"stdClass":2:{s:6:"public";a:1:{i:0;s:13:"50.57.122.140";}s:7:"private";a:1:{i:0;s:14:"10.182.160.112";}}s:8:"metadata";O:8:"stdClass":0:{}}}}
-           	
-           	 */
-            	
-            	
-            	
             foreach ($DBFarm->GetServersByFilter(array(), array('status' => SERVER_STATUS::PENDING_LAUNCH)) as $DBServer)
             {
             	try {
@@ -108,15 +105,17 @@
 		                	if ($DBServer->platform == SERVER_PLATFORMS::RACKSPACE)
 		                	{
 		                		if ($DBServer->status != SERVER_STATUS::PENDING_TERMINATE && $DBServer->status != SERVER_STATUS::TERMINATED) {
-			                		//TODO:
-			                		 Logger::getLogger(LOG_CATEGORY::FARM)->warn(new FarmLogMessage($DBFarm->ID, 
-				                    	sprintf("Server '%s' found in database but not found on {$DBServer->platform}. Crashed. RACKSPACE, doing nothing.", $DBServer->serverId)
-				                   	 ));
-				                   	 
-			                   	 	mail("igor@scalr.com", "RACKSPACE - {$DBServer->serverId} ({$DBServer->remoteIp}) ({$DBServer->GetCloudServerID()}) ({$DBServer->GetProperty(RACKSPACE_SERVER_PROPERTIES::HOST_ID)})", serialize($p->_tmpVar));
-			                   	 	$DBServer->SetProperty("rackspace.crashed", "1");
-			                   	 	
-			                   	 	continue;
+			                		if ($DBServer->GetProperty("rackspace.crashed") == 1) {
+                                        Scalr::FireEvent($DBFarm->ID, new HostCrashEvent($DBServer));
+                                    } else {
+                                        //TODO:
+                                        Logger::getLogger(LOG_CATEGORY::FARM)->warn(new FarmLogMessage($DBFarm->ID, 
+                                           sprintf("Server '%s' found in database but not found on {$DBServer->platform}. Crashed. RACKSPACE, doing nothing.", $DBServer->serverId)
+                                        ));
+                                        $DBServer->SetProperty("rackspace.crashed", "1");    
+                                    }
+                                    
+                                    continue;
 		                		}
 		                	} else {
 		                	
@@ -137,8 +136,18 @@
             	}
             	catch(Exception $e)
             	{
-            		if (stristr($e->getMessage(), "AWS was not able to validate the provided access credentials"))
-            			continue;
+            		if (stristr($e->getMessage(), "AWS was not able to validate the provided access credentials") ||
+                        stristr($e->getMessage(), "Unable to sign AWS API request. Please, check your X.509")
+                    ) {
+                        $env = Scalr_Environment::init()->LoadById($DBFarm->EnvID);
+                        $env->status = Scalr_Environment::STATUS_INACTIVE;
+                        $env->save();
+                        $env->setPlatformConfig(array(
+                            'system.auto-disable-reason' => $e->getMessage()
+                        ), false);
+                        
+                        return;
+            		}
             			
             		if (stristr($e->getMessage(), "Could not connect to host"))
             			continue;
@@ -153,6 +162,9 @@
 					if ($realStatus == 'stopped') {
 						$DBServer->SetProperty(SERVER_PROPERTIES::SUB_STATUS, $realStatus);
 						continue;
+					} else {
+					    if ($DBServer->GetProperty(SERVER_PROPERTIES::SUB_STATUS) == 'stopped')
+                            $DBServer->SetProperty(SERVER_PROPERTIES::SUB_STATUS, "");
 					}
 					
 	                if ($DBServer->status != SERVER_STATUS::TERMINATED && $DBServer->GetRealStatus()->isTerminated())
@@ -168,137 +180,110 @@
 	                	Scalr::FireEvent($DBFarm->ID, new HostDownEvent($DBServer));
 	                	continue;
 	                }
-	                elseif ($DBServer->GetRealStatus()->IsRunning() && $DBServer->status != SERVER_STATUS::RUNNING)
-	                {
-	                	if ($DBServer->status != SERVER_STATUS::TERMINATED)
-	                	{
-		                	if ($DBServer->platform == SERVER_PLATFORMS::RDS)
-		                	{
-		                		//TODO: timeouts
-		                		
-		                		if ($DBServer->status == SERVER_STATUS::PENDING)
-		                		{
-		                			$info = PlatformFactory::NewPlatform($DBServer->platform)->GetServerIPAddresses($DBServer);
-		                			$event = new HostInitEvent(
-										$DBServer, 
-										$info['localIp'],
-										$info['remoteIp'],
-										''
-									);	
-		                		}
-		                		elseif ($DBServer->status == SERVER_STATUS::INIT)
-		                		{
-		                			$event = new HostUpEvent($DBServer, ""); // TODO: add mysql replication password
-		                		}
-		                		
-		                		if ($event)
-		                			Scalr::FireEvent($DBServer->farmId, $event);
-		                		else
-		                		{
-		                			//TODO: Log
-		                		}
-		                	}
-		                	else {
-		                		
-		                		if ($DBServer->platform == SERVER_PLATFORMS::NIMBULA)
-		                		{
-		                			if (!$DBServer->GetProperty(NIMBULA_SERVER_PROPERTIES::USER_DATA_INJECTED))
-		                			{
-		                				$dbRole = $DBServer->GetFarmRoleObject()->GetRoleObject();
-		                				
-		                				$ssh2Client = new Scalr_Net_Ssh2_Client();
-		                				$ssh2Client->addPassword(
-											$dbRole->getProperty(DBRole::PROPERTY_NIMBULA_INIT_ROOT_USER), 
-											$dbRole->getProperty(DBRole::PROPERTY_NIMBULA_INIT_ROOT_PASS)
-										);
-										
-										$info = PlatformFactory::NewPlatform($DBServer->platform)->GetServerIPAddresses($DBServer);
-										
-										$port = $dbRole->getProperty(DBRole::PROPERTY_SSH_PORT);
-										if (!$port) $port = 22;
-										
-										try {
-											$ssh2Client->connect($info['remoteIp'], $port);
-											
-											foreach ($DBServer->GetCloudUserData() as $k=>$v)
-								        		$u_data .= "{$k}={$v};";
-								        	
-								        	$u_data = trim($u_data, ";");
-											$ssh2Client->sendFile('/etc/scalr/private.d/.user-data', $u_data, "w+", false);
-											
-											$DBServer->SetProperty(NIMBULA_SERVER_PROPERTIES::USER_DATA_INJECTED, 1);
-										}
-										catch(Exception $e) {
-											Logger::getLogger(LOG_CATEGORY::FARM)->error(new FarmLogMessage($DBFarm->ID, $e->getMessage()));
-										}
-		                			}
-		                		}
-		                		
-		                		try {
-				                	$dtadded = strtotime($DBServer->dateAdded);
-				                	$DBFarmRole = $DBServer->GetFarmRoleObject();
-									$launch_timeout = $DBFarmRole->GetSetting(DBFarmRole::SETTING_SYSTEM_LAUNCH_TIMEOUT) > 0 ? $DBFarmRole->GetSetting(DBFarmRole::SETTING_SYSTEM_LAUNCH_TIMEOUT) : 300;
-		                		} catch (Exception $e) {
-		                			if (stristr($e->getMessage(), "not found")) {
-		                				PlatformFactory::NewPlatform($DBServer->platform)->TerminateServer($DBServer);
-		                				$DBServer->status = SERVER_STATUS::TERMINATED;
-		                				$DBServer->Save();
-		                			}
-		                		}
-
-		                		$scripting_event = false;
-		                		if ($DBServer->status == SERVER_STATUS::PENDING) {
-									$event = "hostInit";
-									$scripting_event = EVENT_TYPE::HOST_INIT;
-								}
-								elseif ($DBServer->status == SERVER_STATUS::INIT) { 
-									$event = "hostUp";
-									$scripting_event = EVENT_TYPE::HOST_UP;
-								}
-
-								if ($scripting_event && $dtadded) {
-									$scripting_timeout = (int)$this->db->GetOne("SELECT sum(timeout) FROM farm_role_scripts  
-										WHERE event_name=? AND 
-										farm_roleid=? AND issync='1'",
-										array($scripting_event, $DBServer->farmRoleId)
+	                elseif ($DBServer->GetRealStatus()->IsRunning() && $DBServer->status != SERVER_STATUS::RUNNING) {
+	                	if ($DBServer->status != SERVER_STATUS::TERMINATED) {
+	                		if ($DBServer->platform == SERVER_PLATFORMS::NIMBULA)
+	                		{
+	                			if (!$DBServer->GetProperty(NIMBULA_SERVER_PROPERTIES::USER_DATA_INJECTED))
+	                			{
+	                				$dbRole = $DBServer->GetFarmRoleObject()->GetRoleObject();
+	                				
+	                				$ssh2Client = new Scalr_Net_Ssh2_Client();
+	                				$ssh2Client->addPassword(
+										$dbRole->getProperty(DBRole::PROPERTY_NIMBULA_INIT_ROOT_USER), 
+										$dbRole->getProperty(DBRole::PROPERTY_NIMBULA_INIT_ROOT_PASS)
 									);
-
-									if ($scripting_timeout)
-										$launch_timeout = $launch_timeout+$scripting_timeout;
+									
+									$info = PlatformFactory::NewPlatform($DBServer->platform)->GetServerIPAddresses($DBServer);
+									
+									$port = $dbRole->getProperty(DBRole::PROPERTY_SSH_PORT);
+									if (!$port) $port = 22;
+									
+									try {
+										$ssh2Client->connect($info['remoteIp'], $port);
 										
-								    if ($dtadded+$launch_timeout < time()) {
-			                            //Add entry to farm log
-			                            $time = time();
-			                    		Logger::getLogger(LOG_CATEGORY::FARM)->warn(new FarmLogMessage($DBFarm->ID, "Server '{$DBServer->serverId}' did not send '{$event}' event in {$launch_timeout} seconds after launch (Try increasing timeouts in role settings). Considering it broken. Terminating instance."));
-			                                
-			                    		try {
-			                            	Scalr::FireEvent($DBFarm->ID, new BeforeHostTerminateEvent($DBServer, false));
-			                            	Scalr_Server_History::init($DBServer)->markAsTerminated("Server did not send '{$event}' event in {$launch_timeout} seconds after launch");
-			                            }
-			                            catch (Exception $err) {
-											$this->logger->fatal($err->getMessage());
-			                            }
+										foreach ($DBServer->GetCloudUserData() as $k=>$v)
+							        		$u_data .= "{$k}={$v};";
+							        	
+							        	$u_data = trim($u_data, ";");
+										$ssh2Client->sendFile('/etc/scalr/private.d/.user-data', $u_data, "w+", false);
+										
+										$DBServer->SetProperty(NIMBULA_SERVER_PROPERTIES::USER_DATA_INJECTED, 1);
 									}
-			                    }
-			                    
-			                    // Is IP address changed?
-		                		if (!$DBServer->IsRebooting()) 
-								{
-									$ipaddresses = PlatformFactory::NewPlatform($DBServer->platform)->GetServerIPAddresses($DBServer);
-									
-									if (
-										($ipaddresses['remoteIp'] && $DBServer->remoteIp && $DBServer->remoteIp != $ipaddresses['remoteIp']) || 
-										($ipaddresses['localIp'] && $DBServer->localIp && $DBServer->localIp != $ipaddresses['localIp']))
-									{
-										Scalr::FireEvent(
-			                            	$DBServer->farmId,
-			                                new IPAddressChangedEvent($DBServer, $ipaddresses['remoteIp'], $ipaddresses['localIp']) 
-			                            );
+									catch(Exception $e) {
+										Logger::getLogger(LOG_CATEGORY::FARM)->error(new FarmLogMessage($DBFarm->ID, $e->getMessage()));
 									}
+	                			}
+	                		}
+		                		
+	                		try {
+			                	$dtadded = strtotime($DBServer->dateAdded);
+			                	$DBFarmRole = $DBServer->GetFarmRoleObject();
+								$launch_timeout = $DBFarmRole->GetSetting(DBFarmRole::SETTING_SYSTEM_LAUNCH_TIMEOUT) > 0 ? $DBFarmRole->GetSetting(DBFarmRole::SETTING_SYSTEM_LAUNCH_TIMEOUT) : 300;
+	                		} catch (Exception $e) {
+	                			if (stristr($e->getMessage(), "not found")) {
+	                				PlatformFactory::NewPlatform($DBServer->platform)->TerminateServer($DBServer);
+	                				$DBServer->status = SERVER_STATUS::TERMINATED;
+	                				$DBServer->Save();
+	                			}
+	                		}
+
+	                		$scripting_event = false;
+	                		if ($DBServer->status == SERVER_STATUS::PENDING) {
+								$event = "hostInit";
+								$scripting_event = EVENT_TYPE::HOST_INIT;
+							}
+							elseif ($DBServer->status == SERVER_STATUS::INIT) { 
+								$event = "hostUp";
+								$scripting_event = EVENT_TYPE::HOST_UP;
+								
+							}
+
+							if ($scripting_event && $dtadded) {
+								$scripting_timeout = (int)$this->db->GetOne("SELECT sum(timeout) FROM farm_role_scripts  
+									WHERE event_name=? AND 
+									farm_roleid=? AND issync='1'",
+									array($scripting_event, $DBServer->farmRoleId)
+								);
+
+								if ($scripting_timeout)
+									$launch_timeout = $launch_timeout+$scripting_timeout;
 									
-									//TODO: Check health:
+							    if ($dtadded+$launch_timeout < time() && !$DBFarmRole->GetRoleObject()->hasBehavior(ROLE_BEHAVIORS::MONGODB)) {
+		                            //Add entry to farm log
+		                            $time = time();
+		                    		Logger::getLogger(LOG_CATEGORY::FARM)->warn(new FarmLogMessage($DBFarm->ID, "Server '{$DBServer->serverId}' did not send '{$event}' event in {$launch_timeout} seconds after launch (Try increasing timeouts in role settings). Considering it broken. Terminating instance."));
+		                                
+		                    		try {
+		                            	Scalr::FireEvent($DBFarm->ID, new BeforeHostTerminateEvent($DBServer, false));
+		                            	Scalr_Server_History::init($DBServer)->markAsTerminated("Server did not send '{$event}' event in {$launch_timeout} seconds after launch");
+		                            }
+		                            catch (Exception $err) {
+										$this->logger->fatal($err->getMessage());
+		                            }
+								} elseif ($DBFarmRole->GetRoleObject()->hasBehavior(ROLE_BEHAVIORS::MONGODB)) {
+								    //DO NOT TERMINATE MONGODB INSTANCES BY TIMEOUT! IT'S NOT SAFE
+								    //THINK ABOUT WORKAROUND
 								}
-		                	}
+		                    }
+			                    
+		                    // Is IP address changed?
+	                		if (!$DBServer->IsRebooting()) 
+							{
+								$ipaddresses = PlatformFactory::NewPlatform($DBServer->platform)->GetServerIPAddresses($DBServer);
+								
+								if (
+									($ipaddresses['remoteIp'] && $DBServer->remoteIp && $DBServer->remoteIp != $ipaddresses['remoteIp']) || 
+									($ipaddresses['localIp'] && $DBServer->localIp && $DBServer->localIp != $ipaddresses['localIp']))
+								{
+									Scalr::FireEvent(
+		                            	$DBServer->farmId,
+		                                new IPAddressChangedEvent($DBServer, $ipaddresses['remoteIp'], $ipaddresses['localIp']) 
+		                            );
+								}
+								
+								//TODO: Check health:
+							}
 	                	}
 	                }
 	                elseif ($DBServer->GetRealStatus()->isRunning() && $DBServer->status == SERVER_STATUS::RUNNING)
@@ -318,7 +303,25 @@
 	                            );
 							}
 							
-							//TODO: Check health:
+                            if ($payAsYouGoTime) {
+                                $initTime = $DBServer->GetProperty(SERVER_PROPERTIES::INITIALIZED_TIME);
+                                if ($initTime < $payAsYouGoTime)
+                                    $initTime = $payAsYouGoTime;
+                                
+                                $runningHours = ceil((time() - $initTime) / 3600);
+                                $scuUsed = $runningHours * Scalr_Billing::getSCUByInstanceType($DBServer->GetFlavor());
+                                
+                                $this->db->Execute("UPDATE servers_history SET scu_used = ?, scu_updated = 0 WHERE server_id = ?", array($scuUsed, $DBServer->serverId));
+                            }
+                            
+                            
+                            //Update GCE ServerID
+                            if ($DBServer->platform == SERVER_PLATFORMS::GCE) {
+                                if ($DBServer->GetProperty(GCE_SERVER_PROPERTIES::SERVER_ID) == $DBServer->serverId) {
+                                    $info = PlatformFactory::NewPlatform($DBServer->platform)->GetServerExtendedInformation($DBServer);
+                                    $DBServer->SetProperty(GCE_SERVER_PROPERTIES::SERVER_ID, $info['Cloud Server ID']);
+                                }
+                            }
 						}
 						else
 						{
@@ -352,7 +355,7 @@
 		                			PlatformFactory::NewPlatform($DBServer->platform)->TerminateServer($DBServer);
 								}
 	                		} catch (Exception $e) {
-	                			if (stristr($e->getMessage(), "not found")) {	                				
+	                			if (stristr($e->getMessage(), "not found") || stristr($e->getMessage(), "could not be found")) {	                				
 	                				$DBServer->Remove();
 	                			} elseif (stristr($e->getMessage(), "disableApiTermination")) {
 	                				continue;

@@ -14,17 +14,17 @@
      * @copyright  Copyright (c) 2003-2007 Webta Inc, http://www.gnu.org/licenses/gpl.html
      * @license    http://www.gnu.org/licenses/gpl.html
      */
-	
+
 	/**
      * @name CoreException
      * @category   LibWebta
      * @package    Core
      * @version 1.0
      * @author Alex Kovalyov <http://webta.net/company.html>
-     */	
+     */
 	class CoreException extends Exception
-	{ 
-		
+	{
+
 		/**
 		* Constructor
 		* @access public
@@ -34,16 +34,16 @@
 		* @return void
 		*/
  		function __construct($message, $code = 0, $dolog = false)
- 		{	
+ 		{
  			$message = $code ? "Error: " . $message : "Warning: " . $message;
- 			 				
+
  			// If CLI, print message
  			if (PHP_SAPI == "cli")
- 				echo $message . "\n"; // FIXME: Add platform-independent line return
- 				
+ 				echo $message . "\n";
+
  			parent::__construct($message, $code);
-		}	
- 		
+		}
+
  		/**
 		* Return result of debug_backtrace
 		* @access protected
@@ -51,12 +51,12 @@
 		*/
 		protected function Backtrace()
 		{
-			
+
 			$backtrace = debug_backtrace();
-			foreach ($backtrace as $bt) 
+			foreach ($backtrace as $bt)
 			{
 				$args = '';
-				foreach ($bt['args'] as $a) 
+				foreach ($bt['args'] as $a)
 				{
 					if (!empty($args)) {
 						$args .= ', ';
@@ -105,7 +105,7 @@
 			return $output;
 
 		}
-		
-		
-	} 
+
+
+	}
 ?>

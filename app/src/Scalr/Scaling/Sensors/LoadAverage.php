@@ -28,25 +28,45 @@
 				
 			foreach ($servers as $DBServer)
 			{
-				if ($dbFarmRole->GetSetting(DBFarmRole::SETTING_SCALING_EXCLUDE_DBMSR_MASTER) == 1)
-				{
+				if ($dbFarmRole->GetSetting(DBFarmRole::SETTING_SCALING_EXCLUDE_DBMSR_MASTER) == 1) {
 					$isMaster = ($DBServer->GetProperty(SERVER_PROPERTIES::DB_MYSQL_MASTER) == 1 || $DBServer->GetProperty(Scalr_Db_Msr::REPLICATION_MASTER) == 1);
 					if ($isMaster)
 						continue;
 				}
 				
-				$port = $DBServer->GetProperty(SERVER_PROPERTIES::SZR_SNMP_PORT);
-				
-				$period = $farmRoleMetric->getSetting(self::SETTING_LA_PERIOD);
-				if (!$period)
-					$period = '15';
-				
-				$this->snmpClient->connect($DBServer->remoteIp, $port ? $port : 161, $dbFarm->Hash, null, null, false);
-            	$res = $this->snmpClient->get(
-            		$this->snmpOids[$period]
-            	);
-            	
-            	$la = (float)$res;
+				if ($DBServer->IsSupported('0.13.0')) {
+			        $szrClient = Scalr_Net_Scalarizr_Client::getClient(
+			            $DBServer,
+			            Scalr_Net_Scalarizr_Client::NAMESPACE_SYSTEM,
+			            $DBServer->getPort(DBServer::PORT_API)
+			        );
+				    
+			        $period = $farmRoleMetric->getSetting(self::SETTING_LA_PERIOD);
+			        $index = 0;
+			        
+			        if ($period == 15)
+			            $index = 2;
+			        elseif ($period == 5)
+			            $index = 1;
+			        
+                    $la = $szrClient->loadAverage();
+			        if ($la[$index] !== null && $la[$index] !== false)
+			            $la = (float)number_format($la[$index], 2);
+			        
+				} else {
+    				$port = $DBServer->GetProperty(SERVER_PROPERTIES::SZR_SNMP_PORT);
+    				
+    				$period = $farmRoleMetric->getSetting(self::SETTING_LA_PERIOD);
+    				if (!$period)
+    					$period = '15';
+    				
+    				$this->snmpClient->connect($DBServer->remoteIp, $port ? $port : 161, $dbFarm->Hash, null, null, false);
+                	$res = $this->snmpClient->get(
+                		$this->snmpOids[$period]
+                	);
+                	
+                	$la = (float)$res;
+				}
                                     
                 $retval[] = $la;
 			}

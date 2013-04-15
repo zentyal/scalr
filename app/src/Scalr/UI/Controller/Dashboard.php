@@ -35,6 +35,9 @@ class Scalr_UI_Controller_Dashboard extends Scalr_UI_Controller
 						)
 					);
 
+					if ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER)
+						array_unshift($panel['configuration'][0], array('name' => 'dashboard.billing'));
+
 				} else {
 					// new customer
 					$panel['configuration'] = array(
@@ -50,6 +53,8 @@ class Scalr_UI_Controller_Dashboard extends Scalr_UI_Controller
 						)
 					);
 
+					if ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER)
+						$panel['configuration'][1][] = array('name' => 'dashboard.billing');
 				}
 
 				$this->user->setDashboard($this->getEnvironmentId(), $panel);

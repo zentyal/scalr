@@ -129,14 +129,13 @@ class Scalr_UI_Controller_Scaling_Metrics extends Scalr_UI_Controller
 	{
 		$this->request->defineParams(array(
 			'metricId' => array('type' => 'int'),
-			'sort' => array('type' => 'string', 'default' => 'id'),
-			'dir' => array('type' => 'string', 'default' => 'ASC')
+			'sort' => array('type' => 'json')
 		));
 
-		$sql = "select * FROM scaling_metrics WHERE 1=1";
-		$sql .= " AND (env_id='". $this->getEnvironmentId()."' OR env_id='0')";
+		$sql = 'SELECT * FROM scaling_metrics WHERE env_id = ? OR env_id = 0';
+		$args = array($this->getEnvironmentId());
 
-		$response = $this->buildResponseFromSql($sql, array("name", "file_path"));
+		$response = $this->buildResponseFromSql2($sql, array('id', 'name', 'file_path'), array(), $args);
 		$this->response->data($response);
 	}
 }

@@ -15,27 +15,27 @@ use Scalr\Service\Aws\Elb\AbstractElbDataType;
 class PolicyAttributeDescriptionData extends AbstractElbDataType
 {
 
-	/**
-	 * List of external identifier names.
-	 *
-	 * @var array
-	 */
-	protected $_externalKeys = array(
-		'loadBalancerName',
-		'policyName'
-	);
+    /**
+     * List of external identifier names.
+     *
+     * @var array
+     */
+    protected $_externalKeys = array(
+        'loadBalancerName',
+        'policyName'
+    );
 
-	/**
-	 * The name of the attribute associated with the policy.
-	 *
-	 * @var string
-	 */
-	public $attributeName;
+    /**
+     * The name of the attribute associated with the policy.
+     *
+     * @var string
+     */
+    public $attributeName;
 
-	/**
-	 * The value of the attribute associated with the policy.
-	 *
-	 * @var string
-	 */
-	public $attributeValue;
+    /**
+     * The value of the attribute associated with the policy.
+     *
+     * @var string
+     */
+    public $attributeValue;
 }

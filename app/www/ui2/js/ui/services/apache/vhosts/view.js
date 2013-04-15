@@ -42,11 +42,10 @@ Scalr.regPage('Scalr.ui.services.apache.vhosts.view', function (loadParams, modu
 			{ header: "ID", width: 50, dataIndex: 'id', sortable:true },
 			{ header: "Name", flex: 5, dataIndex: 'name', sortable:true },
 			{ header: "Farm & Role", flex: 5, dataIndex: 'farm_id', sortable: true, xtype: 'templatecolumn', tpl:
-				'<tpl if="farm_id">'+
+				'<tpl if="farm_name && role_name">'+
 					'<a href="#/farms/{farm_id}/view" title="Farm {farm_name}">{farm_name}</a>' +
 					'&nbsp;&rarr;&nbsp;<a href="#/farms/{farm_id}/roles/{farm_roleid}/view" title="Role {role_name}">{role_name}</a> ' +
-				'</tpl>' +
-				'<tpl if="! farm_id"><img src="/ui2/images/icons/false.png" /></tpl>'
+				'<tpl else><img src="/ui2/images/icons/false.png" /></tpl>'
 			},
 			{ header: "Last time modified", width: 150, dataIndex: 'last_modified', sortable: false },
 			{ header: "SSL", width: 40, dataIndex: 'is_ssl_enabled', sortable: true, xtype: 'templatecolumn', tpl:
@@ -103,7 +102,7 @@ Scalr.regPage('Scalr.ui.services.apache.vhosts.view', function (loadParams, modu
 				}
 			}],
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}]
 		}]

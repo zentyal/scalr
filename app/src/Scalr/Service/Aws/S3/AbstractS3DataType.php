@@ -16,24 +16,24 @@ use Scalr\Service\Aws\AbstractDataType;
 abstract class AbstractS3DataType extends AbstractDataType
 {
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractDataType::getServiceNames()
-	 */
-	public function getServiceNames()
-	{
-		return array(Aws::SERVICE_INTERFACE_S3);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractDataType::getServiceNames()
+     */
+    public function getServiceNames()
+    {
+        return array(Aws::SERVICE_INTERFACE_S3);
+    }
 
-	/**
-	 * Throws an exception if this object was not initialized.
-	 *
-	 * @throws S3Exception
-	 */
-	protected function throwExceptionIfNotInitialized()
-	{
-		if (!($this->getS3() instanceof \Scalr\Service\Aws\S3)) {
-			throw new S3Exception(get_class($this) . ' has not been initialized with S3 yet.');
-		}
-	}
+    /**
+     * Throws an exception if this object was not initialized.
+     *
+     * @throws S3Exception
+     */
+    protected function throwExceptionIfNotInitialized()
+    {
+        if (!($this->getS3() instanceof \Scalr\Service\Aws\S3)) {
+            throw new S3Exception(get_class($this) . ' has not been initialized with S3 yet.');
+        }
+    }
 }

@@ -10,7 +10,7 @@
 	        		"workerMemoryLimit" => 40000,   // 40Mb       	
 	        		"startupTimeout" => 10000, 		// 10 seconds
 	        		"workTimeout" => 120000,		// 120 seconds
-	        		"size" => 7						// 7 workers
+	        		"size" => 14						// 7 workers
 	        	),
 	    		"waitPrevComplete" => true,        		
 				"fileName" => __FILE__,
@@ -99,7 +99,7 @@
 	            	if ($dt_last_polling && $dt_last_polling+$polling_interval > time() && $i == 0)
 	            	{
 	            		$this->logger->info("Polling interval: every {$polling_interval} seconds");
-	            		//continue;
+	            		continue;
 	            	}
 	            	
 	            	// Set Last polling time
@@ -243,18 +243,29 @@
 		                        //Check safe shutdown
 		                        if ($DBServer->GetFarmRoleObject()->GetSetting(DBFarmRole::SETTING_SCALING_SAFE_SHUTDOWN) == 1)
 		                        {
-		                        	$snmpClient = new Scalr_Net_Snmp_Client();
-		                        	$port = $DBServer->GetProperty(SERVER_PROPERTIES::SZR_SNMP_PORT);
-		                        	$snmpClient->connect($DBServer->remoteIp, $port ? $port : 161, $DBFarm->Hash, null, null, false);
-		                        	$res = $snmpClient->get('1.3.6.1.4.1.36632.6.1');
-						            if ($res != '1')
-						            {
-						            	Logger::getLogger(LOG_CATEGORY::FARM)->info(new FarmLogMessage($DBFarm->ID, sprintf("Safe shutdown enabled. Server '%s'. Script return '%s', server won't be terminated while return value not '1'",
-		                        			$DBServer->serverId,
-						            		$res
-		                        		)));
-										break;
-						            }
+		                        	if ($DBServer->IsSupported('0.11.3')) {
+		                        	    try {
+    		                        	    $port = $DBServer->GetProperty(SERVER_PROPERTIES::SZR_API_PORT);
+                                            if (!$port)
+                                                $port = 8010;
+    		                        	    $szrClient = Scalr_Net_Scalarizr_Client::getClient($DBServer, Scalr_Net_Scalarizr_Client::NAMESPACE_SYSTEM, $port);
+                                            $res  = $szrClient->callAuthShutdownHook();
+                                        } catch (Exception $e) {
+                                            $res = $e->getMessage();
+                                        }
+		                        	} else {                                        
+    		                        	Logger::getLogger(LOG_CATEGORY::FARM)->error(new FarmLogMessage($DBFarm->ID, sprintf("Safe shutdown enabled, but not supported by scalarizr installed on server '%s'. Ignoring.",
+                                            $DBServer->serverId
+                                        )));
+                                    }
+                                    
+                                    if ($res != '1') {
+                                        Logger::getLogger(LOG_CATEGORY::FARM)->warn(new FarmLogMessage($DBFarm->ID, sprintf("Safe shutdown enabled. Server '%s'. Script returned '%s', server won't be terminated while return value not '1'",
+                                            $DBServer->serverId,
+                                            $res
+                                        )));
+                                        break;
+                                    }
 		                        }
 	                        	
 	                        	try
@@ -313,6 +324,23 @@
 								continue 2;									
 							}
 						}// end Timeout instance's count increase 
+						
+						
+						//Check DBMsr. Do not start slave during slave2master process
+						$isDbMsr = $DBFarmRole->GetRoleObject()->getDbMsrBehavior();
+                        if ($isDbMsr) {
+                            if ($DBFarmRole->GetSetting(Scalr_Db_Msr::SLAVE_TO_MASTER)) {
+                                $runningServers = $DBFarmRole->GetRunningInstancesCount();
+                                if ($runningServers > 0) {
+                                    Logger::getLogger(LOG_CATEGORY::FARM)->warn(new FarmLogMessage($DBFarm->ID, 
+                                        sprintf("Role is in slave2master promotion process. Do not launch new slaves while there is no active slaves")
+                                    ));
+                                    continue 2; 
+                                } else {
+                                    $DBFarmRole->SetSetting(Scalr_Db_Msr::SLAVE_TO_MASTER, 0);
+                                }
+                            }
+                        }
 							
 						if ($DBFarmRole->GetSetting(DBFarmRole::SETTING_SCALING_ONE_BY_ONE) == 1)
 						{

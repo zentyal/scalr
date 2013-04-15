@@ -84,58 +84,166 @@ Scalr.regPage('Scalr.ui.admin.accounts.view', function (loadParams, moduleParams
 					itemId: 'option.login',
 					iconCls: 'x-menu-icon-login',
 					text: 'Login as owner',
-					href: "/admin/accounts/{id}/loginAsOwner"
+					menuHandler: function(item) {
+						Scalr.Request({
+							processBox: {
+								type: 'action'
+							},
+							url: '/admin/accounts/xLoginAs',
+							params: {
+								accountId: item.record.get('id')
+							},
+							success: function() {
+								Scalr.event.fireEvent('lock');
+								Scalr.event.fireEvent('redirect', '#/dashboard', true);
+								Scalr.event.fireEvent('unlock');
+								Scalr.application.updateContext();
+							}
+						});
+					}
+				}, {
+					itemId: 'option.terminateFarm',
+					iconCls: 'x-menu-icon-login',
+					text: 'Login as user',
+					request: {
+						processBox: {
+							type: 'action'
+						},
+						url: '/admin/accounts/xGetUsers',
+						dataHandler: function (record) {
+							return { accountId: record.get('id') };
+						},
+						success: function (data) {
+							Scalr.Request({
+								confirmBox: {
+									type: 'action',
+									msg: 'Please select user. You can search by id, email, fullname, type.',
+									form: [{
+										xtype: 'combo',
+										name: 'userId',
+										store: {
+											fields: [ 'id', 'email', 'fullname', 'type' ],
+											data: data.users,
+											proxy: 'object'
+										},
+										allowBlank: false,
+										forceSelection: true,
+										filterFn: function(queryString, item) {
+											var value = new RegExp(queryString);
+											return (
+												value.test(item.get('id')) ||
+													value.test(item.get('email')) ||
+													value.test(item.get('fullname')) ||
+													value.test(item.get('type'))
+												) ? true : false;
+										},
+										valueField: 'id',
+										displayField: 'email',
+										queryMode: 'local',
+										listConfig: {
+											cls: 'x-boundlist-alt',
+											tpl:
+												'<tpl for="."><div class="x-boundlist-item" style="height: auto; width: auto">' +
+													'[{id}] {email} [{type}]' +
+													'</div></tpl>'
+										}
+									}]
+								},
+								processBox: {
+									type: 'action'
+								},
+								url: '/admin/accounts/xLoginAs',
+								success: function() {
+									Scalr.event.fireEvent('lock');
+									Scalr.event.fireEvent('redirect', '#/dashboard', true);
+									Scalr.event.fireEvent('unlock');
+									Scalr.application.updateContext();
+								}
+							});
+						}
+					}
 				}]
 			}
 		],
-		
+
 		multiSelect: true,
-		selModel: {
-			selType: 'selectedmodel',
-			selectedMenu: [{
-				text: 'Delete',
-				iconCls: 'x-menu-icon-delete',
-				request: {
-					confirmBox: {
-						type: 'delete',
-						msg: 'Remove selected accounts(s): %s ?'
-					},
-					processBox: {
-						type: 'delete',
-						msg: 'Removing account(s)...'
-					},
-					url: '/admin/accounts/xRemove',
-					dataHandler: function(records) {
-						var accounts = [];
-						this.confirmBox.objects = [];
-						for (var i = 0, len = records.length; i < len; i++) {
-							accounts.push(records[i].get('id'));
-							this.confirmBox.objects.push(records[i].get('name'));
-						}
-						return { accounts: Ext.encode(accounts) };
-					}
-				}
-			}]
+		selType: 'selectedmodel',
+		listeners: {
+			selectionchange: function(selModel, selections) {
+				var toolbar = this.down('scalrpagingtoolbar');
+				toolbar.down('#delete').setDisabled(!selections.length);
+			}
 		},
 
 		dockedItems: [{
 			xtype: 'scalrpagingtoolbar',
 			store: store,
 			dock: 'top',
-			afterItems: [{
+			beforeItems: [{
 				ui: 'paging',
 				iconCls: 'x-tbar-add',
 				handler: function() {
 					Scalr.event.fireEvent('redirect', '#/admin/accounts/create');
 				}
 			}],
-			items: [{
-				xtype: 'tbfilterfield',
-				store: store
-			}, ' ', {
+			afterItems: [{
 				ui: 'paging',
-				iconCls: 'x-tbar-info',
-				tooltip: 'Filter: accountId or farm=farmId or owner=email or user=email or env=envId'
+				itemId: 'delete',
+				disabled: true,
+				iconCls: 'x-tbar-delete',
+				tooltip: 'Delete',
+				handler: function() {
+					var request = {
+						confirmBox: {
+							type: 'delete',
+							msg: 'Remove selected accounts(s): %s ?'
+						},
+						processBox: {
+							type: 'delete',
+							msg: 'Removing account(s)...'
+						},
+						url: '/admin/accounts/xRemove',
+						success: function() {
+							store.load();
+						}
+					}, records = this.up('grid').getSelectionModel().getSelection(), data = [];
+
+					request.confirmBox.objects = [];
+					for (var i = 0, len = records.length; i < len; i++) {
+						data.push(records[i].get('id'));
+						request.confirmBox.objects.push(records[i].get('name'))
+					}
+					request.params = { accounts: Ext.encode(data) };
+					Scalr.Request(request);
+				}
+			}],
+			items: [{
+				xtype: 'filterfield',
+				width: 250,
+				form: {
+					items: [{
+						xtype: 'textfield',
+						fieldLabel: 'FarmId',
+						labelAlign: 'top',
+						name: 'farmId'
+					}, {
+						xtype: 'textfield',
+						fieldLabel: 'Owner',
+						labelAlign: 'top',
+						name: 'owner'
+					}, {
+						xtype: 'textfield',
+						fieldLabel: 'User',
+						labelAlign: 'top',
+						name: 'user'
+					} ,{
+						xtype: 'textfield',
+						fieldLabel: 'EnvId',
+						labelAlign: 'top',
+						name: 'envId'
+					}]
+				},
+				store: store
 			}]
 		}]
 	});

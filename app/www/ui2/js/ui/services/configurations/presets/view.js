@@ -87,6 +87,7 @@ Scalr.regPage('Scalr.ui.services.configurations.presets.view', function (loadPar
 			xtype: 'scalrpagingtoolbar',
 			store: store,
 			dock: 'top',
+			/*
 			afterItems: [{
 				ui: 'paging',
 				iconCls: 'x-tbar-add',
@@ -94,10 +95,10 @@ Scalr.regPage('Scalr.ui.services.configurations.presets.view', function (loadPar
 					Scalr.event.fireEvent('redirect', '#/services/configurations/presets/build');
 				}
 			}],
+			*/
 			items: [{
-				xtype: 'tbfilterfield',
-				store: store,
-				iconCls: 'no-icon'
+				xtype: 'filterfield',
+				store: store
 			}]
 		}]
 	});

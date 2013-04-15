@@ -17,36 +17,36 @@ use Scalr\Service\Aws\Elb\AbstractElbDataType;
 class PolicyDescriptionData extends AbstractElbDataType
 {
 
-	/**
-	 * List of external identifier names.
-	 *
-	 * @var array
-	 */
-	protected $_externalKeys = array(
-		'loadBalancerName'
-	);
+    /**
+     * List of external identifier names.
+     *
+     * @var array
+     */
+    protected $_externalKeys = array(
+        'loadBalancerName'
+    );
 
-	/**
-	 * List of the public properties
-	 * which is managed by magic getter and setters internally.
-	 *
-	 * @var array
-	 */
-	protected $_properties = array(
-		'policyAttributeDescriptions'
-	);
+    /**
+     * List of the public properties
+     * which is managed by magic getter and setters internally.
+     *
+     * @var array
+     */
+    protected $_properties = array(
+        'policyAttributeDescriptions'
+    );
 
-	/**
-	 * The name of the policy associated with the LoadBalancer.
-	 *
-	 * @var string
-	 */
-	public $policyName;
+    /**
+     * The name of the policy associated with the LoadBalancer.
+     *
+     * @var string
+     */
+    public $policyName;
 
-	/**
-	 * The name of the policy type associated with the LoadBalancer.
-	 *
-	 * @var string
-	 */
-	public $policyTypeName;
+    /**
+     * The name of the policy type associated with the LoadBalancer.
+     *
+     * @var string
+     */
+    public $policyTypeName;
 }

@@ -20,6 +20,9 @@
 		const SETTING_TRIAL_MAIL_SENT = 'mail.trial_sent';
 		const SETTING_IS_TRIAL			= 'billing.is_trial';
 
+        //MOVE TO Scalr_Billing
+        const SETTING_BILLING_PAY_AS_YOU_GO_DATE = 'billing.pay-as-you-go-date';
+
 		const SETTING_BILLING_ALERT_OLD_PKG = 'alerts.billing.old_package';
 		const SETTING_BILLING_ALERT_PAYPAL = 'alerts.billing.paypal';
 		const SETTING_BILLING_EMERG_SUPPORT_PENDING = 'alerts.emerg.support.pending';
@@ -74,7 +77,11 @@
 				return $this->loadById($id);
 		}
 
-		public function delete() {
+		/**
+		 * {@inheritdoc}
+		 * @see Scalr_Model::delete()
+		 */
+		public function delete($id = null) {
 
 			parent::delete();
 
@@ -166,18 +173,17 @@
 		/**
 		 *
 		 * @param string $name
-		 * @param boolean $isSystem
 		 * @throws Scalr_Exception_LimitExceeded
 		 * @return Scalr_Environment
 		 */
-		public function createEnvironment($name, $isSystem = false)
+		public function createEnvironment($name)
 		{
 			if (!$this->id)
 				throw new Exception("Account is not created");
 
 			$this->validateLimit(Scalr_Limits::ACCOUNT_ENVIRONMENTS, 1);
 
-			$env = Scalr_Environment::init()->create($name, $this->id, $isSystem);
+			$env = Scalr_Environment::init()->create($name, $this->id);
 
 			$config[ENVIRONMENT_SETTINGS::TIMEZONE] = "America/Adak";
 
@@ -297,11 +303,24 @@
 			return $limits;
 		}
 
+		public function getUsers()
+		{
+			$users = $this->db->GetAll('SELECT account_users.id, email, fullname, type, account_team_users.permissions FROM account_users
+				LEFT JOIN account_team_users ON account_users.id = account_team_users.user_id WHERE account_id = ?', array($this->id));
+
+			foreach ($users as &$user) {
+				if ($user['permissions'] == 'owner')
+					$user['type'] = 'TeamOwner';
+			}
+
+			return $users;
+		}
+
 		/**
-		 *
+		 * Init
 		 * @return Scalr_Account
 		 */
-		public static function init() {
+		public static function init($className = null) {
 			return parent::init();
 		}
 	}

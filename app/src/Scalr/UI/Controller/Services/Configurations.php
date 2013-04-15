@@ -51,7 +51,15 @@ class Scalr_UI_Controller_Services_Configurations extends Scalr_UI_Controller
 			);
 			
 			$params['masterServerId'] = $masterServer->serverId;
-			$params['config'] = $this->getConfig($masterServer, $behavior);
+			$config = $this->getConfig($masterServer, $behavior);
+            foreach ($config as $file => $conf) {
+                
+                $conf = (array)$conf;
+                
+                ksort($conf, SORT_ASC | SORT_STRING);
+                
+                $params['config'][$file] = $conf;
+            }
 			
 			$manifest = @json_decode(file_get_contents(APPPATH."/www/storage/service-configuration-manifests/2012-09-03/{$behavior}.json"));
 			
@@ -71,14 +79,22 @@ class Scalr_UI_Controller_Services_Configurations extends Scalr_UI_Controller
 	
 	private function getConfig(DBServer $dbServer, $behavior)
 	{
-		$client = Scalr_Net_Scalarizr_Client::getClient($dbServer, "service");
+		$port = $dbServer->GetProperty(SERVER_PROPERTIES::SZR_API_PORT);
+        if (!$port)
+            $port = 8010;
+            
+		$client = Scalr_Net_Scalarizr_Client::getClient($dbServer, Scalr_Net_Scalarizr_Client::NAMESPACE_SERVICE, $port);
 		$result = $client->getPreset($behavior);
 		return $result->result;
 	}
 	
 	private function setConfig(DBServer $dbServer, $behavior, $config)
 	{
-		$client = Scalr_Net_Scalarizr_Client::getClient($dbServer, "service");
+		$port = $dbServer->GetProperty(SERVER_PROPERTIES::SZR_API_PORT);
+        if (!$port)
+            $port = 8010;
+            
+		$client = Scalr_Net_Scalarizr_Client::getClient($dbServer, Scalr_Net_Scalarizr_Client::NAMESPACE_SERVICE, $port);
 		$result = $client->setPreset($behavior, $config);
 		return $result->result;
 	}
@@ -109,7 +125,10 @@ class Scalr_UI_Controller_Services_Configurations extends Scalr_UI_Controller
 			if (!$config[$conf['configFile']])
 				$config[$conf['configFile']] = array();
 			
-			$config[$conf['configFile']][$conf['key']] = $conf['value'];
+            if ($config[$conf['configFile']][$conf['key']] === null)
+                $config[$conf['configFile']][$conf['key']] = $conf['value'];
+            else
+                throw new Exception("Variable {$conf['key']} from {$conf['configFile']} already defined. Please remove second definition");
 		}
 		
 		// Update master
@@ -134,10 +153,14 @@ class Scalr_UI_Controller_Services_Configurations extends Scalr_UI_Controller
 				$this->setConfig($server, $behavior, $config);
 				$savedServers++;
 			} catch (Exception $e) {
-				$warn[] = sprintf("Cannot update configuration on %s: %s", $server->serverId, $e->getMessage());
+				$warn[] = sprintf("Cannot update configuration on %s (%s): %s", $server->serverId, $server->remoteIp, $e->getMessage());
 			}
 		}
 		
+        if ($savedServers > 0) {
+            $farmRole->SetServiceConfiguration($behavior, $config);
+        }
+        
 		if (!$warn)
 			$this->response->success(sprintf("Config successfully applied on %s of %s servers", $savedServers, $servers));
 		else {

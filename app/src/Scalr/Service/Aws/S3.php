@@ -22,57 +22,68 @@ use Scalr\Service\Aws\S3\V20060301\S3Api;
 class S3 extends AbstractService implements ServiceInterface
 {
 
-	/**
-	 * API Version 20060301
-	 */
-	const API_VERSION_20060301 = '20060301';
+    /**
+     * API Version 20060301
+     */
+    const API_VERSION_20060301 = '20060301';
 
-	/**
-	 * Current version of the API
-	 */
-	const API_VERSION_CURRENT = self::API_VERSION_20060301;
+    /**
+     * Current version of the API
+     */
+    const API_VERSION_CURRENT = self::API_VERSION_20060301;
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.ServiceInterface::getAllowedEntities()
-	 */
-	public function getAllowedEntities()
-	{
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.ServiceInterface::getAllowedEntities()
+     */
+    public function getAllowedEntities()
+    {
 
-		return array('bucket', 'object');
-	}
+        return array('bucket', 'object');
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.ServiceInterface::getAvailableApiVersions()
-	 */
-	public function getAvailableApiVersions()
-	{
-		return array(self::API_VERSION_20060301);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.ServiceInterface::getAvailableApiVersions()
+     */
+    public function getAvailableApiVersions()
+    {
+        return array(self::API_VERSION_20060301);
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.ServiceInterface::getCurrentApiVersion()
-	 */
-	public function getCurrentApiVersion()
-	{
-		return self::API_VERSION_CURRENT;
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.ServiceInterface::getCurrentApiVersion()
+     */
+    public function getCurrentApiVersion()
+    {
+        return self::API_VERSION_CURRENT;
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.ServiceInterface::getUrl()
-	 */
-	public function getUrl()
-	{
-		return 's3.amazonaws.com';
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.ServiceInterface::getUrl()
+     */
+    public function getUrl()
+    {
+        return 's3.amazonaws.com';
+    }
 }
 
 /*
- TODO Following Simple Storage Service API actions need to be implemented:
-		GET Bucket Object versions
-		PUT Bucket versioning
-		LIST Multipart Uploads
+ TODO [postponed] Following Simple Storage Service API actions need to be implemented:
+        GET Bucket Object versions
+        PUT Bucket versioning
+        LIST Multipart Uploads
+        Delete Multiple Objects
+        GET Object torrent (p. 158)
+        HEAD Object (p. 160)
+        OPTIONS object (p. 164)
+        POST Object (p. 167)
+        Initiate Multipart Upload (p. 200)
+        Upload Part (p. 206)
+        Upload Part - Copy (p. 209)
+        Complete Multipart Upload (p. 214)
+        Abort Multipart Upload (p. 219)
+        List Parts (p. 221)
  */

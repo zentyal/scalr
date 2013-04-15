@@ -2,8 +2,13 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 	
 	var pageParameters = Ext.urlDecode(window.location.search.substring(1));
 	
+	
+	//db.msr.no_data_bundle_on_promote
+	
 	//TODO: Move to JSON
 	var ephemeralDevicesMap = new Array();
+	
+	//FOR EC2
 	ephemeralDevicesMap['m1.small'] =  {'ephemeral0':{'size': 150}}
 	ephemeralDevicesMap['m1.medium'] = {'ephemeral0':{'size': 400}}
 	ephemeralDevicesMap['m1.large'] =  {'ephemeral0':{'size': 420}, 'ephemeral1':{'size': 420}};
@@ -17,6 +22,20 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 	ephemeralDevicesMap['cc1.4xlarge'] =  {'ephemeral0':{'size': 840}, 'ephemeral1':{'size': 840}};
 	ephemeralDevicesMap['cc2.8xlarge'] =  {'ephemeral0':{'size': 840}, 'ephemeral1':{'size': 840}, 'ephemeral2':{'size': 840}, 'ephemeral3':{'size': 840}};
 	ephemeralDevicesMap['cg1.4xlarge'] =  {'ephemeral0':{'size': 840}, 'ephemeral1':{'size': 840}};
+	ephemeralDevicesMap['hs1.8xlarge'] =  {'ephemeral0':{'size': 12000}, 'ephemeral1':{'size': 12000}, 'ephemeral2':{'size': 12000}, 'ephemeral3':{'size': 12000}};
+	
+	//FOR GCE
+	ephemeralDevicesMap['n1-highcpu-2-d'] =  {'google-ephemeral-disk-0':{'size': 870}};
+	ephemeralDevicesMap['n1-highcpu-4-d'] =  {'google-ephemeral-disk-0':{'size': 1770}};
+	ephemeralDevicesMap['n1-highcpu-8-d'] =  {'google-ephemeral-disk-0':{'size': 1770}, 'google-ephemeral-disk-1':{'size': 1770}};
+	ephemeralDevicesMap['n1-highmem-2-d'] =  {'google-ephemeral-disk-0':{'size': 870}};
+	ephemeralDevicesMap['n1-highmem-4-d'] =  {'google-ephemeral-disk-0':{'size': 1770}};
+	ephemeralDevicesMap['n1-highmem-8-d'] =  {'google-ephemeral-disk-0':{'size': 1770}, 'google-ephemeral-disk-1':{'size': 1770}};
+	ephemeralDevicesMap['n1-standard-1-d'] =  {'google-ephemeral-disk-0':{'size': 420}};
+	ephemeralDevicesMap['n1-standard-2-d'] =  {'google-ephemeral-disk-0':{'size': 870}};
+	ephemeralDevicesMap['n1-standard-4-d'] =  {'google-ephemeral-disk-0':{'size': 1770}};
+	ephemeralDevicesMap['n1-standard-8-d'] =  {'google-ephemeral-disk-0':{'size': 1770}, 'google-ephemeral-disk-1':{'size': 1770}};
+	
 	
 	return Ext.create('Scalr.ui.FarmsBuilderTab', {
 		tabTitle: 'Database settings',
@@ -31,19 +50,37 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 					record.get('platform') == 'cloudstack' ||
 					record.get('platform') == 'gce' ||
 					record.get('platform') == 'idcf' ||
-					record.get('platform') == 'ucloud' 
+					record.get('platform') == 'ucloud' ||
+					record.get('platform') == 'openstack' ||
+					record.get('platform') == 'rackspacengus' ||
+					record.get('platform') == 'rackspacenguk'
 				)
 			);
 		},
 
 		getDefaultValues: function (record) {
+			
+			var default_storage_engine = '';
+			
 			if (record.get('platform') == 'ec2')
-				var default_storage_engine = 'ebs';
-			else if (record.get('platform') == 'rackspace' || record.get('platform') == 'gce')
-				var default_storage_engine = 'eph';
+				default_storage_engine = 'ebs';
+			else if (record.get('platform') == 'rackspace')
+				default_storage_engine = 'eph';
+			else if (record.get('platform') == 'gce') {
+				if ((record.get('behaviors').match('percona') || record.get('behaviors').match('mysql2')))
+					default_storage_engine = 'lvm';
+				else
+					default_storage_engine = 'eph';
+			}
 			else if (record.get('platform') == 'cloudstack' || record.get('platform') == 'idcf' || record.get('platform') == 'ucloud')
-				var default_storage_engine = 'csvol';
-
+				default_storage_engine = 'csvol';
+			else if (record.get('platform') == 'openstack' || record.get('platform') == 'rackspacengus' || record.get('platform') == 'rackspacenguk') {
+				if ((record.get('behaviors').match('percona') || record.get('behaviors').match('mysql2')))
+					default_storage_engine = 'lvm';
+				else
+					default_storage_engine = 'eph';
+			}
+					
 			return {
 				'db.msr.data_bundle.enabled': 1,
 				'db.msr.data_bundle.every': 24,
@@ -56,6 +93,9 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 				'db.msr.data_storage.ebs.size': 10,
 				'db.msr.data_storage.ebs.snaps.enable_rotation' : 1,
 				'db.msr.data_storage.ebs.snaps.rotate' : 5,
+				
+				'db.msr.data_storage.cinder.size': 100,
+				'db.msr.data_storage.gced.size': 1,
 				
 				'db.msr.data_backup.enabled': 1,
 				'db.msr.data_backup.every' : 48,
@@ -70,46 +110,66 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 			
 			var settings = record.get('settings');
 			
+			if ((record.get('behaviors').match('percona') || record.get('behaviors').match('mysql2'))) {
+				this.down('[name="db.msr.data_bundle.use_slave"]').show();
+			} else {
+				this.down('[name="db.msr.data_bundle.use_slave"]').hide();
+			}
+			
+			var storages = [];
+			
 			if (record.get('platform') == 'ec2') {
 				
 				var storages = [{name:'ebs', description:'Single EBS Volume'}, {name:'raid.ebs', description:'RAID array on EBS volumes'}]
 				
-				/*
-				if (record.get('behaviors').match('percona') || record.get('behaviors').match('mysql2')) {
-					
-					if (settings['db.msr.data_storage.engine'] == 'eph')
-						storages[storages.length] = {name:'eph', description:'Single ephemeral device'};
-
+				if ((record.get('behaviors').match('percona') || record.get('behaviors').match('mysql2'))) {
 					if (Ext.isDefined(ephemeralDevicesMap[settings['aws.instance_type']]))
 						storages[storages.length] = {name:'lvm', description:'LVM on ephemeral devices'};
 						
+					if (settings['db.msr.data_storage.engine'] == 'eph' || Scalr.flags['betaMode'])
+						storages[storages.length] = {name:'eph', description:'Single ephemeral device'};
 				} else {
 					storages[storages.length] = {name:'eph', description:'Single ephemeral device'};
 				}
-				*/
-				
-				if (settings['db.msr.data_storage.engine'] == 'lvm')
-					storages[storages.length] = {name:'lvm', description:'LVM on ephemeral devices'};
-				
-				storages[storages.length] = {name:'eph', description:'Single ephemeral device'};
-				
-				
-				this.down('[name="db.msr.data_storage.engine"]').store.load({
-					data: storages
-				});
 				
 			} else if (record.get('platform') == 'rackspace' || record.get('platform') == 'gce') {
-				this.down('[name="db.msr.data_storage.engine"]').store.load({
-					data: [{name:'eph', description:'Ephemeral device'}]
-				});
+				
+				storages = [{name:'eph', description:'Ephemeral device'}];
+				
+				if ((record.get('behaviors').match('percona') || record.get('behaviors').match('mysql2'))) {
+					if (Ext.isDefined(ephemeralDevicesMap[settings['gce.machine-type']])) {
+						storages = [{name:'lvm', description:'LVM on ephemeral devices'}];
+						this.down('[name="db.msr.data_storage.engine"]').setValue('lvm');
+					}
+				}
+				
+				if (record.get('platform') == 'gce') {
+					storages[storages.length] = {name:'gce_persistent', description:'GCE Persistent disk'};
+				}
+				
+			} else if (record.get('platform') == 'rackspacengus' || record.get('platform') == 'rackspacenguk' || record.get('platform') == 'openstack') {
+				
+				storages = [{name:'cinder', description:'Cinder volume'}];
+				
+				if ((record.get('behaviors').match('percona') || record.get('behaviors').match('mysql2'))) {
+					storages[storages.length] = {name:'lvm', description:'LVM on loop device (75% from /)'};
+					if (settings['db.msr.data_storage.engine'] == 'eph')
+						settings['db.msr.data_storage.engine'] = 'lvm';
+				} else {
+					storages[storages.length] = {name:'eph', description:'Ephemeral device'}
+				}
+				
+				
 			} else if (record.get('platform') == 'cloudstack' || record.get('platform') == 'idcf' || record.get('platform') == 'ucloud') {
-				this.down('[name="db.msr.data_storage.engine"]').store.load({
-					data: [{name:'csvol', description:'CloudStack Block Volume'}]
-				});
+				storages = [{name:'csvol', description:'CloudStack Block Volume'}];
 				
 				this.down('[name="db.msr.data_backup.enabled"]').collapse();
 				this.down('[name="db.msr.data_backup.enabled"]').hide();
 			}
+			
+			this.down('[name="db.msr.data_storage.engine"]').store.load({
+				data: storages
+			});
 			
 			// Fily systems:
 			var fsystems = new Array();
@@ -134,7 +194,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 			var availableDisks = new Array();
 			availableDisks[0] = {'device':'', 'description':''};
 			
-			if (record.get('platform') == 'rackspace')
+			if (record.get('platform') == 'rackspace' || record.get('platform') == 'openstack' || record.get('platform') == 'rackspacengus' || record.get('platform') == 'rackspacenguk')
 				availableDisks[availableDisks.length] = {'device':'/dev/loop0', 'description':'Loop device (75% from /)'};
 			else if (record.get('platform') == 'gce') {
 				availableDisks[availableDisks.length] = {'device':'ephemeral-disk-0', 'description':'Loop device (80% of ephemeral-disk-0)'};
@@ -158,14 +218,26 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 				}
 			}
 
-			if (settings['db.msr.data_storage.engine'] == 'lvm')
+			if (settings['db.msr.data_storage.engine'] == 'lvm') {
 				this.down('[name="lvm_settings"]').show();
-			else
+				this.down('[name="db.msr.data_bundle.compression"]').show();
+			}
+			else {
 				this.down('[name="lvm_settings"]').hide();
+				this.down('[name="db.msr.data_bundle.compression"]').hide();
+			}
 
 			// prepare ephemeral devices checkbox's
-			if (Ext.isDefined(ephemeralDevicesMap[settings['aws.instance_type']])) {
-				var cont = this.down('[name="lvm_settings"]'), devices = ephemeralDevicesMap[settings['aws.instance_type']], size = 0,
+			var iType = false;
+			
+			if (record.get('platform') == 'gce') {
+				iType = settings['gce.machine-type'];
+			} else if (record.get('platform') == 'ec2') {
+				iType = settings['aws.instance_type'];
+			} 
+			
+			if (Ext.isDefined(ephemeralDevicesMap[iType])) {
+				var cont = this.down('[name="lvm_settings"]'), devices = ephemeralDevicesMap[iType], size = 0,
 					volumes = Ext.decode(settings['db.msr.storage.lvm.volumes']), def = Ext.Object.getSize(volumes) ? false : true;
 				cont.suspendLayouts();
 				cont.removeAll();
@@ -239,6 +311,9 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 			this.down('[name="db.msr.data_storage.raid.volumes_count"]').setValue(settings['db.msr.data_storage.raid.volumes_count'] || 4);
 			this.down('[name="db.msr.data_storage.raid.volume_size"]').setValue(settings['db.msr.data_storage.raid.volume_size'] || 10);
 
+			this.down('[name="db.msr.data_storage.cinder.size"]').setValue(settings['db.msr.data_storage.cinder.size'] || 1);
+			this.down('[name="db.msr.data_storage.gced.size"]').setValue(settings['db.msr.data_storage.gced.size'] || 1);
+
 			if (settings['db.msr.data_bundle.enabled'] == 1)
 				this.down('[name="db.msr.data_bundle.enabled"]').expand();
 			else
@@ -247,6 +322,9 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 			this.down('[name="db.msr.data_bundle.every"]').setValue(settings['db.msr.data_bundle.every']);
 			
 			this.down('[name="db.msr.data_bundle.use_slave"]').setValue(settings['db.msr.data_bundle.use_slave'] || 0);
+			this.down('[name="db.msr.no_data_bundle_on_promote"]').setValue(settings['db.msr.no_data_bundle_on_promote'] || 0);
+
+			this.down('[name="db.msr.data_bundle.compression"]').setValue(settings['db.msr.data_bundle.compression'] || '');
 			
 			this.down('[name="db.msr.data_bundle.timeframe.start_hh"]').setValue(settings['db.msr.data_bundle.timeframe.start_hh']);
 			this.down('[name="db.msr.data_bundle.timeframe.start_mm"]').setValue(settings['db.msr.data_bundle.timeframe.start_mm']);
@@ -258,11 +336,15 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 			else
 				this.down('[name="db.msr.data_backup.enabled"]').collapse();
 
-			this.down('[name="db.msr.data_backup.every"]').setValue(settings['db.msr.data_backup.every']);
-			this.down('[name="db.msr.data_backup.timeframe.start_hh"]').setValue(settings['db.msr.data_backup.timeframe.start_hh']);
-			this.down('[name="db.msr.data_backup.timeframe.start_mm"]').setValue(settings['db.msr.data_backup.timeframe.start_mm']);
-			this.down('[name="db.msr.data_backup.timeframe.end_hh"]').setValue(settings['db.msr.data_backup.timeframe.end_hh']);
-			this.down('[name="db.msr.data_backup.timeframe.end_mm"]').setValue(settings['db.msr.data_backup.timeframe.end_mm']);
+			if (record.get('platform') == 'cloudstack' || record.get('platform') == 'idcf' || record.get('platform') == 'ucloud') {
+				// We cannot perform beakcups because there is no cloud storage
+			} else {
+				this.down('[name="db.msr.data_backup.every"]').setValue(settings['db.msr.data_backup.every']);
+				this.down('[name="db.msr.data_backup.timeframe.start_hh"]').setValue(settings['db.msr.data_backup.timeframe.start_hh']);
+				this.down('[name="db.msr.data_backup.timeframe.start_mm"]').setValue(settings['db.msr.data_backup.timeframe.start_mm']);
+				this.down('[name="db.msr.data_backup.timeframe.end_hh"]').setValue(settings['db.msr.data_backup.timeframe.end_hh']);
+				this.down('[name="db.msr.data_backup.timeframe.end_mm"]').setValue(settings['db.msr.data_backup.timeframe.end_mm']);
+			}
 
 			//if (settings['db.msr.data_storage.engine'] == 'eph') {
 			var ephDisk = this.down('[name="db.msr.data_storage.eph.disk"]');
@@ -312,6 +394,12 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 				this.down('[name="db.msr.data_storage.ebs.type"]').disable();
 				this.down('[name="db.msr.data_storage.ebs.iops"]').disable();
 				
+				// Cinder settings
+				this.down('[name="db.msr.data_storage.cinder.size"]').disable();
+				
+				//GCE Disk settings
+				this.down('[name="db.msr.data_storage.gced.size"]').disable();
+				
 				this.down('[name="db.msr.data_storage.fstype"]').disable();
 			} else {
 				//RAID Settings
@@ -325,6 +413,12 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 				this.down('[name="db.msr.data_storage.ebs.type"]').enable();
 				this.down('[name="db.msr.data_storage.ebs.iops"]').enable();
 				this.down('[name="db.msr.data_storage.fstype"]').enable();
+				
+				// Cinder settings
+				this.down('[name="db.msr.data_storage.cinder.size"]').enable();
+				
+				//GCE Disk settings
+				this.down('[name="db.msr.data_storage.gced.size"]').enable();
 			}
 		},
 
@@ -346,6 +440,8 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 				settings['db.msr.data_bundle.timeframe.end_mm'] = this.down('[name="db.msr.data_bundle.timeframe.end_mm"]').getValue();
 				
 				settings['db.msr.data_bundle.use_slave'] = this.down('[name="db.msr.data_bundle.use_slave"]').getValue();
+				settings['db.msr.no_data_bundle_on_promote'] = this.down('[name="db.msr.no_data_bundle_on_promote"]').getValue();
+				settings['db.msr.data_bundle.compression'] = this.down('[name="db.msr.data_bundle.compression"]').getValue();
 			} else {
 				settings['db.msr.data_bundle.enabled'] = 0;
 				delete settings['db.msr.data_bundle.every'];
@@ -401,7 +497,9 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 			}
 
 			if (settings['db.msr.data_storage.engine'] == 'lvm') {
-				if (record.get('new')) {
+				//Remove this settings because if instance type was changed we need to update this setting.
+				// Update it manually still not allowed, need consider to allow to change this setting.
+				//if (record.get('new')) {
 					var volumes = {};
 					Ext.each(this.down('[name="lvm_settings"]').query('checkbox'), function() {
 						if (this.getValue()) {
@@ -409,7 +507,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 						}
 					});
 					settings['db.msr.storage.lvm.volumes'] = Ext.encode(volumes);
-				}
+				//}
 			}
 
 			if (settings['db.msr.data_storage.engine'] == 'raid.ebs') {
@@ -419,6 +517,14 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 				
 				settings['db.msr.data_storage.raid.ebs.type'] = this.down('[name="db.msr.data_storage.raid.ebs.type"]').getValue();
 				settings['db.msr.data_storage.raid.ebs.iops'] = this.down('[name="db.msr.data_storage.raid.ebs.iops"]').getValue();
+			}
+
+			if (settings['db.msr.data_storage.engine'] == 'cinder') {
+				settings['db.msr.data_storage.cinder.size'] = this.down('[name="db.msr.data_storage.cinder.size"]').getValue();
+			}
+
+			if (settings['db.msr.data_storage.engine'] == 'gce_persistent') {
+				settings['db.msr.data_storage.gced.size'] = this.down('[name="db.msr.data_storage.gced.size"]').getValue();
 			}
 
 			record.set('settings', settings);
@@ -445,7 +551,6 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 					queryMode: 'local'
 				}, {
 					xtype: 'combo',
-					hidden: !Scalr.flags['betaMode'],
 					fieldLabel: 'Number of processes',
 					store: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
 					valueField: 'id',
@@ -487,11 +592,19 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 							upDbmsr.down('[name="raid_settings_not_available"]').hide();
 							upDbmsr.down('[name="eph_settings"]').hide();
 							upDbmsr.down('[name="lvm_settings"]').hide();
+							upDbmsr.down('[name="cinder_settings"]').hide();
+							upDbmsr.down('[name="gced_settings"]').hide();
+							upDbmsr.down('[name="db.msr.data_bundle.compression"]').hide();
 							
 							if (this.getValue() == 'ebs' || this.getValue() == 'csvol') {
 								upDbmsr.down('[name="ebs_settings"]').show();
 							} else if (this.getValue() == 'lvm') {
 								upDbmsr.down('[name="lvm_settings"]').show();
+								upDbmsr.down('[name="db.msr.data_bundle.compression"]').show();
+							} else if (this.getValue() == 'cinder') {
+								upDbmsr.down('[name="cinder_settings"]').show();
+							} else if (this.getValue() == 'gce_persistent') {
+								upDbmsr.down('[name="gced_settings"]').show();
 							} else if (this.getValue() == 'raid.ebs') {
 								
 								if (moduleTabParams['featureRAID']) {
@@ -552,9 +665,9 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 				title: 'LVM Storage settings',
 				hidden: true,
 				items: [{
-					xtype: 'textfield',
+					xtype: 'displayfield',
 					hideLabel:true,
-					value: 'LVM device on 2 SSD ephemeral drives (Total size: 2TB)',
+					value: 'LVM device',
 					width: 400
 				}]
 			}, {
@@ -570,7 +683,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 					labelWidth:180,
 					items: [{
 						xtype: 'combo',
-						store: [['standart', 'Standart'],['io1', 'Provisioned IOPS (1-1000): ']],
+						store: [['standard', 'Standard'],['io1', 'Provisioned IOPS (1-1000): ']],
 						valueField: 'id',
 						displayField: 'name',
 						editable: false,
@@ -631,6 +744,58 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 					}]
 				}]
 			}, {
+				xtype:'fieldset',
+				name: 'cinder_settings',
+				title: 'Cinder Storage settings',
+				hidden: true,
+				items: [{
+					xtype: 'textfield',
+					fieldLabel: 'Disk size',
+					labelWidth: 180,
+					width: 300,
+					name: 'db.msr.data_storage.cinder.size',
+					value: 100,
+				}/*, {
+					xtype: 'fieldcontainer',
+					layout: 'hbox',
+					name: 'ebs_rotation_settings',
+					items: [{
+						xtype: 'checkbox',
+						hideLabel: true,
+						name: 'db.msr.data_storage.ebs.snaps.enable_rotation',
+						boxLabel: 'Snapshots are rotated',
+						handler: function (checkbox, checked) {
+							if (checked)
+								this.next('[name="db.msr.data_storage.ebs.snaps.rotate"]').enable();
+							else
+								this.next('[name="db.msr.data_storage.ebs.snaps.rotate"]').disable();
+						}
+					}, {
+						xtype: 'textfield',
+						hideLabel: true,
+						name: 'db.msr.data_storage.ebs.snaps.rotate',
+						width: 40,
+						margin: '0 0 0 3'
+					}, {
+						xtype: 'displayfield',
+						value: 'times before being removed.',
+						margin: '0 0 0 3'
+					}]
+				}*/]
+			}, {
+				xtype:'fieldset',
+				name: 'gced_settings',
+				title: 'GCE persistent disk settings',
+				hidden: true,
+				items: [{
+					xtype: 'textfield',
+					fieldLabel: 'Disk size',
+					labelWidth: 180,
+					width: 300,
+					name: 'db.msr.data_storage.gced.size',
+					value: 100
+				}]
+			},{
 				xtype:'fieldset',
 				name: 'raid_settings_not_available',
 				title: 'RAID Storage settings',
@@ -703,7 +868,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 					labelWidth:150,
 					items: [{
 						xtype: 'combo',
-						store: [['standart', 'Standart'],['io1', 'Provisioned IOPS (1-1000): ']],
+						store: [['standard', 'Standard'],['io1', 'Provisioned IOPS (1-1000): ']],
 						valueField: 'id',
 						displayField: 'name',
 						editable: false,
@@ -835,11 +1000,27 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.dbmsr', function (moduleTabParams) {
 					margin: '0 0 0 3'
 				}]
 			}, {
+				xtype: 'combo',
+				fieldLabel: 'Compression',
+				store: [['', 'No compression (Recommended on small instances)'], ['gzip', 'gzip (Recommended on large instances)']],
+				valueField: 'id',
+				displayField: 'name',
+				editable: false,
+				queryMode: 'local',
+				value: 'gzip',
+				name: 'db.msr.data_bundle.compression',
+				labelWidth: 80,
+				width: 500
+			}, {
 				xtype: 'checkbox',
 				hideLabel: true,
-				hidden: !Scalr.flags['betaMode'],
 				name: 'db.msr.data_bundle.use_slave',
 				boxLabel: 'Use SLAVE server for data bundle'
+			}, {
+				xtype: 'checkbox',
+				hideLabel: true,
+				name: 'db.msr.no_data_bundle_on_promote',
+				boxLabel: 'Do not create data bundle during slave to master promotion process'
 			}]
 		}, {
 			xtype: 'fieldset',

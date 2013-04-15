@@ -37,7 +37,7 @@ class Scalr_UI_Controller_Operations extends Scalr_UI_Controller
 			throw new Exception("Operation details not available yet.");
 		
 		$details = array();
-		$phases = json_decode($operation['phases']);
+		$phases = @json_decode($operation['phases']);
 		
 		if ($opName == 'Initialization') {
 			$launchError = $dbServer->GetProperty(SERVER_PROPERTIES::LAUNCH_ERROR);
@@ -76,10 +76,20 @@ class Scalr_UI_Controller_Operations extends Scalr_UI_Controller
 					array_push($phases, $c);
 				}
 				
-				$initStatus = ($dbServer->GetProperty(SERVER_PROPERTIES::SZR_IS_INIT_FAILED)) ? '<span style="color:red;">Initialization failed</span>' : $dbServer->status;
+                if ($dbServer->GetProperty(SERVER_PROPERTIES::SZR_IS_INIT_FAILED)) {
+                    $initStatus = '<span style="color:red;">Initialization failed</span>';
+                    $message = $dbServer->GetProperty(SERVER_PROPERTIES::SZR_IS_INIT_ERROR_MSG);
+                } else
+				    $initStatus = $dbServer->status;
 			}
 		}
 		
+        if (!$phases || count($phases) == 0) {
+            $p = new stdClass();
+            $p->name = $operation['name'];
+            $phases = array($p);
+        }
+        
 		foreach ($phases as $phase) {
 			$definedSteps = $phase->steps;
 			$stats = array();
@@ -115,14 +125,14 @@ class Scalr_UI_Controller_Operations extends Scalr_UI_Controller
 				}
 			}
 			
+            $details[$phase->name]['status'] = 'pending';
+            
 			if ($stats['error'] > 0)
 				$details[$phase->name]['status'] = 'error';
 			elseif ($stats['running'] > 0 || ($stats['pending'] > 0 && $stats['complete'] > 0))
 				$details[$phase->name]['status'] = 'running';
 			elseif ($stats['pending'] <= 0 && $stats['running'] == 0 && count($details[$phase->name]['steps']) != 0)
 				$details[$phase->name]['status'] = 'complete';
-			else
-				$details[$phase->name]['status'] = 'pending';
 		}
 		
 		//scalr-operation-status-

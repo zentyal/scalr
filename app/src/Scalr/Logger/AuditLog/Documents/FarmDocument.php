@@ -5,97 +5,79 @@ namespace Scalr\Logger\AuditLog\Documents;
 /**
  * Farm document
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    31.10.2012
  */
 class FarmDocument extends AbstractAuditLogDocument
 {
-	/**
-	 * Farmid
-	 *
-	 * @var int
-	 */
-	private $farmid;
+    /**
+     * Farmid
+     * @var int
+     */
+    public $farmid;
 
-	/**
-	 * Farm name
-	 *
-	 * @var string
-	 */
-	private $name;
+    /**
+     * Farm name
+     * @var string
+     */
+    public $name;
 
-	public function __sleep()
-	{
-		return array('farmid', 'name');
-	}
+    /**
+     * Environment ID
+     *
+     * @var int
+     */
+    public $envid;
 
-	/**
-	 * Convenient constructor
-	 *
-	 * @param   int        $farmid optional A farm id
-	 * @param   int        $name   optional A farm name
-	 */
-	public function __construct($farmid = null, $name = null)
-	{
-		parent::__construct();
-		$this
-			->setFarmid($farmid)
-			->setName($name)
-		;
-	}
+    /**
+     * ID of Account
+     * @var int
+     */
+    public $clientid;
 
-	/**
-	 * Gets a new document by DBFarm object
-	 *
-	 * @param   \DBFarm      $dbfarm DBFarm object
-	 * @return  FarmDocument Returns new FarmDocument
-	 */
-	public static function createFromDBFarm (\DBFarm $dbfarm)
-	{
-		return new self ($dbfarm->ID, $dbfarm->Name);
-	}
+    /**
+     * Launch order
+     * @var int
+     */
+    public $rolesLaunchOrder;
 
-	/**
-	 * Gets farm id
-	 *
-	 * @return   int Returns farmid
-	 */
-	public function getFarmid()
-	{
-		return $this->farmid;
-	}
+    /**
+     * Comments
+     * @var string
+     */
+    public $comments;
 
-	/**
-	 * Gets farm name
-	 *
-	 * @return   string Returns farm name
-	 */
-	public function getName()
-	{
-		return $this->name;
-	}
+    /**
+     * Gets a new document by DBFarm object
+     *
+     * @param   \DBFarm      $dbfarm DBFarm object
+     * @return  FarmDocument Returns new FarmDocument
+     */
+    public static function createFromDBFarm(\DBFarm $dbfarm)
+    {
+        return self::loadFrom($dbfarm, array(
+            'farmid'            => 'ID',
+            'name'              => 'Name',
+            'envid'             => 'EnvID',
+            'clientid'          => 'ClientID',
+            'rolesLaunchOrder'  => 'RolesLaunchOrder',
+            'comments'          => 'Comments'
+        ));
+    }
 
-	/**
-	 * Sets farm id.
-	 *
-	 * @param   int   $farmid  A farm id
-	 * @return  FarmDocument Returns Farm document
-	 */
-	public function setFarmid($farmid)
-	{
-		$this->farmid = $farmid;
-
-		return $this;
-	}
-
-	/**
-	 * Sets farm name.
-	 *
-	 * @param   string   $name  A farm name
-	 * @return  FarmDocument Returns Farm document
-	 */
-	public function setName($name)
-	{
-		$this->name = $name;
-	}
+    /**
+     * Gets properties for the current document.
+     *
+     * It can be reflection propreties as well as magic proprties
+     *
+     * @return   array Returns array of the available propreties
+     */
+    public static function getDocumentProperties()
+    {
+        $ret = parent::getDocumentProperties();
+        $ret['farmid'] = array(
+            'idx' => true,
+        );
+        return $ret;
+    }
 }

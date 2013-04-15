@@ -52,7 +52,7 @@
             }
         }
 
-        private function performDbMsrAction($action, DBFarmRole $dbFarmRole)
+        private function performDbMsrAction($action, DBFarmRole $dbFarmRole, $tz)
         {
         	if ($dbFarmRole->GetSetting(Scalr_Db_Msr::getConstant("DATA_{$action}_ENABLED")) && $dbFarmRole->GetSetting(Scalr_Db_Msr::getConstant("DATA_{$action}_EVERY")) != 0) {
 				if ($dbFarmRole->GetSetting(Scalr_Db_Msr::getConstant("DATA_{$action}_IS_RUNNING")) == 1) {	                    
@@ -73,22 +73,31 @@
                     $period = $dbFarmRole->GetSetting(Scalr_Db_Msr::getConstant("DATA_{$action}_EVERY"));
                 	$timeout = $period*3600;
                 	$lastActionTime = $dbFarmRole->GetSetting(Scalr_Db_Msr::getConstant("DATA_{$action}_LAST_TS"));
-                	
+                    
                 	$performAction = false;
                 	if ($period % 24 == 0) {
                 		if ($lastActionTime) {
                 			$days = $period / 24;
-                			$day = (int)date("md", strtotime("+{$days} day", $lastActionTime));
                 			
-                			if ($day > (int)date("md"))
+                            $dateTime = new DateTime(null, new DateTimeZone($tz));
+                            $currentDate = (int)$dateTime->format("Ymd");
+                            
+                            $dateTime->setTimestamp(strtotime("+{$days} day", $lastActionTime));
+                            $nextDate = (int)$dateTime->format("Ymd");
+                            
+                			if ($nextDate > $currentDate)
                 				return;
                 		}
                 		
                 		$pbwFrom = (int)($dbFarmRole->GetSetting(Scalr_Db_Msr::getConstant("DATA_{$action}_TIMEFRAME_START_HH")).$dbFarmRole->GetSetting(Scalr_Db_Msr::getConstant("DATA_{$action}_TIMEFRAME_START_MM")));
 	                    $pbwTo = (int)($dbFarmRole->GetSetting(Scalr_Db_Msr::getConstant("DATA_{$action}_TIMEFRAME_END_HH")).$dbFarmRole->GetSetting(Scalr_Db_Msr::getConstant("DATA_{$action}_TIMEFRAME_END_MM")));
+                        
 	                    if ($pbwFrom && $pbwTo) {
-	                        $current_time = (int)date("Hi");
-	                        if ($pbwFrom <= $current_time && $pbwTo >= $current_time)
+                            $dateTime = new DateTime(null, new DateTimeZone($tz));
+                            $currentTime = (int)$dateTime->format("Hi");
+	                        //$current_time = (int)date("Hi");
+                            
+                            if ($pbwFrom <= $currentTime && $pbwTo >= $currentTime)
 								$performAction = true;
 	                    }
 	                    else
@@ -99,13 +108,17 @@
                 		if ($lastActionTime+$timeout < time())
                 			$performAction = true;
                 	}
-                	
+                    
 					if ($performAction)
 					{
 						$behavior = Scalr_Role_Behavior::loadByName($dbFarmRole->GetRoleObject()->getDbMsrBehavior());
 							
 						if ($action == 'BUNDLE') {
-							$behavior->createDataBundle($dbFarmRole);
+							$behavior->createDataBundle($dbFarmRole, array(
+                                'compressor' => $dbFarmRole->GetSetting(Scalr_Role_DbMsrBehavior::ROLE_DATA_BUNDLE_COMPRESSION),
+                                'useSlave' => $dbFarmRole->GetSetting(Scalr_Role_DbMsrBehavior::ROLE_DATA_BUNDLE_USE_SLAVE)
+                                //TODO: dataBundleType
+							));
 						}
 						
 						if ($action == 'BACKUP') {
@@ -122,9 +135,15 @@
 	        	$dbFarmRole = DBFarmRole::LoadByID($farmRoleId);
 	            $dbFarm = $dbFarmRole->GetFarmObject();    
 	            
+                $env = Scalr_Model::init(Scalr_Model::ENVIRONMENT)->loadById($dbFarm->EnvID);
+                $tz = $env->getPlatformConfigValue(ENVIRONMENT_SETTINGS::TIMEZONE);
+                if (!$tz)
+                    $tz = date_default_timezone_get();
+                
 				//skip terminated farms
 				if ($dbFarm->Status != FARM_STATUS::RUNNING)
 					return;
+                
         	} catch (Exception $e) {
         		return;
         	}
@@ -134,7 +153,7 @@
         	//TODO:
         	
         	//********* Bundle database data ***********/
-       		$this->performDbMsrAction('BUNDLE', $dbFarmRole);
+       		$this->performDbMsrAction('BUNDLE', $dbFarmRole, $tz);
        		
        		$backupsNotSupported = in_array($dbFarmRole->Platform, array(
        			SERVER_PLATFORMS::CLOUDSTACK,
@@ -144,6 +163,6 @@
        		
        		//********* Backup database data ***********/
        		if (!$backupsNotSupported)
-        		$this->performDbMsrAction('BACKUP', $dbFarmRole);
+        		$this->performDbMsrAction('BACKUP', $dbFarmRole, $tz);
         }
     }

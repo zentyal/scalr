@@ -28,7 +28,8 @@
 			if ($event->DBServer->farmRoleId) {
 				$dbFarmRole = $event->DBServer->GetFarmRoleObject();
 				$networkType = $dbFarmRole->GetSetting(DBFarmRole::SETTING_CLOUDSTACK_NETWORK_TYPE);
-				if ($networkType == 'Direct')
+                $networkId = $dbFarmRole->GetSetting(DBFarmRole::SETTING_CLOUDSTACK_NETWORK_ID);
+				if ($networkType == 'Direct' || !$networkId)
 					return true;
 				
 				$sharedIpId = $dbFarmRole->GetSetting(DBFarmRole::SETTING_CLOUDSTACK_SHARED_IP_ID);

@@ -32,6 +32,8 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.mysql', function () {
 				'mysql.pbw2_mm': '00',
 				'mysql.data_storage_engine': default_storage_engine,
 				'mysql.ebs_volume_size': 100,
+				'mysql.ebs.type': 'standard',
+				'mysql.ebs.iops': 100,
 				'mysql.enable_bcp': 1,
 				'mysql.bcp_every' : 720
 				// Rotate 10 times. Re-think interface
@@ -64,11 +66,25 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.mysql', function () {
 			if (settings['mysql.data_storage_engine'] == 'ebs' || settings['mysql.data_storage_engine'] == 'csvol') {
 				this.down('[name="mysql.ebs_volume_size"]').show();
 				this.down('[name="mysql.ebs.snaps_rotation"]').show();
+				
+				if (settings['mysql.data_storage_engine'] == 'ebs') {
+					this.down('[name="mysql.storage_ebs_settings"]').show();
+					this.down('[name="mysql.ebs.iops"]').setValue(settings['mysql.ebs.iops']);
+					this.down('[name="mysql.ebs.type"]').setValue(settings['mysql.ebs.type']);
+				} else {
+					this.down('[name="mysql.storage_ebs_settings"]').hide();
+				}
 
-				if (record.get('new'))
+				if (record.get('new')) {
 					this.down('[name="mysql.ebs_volume_size"]').setReadOnly(false);
-				else
+					this.down('[name="mysql.ebs.type"]').setReadOnly(false);
+					this.down('[name="mysql.ebs.iops"]').setReadOnly(false);
+				}
+				else {
 					this.down('[name="mysql.ebs_volume_size"]').setReadOnly(true);
+					this.down('[name="mysql.ebs.type"]').setReadOnly(true);
+					this.down('[name="mysql.ebs.iops"]').setReadOnly(true);
+				}
 
 				if (settings['mysql.ebs.rotate_snaps'] == 1) {
 					this.down('[name="mysql.ebs.rotate_snaps"]').setValue(true);
@@ -116,8 +132,11 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.mysql', function () {
 			}
 
 			if (settings['mysql.data_storage_engine'] == 'ebs' || settings['mysql.data_storage_engine'] == 'csvol') {
-				if (record.get('new'))
+				if (record.get('new')) {
 					settings['mysql.ebs_volume_size'] = this.down('[name="mysql.ebs_volume_size"]').getValue();
+					settings['mysql.ebs.iops'] = this.down('[name="mysql.ebs.iops"]').getValue();
+					settings['mysql.ebs.type'] = this.down('[name="mysql.ebs.type"]').getValue();
+				}
 
 				if (this.down('[name="mysql.ebs.rotate_snaps"]').getValue()) {
 					settings['mysql.ebs.rotate_snaps'] = 1;
@@ -248,6 +267,42 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.mysql', function () {
 				name: 'mysql.storage_data_engine',
 				value: '',
 				labelWidth: 100
+			}, {
+				xtype: 'fieldcontainer',
+				layout: 'hbox',
+				fieldLabel: 'EBS type',
+				name: 'mysql.storage_ebs_settings',
+				width: 600,
+				labelWidth:180,
+				items: [{
+					xtype: 'combo',
+					store: [['standard', 'Standard'],['io1', 'Provisioned IOPS (1-1000): ']],
+					valueField: 'id',
+					displayField: 'name',
+					editable: false,
+					queryMode: 'local',
+					value: 'standard',
+					name: 'mysql.ebs.type',
+					width: 200,
+					listeners: {
+						change: function (field, value) {
+							var c = this.up().down('[name="mysql.ebs.iops"]');
+							if (value == 'io1')
+								c.show();
+							else
+								c.hide();
+						}
+					}
+				}, {
+					xtype: 'textfield',
+					itemId: 'mysql.ebs.iops',
+					name: 'mysql.ebs.iops',
+					hideLabel: true,
+					hidden: true,
+					margin: '0 0 0 2',
+					width: 40,
+					value: '100'
+				}]
 			}, {
 				xtype: 'textfield',
 				fieldLabel: 'EBS size (max. 1000 GB)',

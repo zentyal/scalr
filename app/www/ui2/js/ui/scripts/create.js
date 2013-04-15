@@ -1,11 +1,8 @@
 Scalr.regPage('Scalr.ui.scripts.create', function (loadParams, moduleParams) {
 	var saveHandler = function (curRevFlag, executeFlag) {
 		var params = {};
-		if (moduleParams['scriptId']) {
-			if (curRevFlag)
-				params = { saveCurrentRevision: 1, scriptId: moduleParams['scriptId'] };
-			else
-				params = { saveCurrentRevision: 0, scriptId: moduleParams['scriptId'] };
+		if (moduleParams['script']) {
+			params = { saveCurrentRevision: curRevFlag ? 1 : 0 };
 		}
 
 		if (form.getForm().isValid())
@@ -17,9 +14,9 @@ Scalr.regPage('Scalr.ui.scripts.create', function (loadParams, moduleParams) {
 				params: params,
 				form: form.getForm(),
 				success: function () {
-					if (moduleParams['scriptId']) {
+					if (moduleParams['script']) {
 						if (executeFlag)
-							Scalr.event.fireEvent('redirect', '#/scripts/' + moduleParams['scriptId'] + '/execute');
+							Scalr.event.fireEvent('redirect', '#/scripts/' + moduleParams['script']['id'] + '/execute');
 						else
 							Scalr.event.fireEvent('close');
 					} else
@@ -31,7 +28,7 @@ Scalr.regPage('Scalr.ui.scripts.create', function (loadParams, moduleParams) {
 	var form = Ext.create('Ext.form.Panel', {
 		bodyCls: 'x-panel-body-frame',
 		width: 900,
-		title: (moduleParams['scriptId']) ? 'Scripts &raquo; Edit' : 'Scripts &raquo; Create',
+		title: (moduleParams['script']) ? 'Scripts &raquo; Edit' : 'Scripts &raquo; Create',
 		fieldDefaults: {
 			anchor: '100%'
 		},
@@ -46,44 +43,71 @@ Scalr.regPage('Scalr.ui.scripts.create', function (loadParams, moduleParams) {
 		items: [{
 			xtype: 'fieldset',
 			title: 'General information',
-			labelWidth: 130,
 			items: [{
-				xtype: 'textfield',
-				name: 'scriptName',
-				fieldLabel: 'Script name',
-				allowBlank: false,
-				value: moduleParams['scriptName']
-			}, {
-				xtype: 'textfield',
-				name: 'scriptDescription',
-				fieldLabel: 'Description',
-				value: moduleParams['description']
-			}, {
-				xtype: 'combo',
-				fieldLabel: 'Version',
-				name: 'scriptVersion',
-				store: moduleParams['versions'],
-				editable: false,
-				value: parseInt(moduleParams['version']),
-				queryMode: 'local',
-				listeners: {
-					change: function (field, value) {
-						if (moduleParams['scriptId']) {
-							Scalr.Request({
-								url: '/scripts/' + moduleParams['scriptId'] + '/xGetScriptContent',
-								params: { version: value },
-								processBox: {
-									type: 'load',
-									msg: 'Loading script contents ...'
-								},
-								scope: this,
-								success: function (data) {
-									this.up('form').down('[name="scriptContents"]').codeMirror.setValue(data['scriptContents']);
-								}
-							});
+				xtype: 'container',
+				layout: 'hbox',
+				maxWidth: 820,
+				items: [{
+					xtype: 'textfield',
+					name: 'name',
+					fieldLabel: 'Name',
+					labelWidth: 80,
+					allowBlank: false,
+					flex: 1
+				}, {
+					xtype: 'combo',
+					fieldLabel: 'Version',
+					name: 'version',
+					labelWidth: 50,
+					margin: '0 0 0 12',
+					width: 110,
+					store: moduleParams['versions'],
+					editable: false,
+					value: moduleParams['script'] ? parseInt(moduleParams['script']['version']) : 1,
+					queryMode: 'local',
+					listeners: {
+						change: function (field, value) {
+							if (this.rendered && moduleParams['script']) {
+								Scalr.Request({
+									url: '/scripts/xGetScriptContent',
+									params: { version: value, scriptId: moduleParams['script']['id'] },
+									processBox: {
+										type: 'load',
+										msg: 'Loading script contents ...'
+									},
+									scope: this,
+									success: function (data) {
+										this.up('form').down('[name="script"]').codeMirror.setValue(data['script']);
+									}
+								});
+							}
 						}
 					}
-				}
+				}, {
+					xtype: 'checkbox',
+					name: 'isSync',
+					inputValue: 1,
+					margin: '0 0 0 12',
+					boxLabel: 'Sync',
+					hidden: true,
+					disabled: true
+				}]
+			}, {
+				xtype: 'textfield',
+				name: 'description',
+				labelWidth: 80,
+				maxWidth: 820,
+				fieldLabel: 'Description'
+			}]
+		}, {
+			xtype: 'fieldset',
+			collapsible: true,
+			collapsed: true,
+			title: 'Variables',
+			items: [{
+				xtype: 'displayfield',
+				fieldCls: 'x-form-field-info',
+				value: 'Built in variables: <br>' + moduleParams['variables'] + '<br /><br /> You may use own variables as %variable%. Variable values can be set for each role in farm settings.'
 			}]
 		}, {
 			xtype: 'fieldset',
@@ -91,20 +115,19 @@ Scalr.regPage('Scalr.ui.scripts.create', function (loadParams, moduleParams) {
 			labelWidth: 130,
 			items: [{
 				xtype: 'displayfield',
-				fieldCls: 'x-form-field-info',
-				value: 'Built in variables:<br />' + moduleParams['variables'] + '<br /><br /> You may use own variables as %variable%. Variable values can be set for each role in farm settings.'
-			}, {
-				xtype: 'displayfield',
 				fieldCls: 'x-form-field-warning',
 				value: 'First line must contain shebang (#!/path/to/interpreter)'
 			}, {
 				xtype: 'codemirror',
-				minHeight: 200,
-				name: 'scriptContents',
+				minHeight: 300,
+				name: 'script',
 				hideLabel: true,
 				addResizeable: true,
 				value: moduleParams['scriptContents']
 			}]
+		}, {
+			xtype: 'hidden',
+			name: 'id'
 		}],
 
 		dockedItems: [{
@@ -118,19 +141,19 @@ Scalr.regPage('Scalr.ui.scripts.create', function (loadParams, moduleParams) {
 			items: [{
 				xtype: 'splitbutton',
 				text: 'Save',
-				hidden: moduleParams['scriptId'] ? false : true,
+				hidden: !moduleParams['script'],
 				handler: function () {
 					saveHandler(false);
 				},
 				menu: [{
 					text: 'Save changes as new version (' + (parseInt(moduleParams['latestVersion']) + 1) + ')',
-					hidden: moduleParams['scriptId'] ? false : true,
+					hidden: !moduleParams['script'],
 					handler: function () {
 						saveHandler(false);
 					}
 				}, {
 					text: 'Save changes as new version (' + (parseInt(moduleParams['latestVersion']) + 1) + ') and execute script',
-					hidden: moduleParams['scriptId'] ? false : true,
+					hidden: !moduleParams['script'],
 					handler: function () {
 						saveHandler(false, true);
 					}
@@ -138,19 +161,19 @@ Scalr.regPage('Scalr.ui.scripts.create', function (loadParams, moduleParams) {
 					xtype: 'menuseparator'
 				}, {
 					text: 'Save changes in current version',
-					hidden: moduleParams['scriptId'] ? false : true,
+					hidden: !moduleParams['script'],
 					handler: function () {
 						saveHandler(true);
 					}
 				}, {
 					text: 'Save changes in current version and execute script',
-					hidden: moduleParams['scriptId'] ? false : true,
+					hidden: !moduleParams['script'],
 					handler: function () {
 						saveHandler(true, true);
 					}
 				}, {
 					text: 'Create new script',
-					hidden: moduleParams['scriptId'] ? true : false,
+					hidden: !!moduleParams['script'],
 					handler: function () {
 						saveHandler(true);
 					}
@@ -158,7 +181,7 @@ Scalr.regPage('Scalr.ui.scripts.create', function (loadParams, moduleParams) {
 			}, {
 				xtype: 'button',
 				text: 'Create',
-				hidden: moduleParams['scriptId'] ? true : false,
+				hidden: !!moduleParams['script'],
 				handler: function () {
 					saveHandler(true);
 				}
@@ -172,6 +195,9 @@ Scalr.regPage('Scalr.ui.scripts.create', function (loadParams, moduleParams) {
 			}]
 		}]
 	});
+
+	if (moduleParams['script'])
+		form.getForm().setValues(moduleParams['script']);
 
 	return form;
 });

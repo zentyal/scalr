@@ -23,7 +23,7 @@ Scalr.regPage('Scalr.ui.servers.sshconsole', function (loadParams, moduleParams)
 			bodyStyle: 'background-color: inherit',
 			html:
 				'IP: ' + moduleParams['remoteIp'] + ' &nbsp; Internal IP: ' + moduleParams['localIp'] + '<br />' +
-				'Farm: ' + moduleParams['farmName'] + ' (ID: ' + moduleParams['farmId'] + ') ' + 'Role: ' + moduleParams['roleName'] + '<br /><br />'
+				'Farm: ' + moduleParams['farmName'] + ' (ID: ' + moduleParams['farmId'] + ') ' + 'Role: ' + moduleParams['roleName'] + ' #'+ moduleParams['serverIndex'] +'<br /><br />'
 		}, {
 			flex: 1,
 			border: false,

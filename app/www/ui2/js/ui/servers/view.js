@@ -4,7 +4,7 @@ Scalr.regPage('Scalr.ui.servers.view', function (loadParams, moduleParams) {
 			'cloud_location', 'flavor', 'cloud_server_id', 'excluded_from_dns', 'server_id', 'remote_ip',
 			'local_ip', 'status', 'platform', 'farm_name', 'role_name', 'index', 'role_id', 'farm_id', 'farm_roleid',
 			'uptime', 'ismaster', 'os_family', 'has_eip', 'is_szr', 'cluster_position', 'agent_version', 'agent_update_needed', 'agent_update_manual',
-			'initDetailsSupported', 'isInitFailed', 'la_server', 'launch_error', 'alerts'
+			'initDetailsSupported', 'isInitFailed', 'la_server', 'launch_error', 'alerts', 'cluster_role'
 		],
 		proxy: {
 			type: 'scalr.paging',
@@ -241,7 +241,7 @@ Scalr.regPage('Scalr.ui.servers.view', function (loadParams, moduleParams) {
 					'</tpl>' +
 					'#<a href="#/servers/{server_id}/view">{index}</a>'+
 				'</tpl>' +
-				'<tpl if="ismaster == 1"> (Master)</tpl>' +
+				'<tpl if="cluster_role"> ({cluster_role})</tpl>' +
 				'<tpl if="cluster_position"> ({cluster_position})</tpl>' +
 				'<tpl if="! farm_id"><img src="/ui2/images/icons/false.png" /></tpl>'
 			},
@@ -330,7 +330,7 @@ Scalr.regPage('Scalr.ui.servers.view', function (loadParams, moduleParams) {
 						return false;
 
 					if (item.itemId == 'option.console')
-						return (data.platform == 'ec2' && data.status != 'Terminated' && data.status != 'Pending launch');
+						return ((data.platform == 'ec2' || data.platform == 'gce') && data.status != 'Terminated' && data.status != 'Pending launch');
 						
 					if (item.itemId == 'option.cloudWatch')
 						return (data.platform == 'ec2' && data.status == 'Running');
@@ -349,6 +349,10 @@ Scalr.regPage('Scalr.ui.servers.view', function (loadParams, moduleParams) {
 						
 						if (data.status == 'Terminated')
 							return false;
+							
+						if (data.platform == 'gce' && item.itemId == 'option.reboot')
+							return false;
+							
 						else
 							return true;
 					}
@@ -539,58 +543,23 @@ Scalr.regPage('Scalr.ui.servers.view', function (loadParams, moduleParams) {
 		multiSelect: true,
 		selModel: {
 			selType: 'selectedmodel',
-			selectedMenu: [{
-				text: 'Reboot',
-				iconCls: 'x-menu-icon-reboot',
-				request: {
-					confirmBox: {
-						type: 'reboot',
-						msg: 'Reboot selected server(s): %s ?'
-					},
-					processBox: {
-						type: 'reboot',
-						msg: 'Sending reboot command ...'
-					},
-					url: '/servers/xServerRebootServers/',
-					dataHandler: function (records) {
-						var servers = [];
-						this.confirmBox.objects = [];
-						for (var i = 0, len = records.length; i < len; i++) {
-							servers.push(records[i].get('server_id'));
-							this.confirmBox.objects.push(records[i].get('server_id'));
-						}
-
-						return { servers: Ext.encode(servers) };
-					}
-				}
-			}, {
-				text: 'Terminate',
-				iconCls: 'x-menu-icon-terminate',
-				request: {
-					confirmBox: {
-						type: 'terminate',
-						msg: 'Terminate selected server(s): %s ?',
-						form: confirmationTerminateOptions
-					},
-					processBox: {
-						type: 'terminate',
-						msg: 'Terminating servers(s) ...'
-					},
-					url: '/servers/xServerTerminateServers/',
-					dataHandler: function (records) {
-						var servers = [];
-						this.confirmBox.objects = [];
-						for (var i = 0, len = records.length; i < len; i++) {
-							servers.push(records[i].get('server_id'));
-							this.confirmBox.objects.push(records[i].get('server_id'));
-						}
-
-						return { servers: Ext.encode(servers) };
-					}
-				}
-			}],
 			getVisibility: function(record) {
 				return (record.get('status') == 'Running' || record.get('status') == 'Initializing');
+			}
+		},
+
+		listeners: {
+			activate: function () {
+				updateHandler.schedule(true);
+				laHandler.schedule(! this.headerCt.down('#la').isHidden(), true);
+			},
+			deactivate: function () {
+				updateHandler.schedule(false);
+				laHandler.schedule(false);
+			},
+			selectionchange: function(selModel, selections) {
+				this.down('scalrpagingtoolbar').down('#reboot').setDisabled(!selections.length);
+				this.down('scalrpagingtoolbar').down('#terminate').setDisabled(!selections.length);
 			}
 		},
 
@@ -598,8 +567,84 @@ Scalr.regPage('Scalr.ui.servers.view', function (loadParams, moduleParams) {
 			xtype: 'scalrpagingtoolbar',
 			store: store,
 			dock: 'top',
+			afterItems: [{
+				ui: 'paging',
+				itemId: 'reboot',
+				iconCls: 'x-tbar-reboot',
+				tooltip: 'Select one or more servers to reboot them',
+				disabled: true,
+				handler: function() {
+					var request = {
+						confirmBox: {
+							type: 'reboot',
+							msg: 'Reboot selected server(s): %s ?'
+						},
+						processBox: {
+							type: 'reboot',
+							msg: 'Sending reboot command ...'
+						},
+						url: '/servers/xServerRebootServers/',
+						success: function() {
+							store.load();
+						}
+					}, records = this.up('grid').getSelectionModel().getSelection(), servers = [];
+
+					request.confirmBox.objects = [];
+					for (var i = 0, len = records.length; i < len; i++) {
+						servers.push(records[i].get('server_id'));
+						request.confirmBox.objects.push(records[i].get('server_id'));
+					}
+					request.params = { servers: Ext.encode(servers) };
+					Scalr.Request(request);
+				}
+			}, {
+				ui: 'paging',
+				itemId: 'terminate',
+				iconCls: 'x-tbar-terminate',
+				tooltip: 'Select one or more servers to terminate them',
+				disabled: true,
+				handler: function() {
+					var request = {
+						confirmBox: {
+							type: 'terminate',
+							msg: 'Terminate selected server(s): %s ?',
+							form: confirmationTerminateOptions
+						},
+						processBox: {
+							type: 'terminate',
+							msg: 'Terminating servers(s) ...'
+						},
+						url: '/servers/xServerTerminateServers/',
+						success: function() {
+							store.load();
+						}
+					}, records = this.up('grid').getSelectionModel().getSelection(), servers = [];
+
+					request.confirmBox.objects = [];
+					for (var i = 0, len = records.length; i < len; i++) {
+						servers.push(records[i].get('server_id'));
+						request.confirmBox.objects.push(records[i].get('server_id'));
+					}
+					request.params = { servers: Ext.encode(servers) };
+					Scalr.Request(request);
+				}
+			}],
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
+				width: 300,
+				form: {
+					items: [{
+						xtype: 'textfield',
+						fieldLabel: 'Cloud server id',
+						labelAlign: 'top',
+						name: 'cloudServerId'
+					}, {
+						xtype: 'textfield',
+						fieldLabel: 'Cloud server location',
+						labelAlign: 'top',
+						name: 'cloudServerLocation'
+					}]
+				},
 				store: store
 			}, ' ', {
 				xtype: 'button',
@@ -611,17 +656,6 @@ Scalr.regPage('Scalr.ui.servers.view', function (loadParams, moduleParams) {
 					store.loadPage(1);
 				}
 			}]
-		}],
-		
-		listeners: {
-			activate: function () {
-				updateHandler.schedule(true);
-				laHandler.schedule(! this.headerCt.down('#la').isHidden(), true);
-			},
-			deactivate: function () {
-				updateHandler.schedule(false);
-				laHandler.schedule(false);
-			}
-		}
+		}]
 	});
 });

@@ -18,43 +18,43 @@ use Scalr\Service\Aws\CloudWatch\DataType\DimensionList;
  */
 class MetricData extends AbstractCloudWatchDataType
 {
-	/**
-	 * List of the public properties
-	 * which is managed by magic getter and setters internally.
-	 *
-	 * @var  array
-	 */
-	protected $_properties = array('dimensions');
+    /**
+     * List of the public properties
+     * which is managed by magic getter and setters internally.
+     *
+     * @var  array
+     */
+    protected $_properties = array('dimensions');
 
-	/**
-	 * The name of the metric.
-	 *
-	 * Length constraints: Minimum length of 1. Maximum length of 255.
-	 *
-	 * @var string
-	 */
-	public $metricName;
+    /**
+     * The name of the metric.
+     *
+     * Length constraints: Minimum length of 1. Maximum length of 255.
+     *
+     * @var string
+     */
+    public $metricName;
 
-	/**
-	 * The namespace of the metric.
-	 *
-	 * Length constraints: Minimum length of 1. Maximum length of 255.
-	 *
-	 * @var string
-	 */
-	public $namespace;
+    /**
+     * The namespace of the metric.
+     *
+     * Length constraints: Minimum length of 1. Maximum length of 255.
+     *
+     * @var string
+     */
+    public $namespace;
 
-	/**
-	 * Convenient constructor
-	 *
-	 * @param   string        $metricName optional The name of the metric.
-	 * @param   string        $namespace  optional The namespace of the metric.
-	 * @param   DimensionList $dimensions optional A list of dimensions associated with the metric.
-	 */
-	public function __construct($metricName = null, $namespace = null, DimensionList $dimensions = null)
-	{
-		$this->metricName = $metricName;
-		$this->namespace = $namespace;
-		$this->setDimensions($dimensions);
-	}
+    /**
+     * Convenient constructor
+     *
+     * @param   string        $metricName optional The name of the metric.
+     * @param   string        $namespace  optional The namespace of the metric.
+     * @param   DimensionList $dimensions optional A list of dimensions associated with the metric.
+     */
+    public function __construct($metricName = null, $namespace = null, DimensionList $dimensions = null)
+    {
+        $this->metricName = $metricName;
+        $this->namespace = $namespace;
+        $this->setDimensions($dimensions);
+    }
 }

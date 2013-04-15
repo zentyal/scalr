@@ -17,7 +17,7 @@
         {
             $db = Core::GetDBInstance();
             
-            $this->ThreadArgs = $db->GetAll("SELECT id FROM dns_zones WHERE status NOT IN(?,?) OR (isonnsserver='1' AND status=?)", array(
+            $this->ThreadArgs = $db->GetAll("SELECT dns_zones.id FROM dns_zones INNER JOIN clients ON clients.id = dns_zones.client_id WHERE dns_zones.status NOT IN(?,?) OR (isonnsserver='1' AND dns_zones.status=?) ORDER BY `priority` DESC LIMIT 0,200", array(
             	DNS_ZONE_STATUS::ACTIVE,
             	DNS_ZONE_STATUS::INACTIVE,
             	DNS_ZONE_STATUS::INACTIVE

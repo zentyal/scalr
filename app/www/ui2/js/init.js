@@ -1,3 +1,12 @@
+Ext.Ajax.on('requestcomplete', function(conn, response) {
+	var resp = Ext.isFunction(response.getResponseHeader);
+	if (! Scalr.state['pageInterfaceVersion'] && resp) {
+		Scalr.state['pageInterfaceVersion'] = response.getResponseHeader('X-Scalr-Interface-Version');
+	} else if (resp && response.getResponseHeader('X-Scalr-Interface-Version') && response.getResponseHeader('X-Scalr-Interface-Version') != Scalr.state['pageInterfaceVersion']) {
+		Scalr.message.Warning("New version of user interface has been released. Please save your work and refresh the page.");
+	}
+});
+
 // catch server error page (404, 403, timeOut and other)
 Ext.Ajax.on('requestexception', function(conn, response, options) {
 	if (options.doNotShowError == true)
@@ -46,13 +55,31 @@ Scalr.storage = {
 	},
 	set: function (name, value, session) {
 		var storage = this.getStorage(session);
-		if (storage)
-			storage.setItem(this.getName(name), this.encodeValue(value));
+		try {
+			if (storage)
+				storage.setItem(this.getName(name), this.encodeValue(value));
+		} catch (e) {
+			if (e == QUOTA_EXCEEDED_ERR) {
+				Scalr.message.Error('LocalStorage overcrowded');
+			}
+		}
 	},
 	clear: function (name, session) {
 		var storage = this.getStorage(session);
 		if (storage)
 			storage.removeItem(this.getName(name));
+	},
+	dump: function(encoded) {
+		var storage = Scalr.storage.getStorage(), data = {};
+		for (var i = 0, len = storage.length; i < len; i++) {
+			var key = storage.key(i);
+			data[key] = storage.getItem(key);
+		}
+
+		return encoded ? Ext.encode(data) : data;
+	},
+	hash: function() {
+		return CryptoJS.SHA1(this.dump(true)).toString();
 	}
 };
 
@@ -107,6 +134,112 @@ Scalr.version = function (checkVersion) {
 	return ( !version || version == checkVersion) ? true : false;
 };
 
+Scalr.data = {
+	stores: {},
+	add: function(stores){
+		if (!Ext.isArray(stores)) {
+			stores = [stores];
+		}
+		for (var i=0, len=stores.length; i<len; i++) {
+			if (!this.stores[stores[i].name]) {
+				this.stores[stores[i].name] = new Ext.data.Store(stores[i]);
+			}
+		}
+	},
+	get: function(name) {
+		return this.stores[name];
+	},
+	query: function(names) {
+		var stores = [];
+		if (!Ext.isArray(names)) {
+			names = [names];
+		}
+		for (var i=0, len=names.length; i<len; i++) {
+			if (names[i].indexOf('*') != -1) {
+				var q = names[i].replace('*', '');
+				Ext.Object.each(this.stores, function(name, store){
+					if (name.indexOf(q) !== -1) {
+						stores.push(store);
+					}
+				});
+			} else if (this.stores[names[i]]) {
+				stores.push(this.stores[names[i]]);
+			}
+		}
+		return stores;
+	},
+	fireRefresh: function(names){
+		var stores = this.query(names);
+		for (var i=0, len=stores.length; i<len; i++) {
+			stores[i].fireEvent('refresh');
+		}
+	},
+	load: function(names, callback, reload, lock) {
+		var me = this,
+			stores = this.query(names),
+			requests = [], requestsMap = {};
+		for (var i=0, len=stores.length; i<len; i++) {
+			if ((reload && stores[i].dataLoaded) || !reload && !stores[i].dataLoaded) {
+				if (requestsMap[stores[i].dataUrl] === undefined) {
+					requests.push({
+						url: stores[i].dataUrl,
+						stores: []
+					})
+					requestsMap[stores[i].dataUrl] = requests.length - 1;
+				}
+				requests[requestsMap[stores[i].dataUrl]].stores.push(stores[i].name);
+			}
+		}
+
+		var resumeEventsList = [],
+			firstRun = true,
+			runRequest = function() {
+				if (requests.length) {
+					var request = requests.shift();
+					var r = {
+						url: request.url,
+						params: {
+							stores: Ext.encode(request.stores)
+						},
+						success: function (data, response, options) {
+							Ext.Object.each(data.stores, function(name, data){
+								me.stores[name].suspendEvents(true);
+								resumeEventsList.push(name);
+								me.stores[name].loadData(data);
+								me.stores[name].dataLoaded = true;
+							});
+							firstRun = false;
+							runRequest();
+						}
+					};
+					if (firstRun && lock) {
+						r.processBox = {type: 'action'};
+					} else {
+						r.disableFlushMessages = true;
+						r.disableAutoHideProcessBox =true;
+					}
+					Scalr.Request(r);
+				} else {
+					for (var i=0, len=resumeEventsList.length; i<len; i++) {
+						me.stores[resumeEventsList[i]].resumeEvents();
+					}
+					callback ? callback() : null;
+				}
+			}
+		runRequest();
+	},
+	reload: function(names, lock, callback) {
+		lock = lock === undefined ? true : lock;
+		this.load(names, callback, true, lock);
+	},
+	reloadDefer: function(names) {
+		var stores = this.query(names);
+		for (var i=0, len=stores.length; i<len; i++) {
+			stores[i].dataLoaded = false;
+		}
+	}
+};
+
 Ext.getBody().setStyle('overflow', 'hidden');
 Ext.tip.QuickTipManager.init();
 
@@ -151,8 +284,17 @@ Scalr.event.on('resize', function () {
 });
 
 Scalr.event.on('maximize', function () {
-	var options = Scalr.application.getLayout().activeItem.scalrOptions;
-	options.maximize = options.maximize == 'all' ? '' : 'all';
+	var item = Scalr.application.getLayout().activeItem;
+	if (item.scalrOptions.maximize == '') {
+		if (item.width)
+			item.savedWidth = item.width;
+		item.scalrOptions.maximize = 'all';
+	} else {
+		if (item.savedWidth)
+			item.width = item.savedWidth;
+		item.scalrOptions.maximize = '';
+	}
+
 	Scalr.application.getLayout().onOwnResize();
 });
 

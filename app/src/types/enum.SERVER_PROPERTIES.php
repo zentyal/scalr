@@ -18,7 +18,13 @@
 		const SZR_IMPORTING_LAST_LOG_MESSAGE = 'scalarizr.import.last_log_msg';
 		const SZR_IMPORTING_BUNDLE_TASK_ID = 'scalarizr.import.bundle_task_id';
 		const SZR_IMPORTING_OS_FAMILY = 'scalarizr.import.os_family';
+        const SZR_IMPORTING_LEAVE_ON_FAIL = 'scalarizr.import.leave_on_fail';
 		const SZR_DEV_SCALARIZR_BRANCH = 'scalarizr.dev.scalarizr.branch';
+        
+        const SZR_IMPORTING_CHEF_SERVER_ID = 'scalarizr.import.chef.server_id';
+        const SZR_IMPORTING_CHEF_ENVIRONMENT = 'scalarizr.import.chef.environment';
+        const SZR_IMPORTING_CHEF_ROLE_NAME = 'scalarizr.import.chef.role_name';
+        
 		
 		const SZR_IS_INIT_FAILED = 'scalarizr.is_init_failed';
 		const SZR_IS_INIT_ERROR_MSG = 'scalarizr.init_error_msg';

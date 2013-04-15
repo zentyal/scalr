@@ -15,26 +15,26 @@ use Scalr\Service\Aws\DataType\ListDataType;
 class MetricList extends AbstractCloudWatchListDataType
 {
 
-	/**
-	 * Constructor
-	 *
-	 * @param array|MetricData  $aListData  MetricData List
-	 */
-	public function __construct($aListData = null)
-	{
-		parent::__construct(
-			$aListData,
-			array('metricName', 'namespace'),
-			'Scalr\\Service\\Aws\\CloudWatch\\DataType\\MetricData'
-		);
-	}
+    /**
+     * Constructor
+     *
+     * @param array|MetricData  $aListData  MetricData List
+     */
+    public function __construct($aListData = null)
+    {
+        parent::__construct(
+            $aListData,
+            array('metricName', 'namespace'),
+            'Scalr\\Service\\Aws\\CloudWatch\\DataType\\MetricData'
+        );
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
-	 */
-	public function getQueryArray($uriParameterName = 'Metrics')
-	{
-		return parent::getQueryArray($uriParameterName);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws\DataType.ListDataType::getQueryArray()
+     */
+    public function getQueryArray($uriParameterName = 'Metrics', $member = true)
+    {
+        return parent::getQueryArray($uriParameterName);
+    }
 }

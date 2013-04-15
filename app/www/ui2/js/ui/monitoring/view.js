@@ -79,7 +79,21 @@ Scalr.regPage('Scalr.ui.monitoring.view', function (loadParams, moduleParams) {
 				pack: 'start'
 			},
 			items:[{
-				xtype: 'treefilterfield'
+				xtype: 'filterfield',
+				handler: function(field, value) {
+					var treepanel = this.up('panel').down('treepanel');
+
+					Ext.each(treepanel.getRootNode().childNodes, function(farmItem) {
+						farmItem.cascadeBy(function(){
+							var el = Ext.get(treepanel.getView().getNodeByRecord(this));
+							el.setVisibilityMode(Ext.Element.DISPLAY);
+							if(this.get('text').search(value) != -1 || value == '')
+								el.setVisible(true);
+							else
+								el.setVisible(false);
+						});
+					});
+				}
 			}, ' ', {
 				xtype: 'button',
 				enableToggle: true,

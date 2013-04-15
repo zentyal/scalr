@@ -87,10 +87,14 @@
 				"server_id"	=> $dbServer->serverId,
 				"issystem"	=> '1'
 			));
+            
+            return $records;
 		}
 		
 		public function handleMessage(Scalr_Messaging_Msg $message, DBServer $dbServer)
 		{
+			parent::handleMessage($message, $dbServer);
+			    
 			if (!$message->rabbitmq)
 				return;
 			

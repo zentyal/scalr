@@ -26,51 +26,50 @@ use Scalr\Service\Aws;
 class ElbTestCase extends AwsTestCase
 {
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Tests\Service.AwsTestCase::setUp()
-	 */
-	public function setUp()
-	{
-		parent::setUp();
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Tests\Service.AwsTestCase::setUp()
+     */
+    protected function setUp()
+    {
+        parent::setUp();
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Tests\Service.AwsTestCase::tearDown()
-	 */
-	public function tearDown()
-	{
-		parent::tearDown();
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Tests\Service.AwsTestCase::tearDown()
+     */
+    protected function tearDown()
+    {
+        parent::tearDown();
+    }
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Tests\Service.AwsTestCase::getFixtureFilePath()
-	 */
-	public function getFixtureFilePath($filename)
-	{
-		return $this->getFixturesDirectory() . '/' . Elb::API_VERSION_CURRENT . '/' . $filename;
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Tests\Service.AwsTestCase::getFixturesDirectory()
+     */
+    public function getFixturesDirectory()
+    {
+        return parent::getFixturesDirectory() . '/Elb';
+    }
 
-	/**
-	 * Gets an Elb Repository instance
-	 *
-	 * @return    ElbLoadBalancerDescriptionRepository
-	 */
-	public function getElbLoadBalancerDescripitonRepository()
-	{
-		return $this->getEntityManager()->getRepository('Elb:LoadBalancerDescription');
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Tests\Service.AwsTestCase::getFixtureFilePath()
+     */
+    public function getFixtureFilePath($filename)
+    {
+        return $this->getFixturesDirectory() . '/' . Elb::API_VERSION_CURRENT . '/' . $filename;
+    }
 
-	/**
-	 * Gets Elb Mock
-	 *
-	 * @param    callback $callback
-	 * @return   Elb      Returns Elb Mock class
-	 */
-	public function getElbMock($callback = null)
-	{
-		return $this->getServiceInterfaceMock('Elb');
-	}
+    /**
+     * Gets Elb Mock
+     *
+     * @param    callback $callback
+     * @return   Elb      Returns Elb Mock class
+     */
+    public function getElbMock($callback = null)
+    {
+        return $this->getServiceInterfaceMock('Elb');
+    }
 }

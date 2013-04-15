@@ -68,7 +68,7 @@ Scalr.regPage('Scalr.ui.farms.events.view', function (loadParams, moduleParams) 
 			store: store,
 			dock: 'top',
 			items: [{
-				xtype: 'tbfilterfield',
+				xtype: 'filterfield',
 				store: store
 			}, ' ', {
 				xtype: 'button',

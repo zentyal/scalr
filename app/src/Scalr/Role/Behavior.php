@@ -1,4 +1,7 @@
 <?php 
+
+    use Scalr\Farm\Role\FarmRoleStorage;
+
 	class Scalr_Role_Behavior
 	{		
 		const ROLE_DM_APPLICATION_ID = 'dm.application_id';
@@ -115,7 +118,22 @@
 		 * @param Scalr_Messaging_Msg $message
 		 * @param DBServer $dbServer
 		 */
-		public function handleMessage(Scalr_Messaging_Msg $message, DBServer $dbServer) { }
+		public function handleMessage(Scalr_Messaging_Msg $message, DBServer $dbServer) {
+		    
+            switch (get_class($message))
+            {
+                case "Scalr_Messaging_Msg_HostUp":
+                    try {
+                        if (!empty($message->volumes) && $dbServer->farmRoleId) {
+                            $storage = new FarmRoleStorage($dbServer->GetFarmRoleObject());
+                            $storage->setVolumes($dbServer, $message->volumes); 
+                        }
+                    } catch (Exception $e) {
+                        $this->logger->error(new FarmLogMessage($dbServer->farmId, "Error in role message handler: {$e->getMessage()}"));
+                    }
+                    break;
+            }
+		}
 		
 		public function makeUpscaleDecision(DBFarmRole $dbFarmRole) 
 		{
@@ -151,6 +169,7 @@
 			{
 				case "Scalr_Messaging_Msg_HostInitResponse":
 					
+                    //Deployments
 					try {
 						if ($dbServer->farmRoleId) {
 							$appId = $dbServer->GetFarmRoleObject()->GetSetting(self::ROLE_DM_APPLICATION_ID);
@@ -176,6 +195,19 @@
 					} catch (Exception $e) {
 						$this->logger->error(new FarmLogMessage($dbServer->farmId, "Cannot init deployment: {$e->getMessage()}"));
 					}
+                    
+                    //Storage
+                    try {
+                        if ($dbServer->farmRoleId) {
+                            $dbFarmRole = DBFarmRole::LoadByID($dbServer->farmRoleId);
+                            $storage = new FarmRoleStorage($dbFarmRole);
+                            $volumes = $storage->getVolumesConfigs($dbServer->index);
+                            if (!empty($volumes))
+                                $message->volumes = $volumes;
+                        }
+                    } catch (Exception $e) {
+                        $this->logger->error(new FarmLogMessage($dbServer->farmId, "Cannot init storage: {$e->getMessage()}"));
+                    }
 					
 					break;
 			}

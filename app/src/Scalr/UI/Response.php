@@ -86,6 +86,9 @@ class Scalr_UI_Response
 		$this->body = $value;
 	}
 
+	/**
+	 * Deprecated
+	 *
 	public function setJsonResponse($value, $type = "javascript")
 	{
 		$this->setResponse(json_encode($value));
@@ -95,9 +98,13 @@ class Scalr_UI_Response
 		elseif ($type == "text")
 			$this->setHeader('content-type', 'text/html'); // hack for ajax file uploads
 	}
+	 */
 
 	public function sendResponse()
 	{
+		if ($this->jsResponseFlag)
+			$this->prepareJsonResponse();
+
 		foreach ($this->headers as $header) {
 			header($header['name'] . ': ' . $header['value'], $header['replace']);
 		}
@@ -115,22 +122,39 @@ class Scalr_UI_Response
 		foreach ($cookies as $key => $value)
 			header("Set-Cookie: {$key}={$value}", false);
 
-		if ($this->jsResponseFlag)
-			$this->prepareJsonResponse();
-
 		header("HTTP/1.0 {$this->httpResponseCode}");
 		echo $this->body;
 	}
 
+	public function resetResponse()
+	{
+		$this->body = '';
+		$this->headers = array();
+		$this->httpResponseCode = 200;
+		$this->jsResponse = array('success' => true);
+		$this->jsResponseFlag = false;
+		$this->serverDebugLog = array();
+	}
+
+	public function getResponse()
+	{
+		if ($this->jsResponseFlag)
+			$this->prepareJsonResponse();
+
+		return $this->body;
+	}
+
 	/* JS response methods */
+	// divide into set headers and set body
 	public function prepareJsonResponse()
 	{
 		$this->setResponse(json_encode($this->jsResponse));
+		$this->setHeader('X-Scalr-Interface-Version', 1); // for major interface updates
 
 		if (isset($_REQUEST['X-Requested-With']) && $_REQUEST['X-Requested-With'] == 'XMLHttpRequest')
-			$this->setHeader('content-type', 'text/javascript', true);
+			$this->setHeader('content-type', 'text/html', true); // hack for ajax file uploads and other cases
 		else
-			$this->setHeader('content-type', 'text/html'); // hack for ajax file uploads and other cases
+			$this->setHeader('content-type', 'text/javascript', true);
 	}
 
 	public function getModuleName($name)
@@ -151,7 +175,7 @@ class Scalr_UI_Response
 		return "/{$path}{$nameTm}";
 	}
 
-	public function page($name, $params = array(), $requires = array(), $requiresCss = array())
+	public function page($name, $params = array(), $requires = array(), $requiresCss = array(), $requiresData = array())
 	{
 		$this->jsResponse['moduleName'] = $this->getModuleName($name);
 		$this->jsResponse['moduleParams'] = $params;
@@ -166,6 +190,10 @@ class Scalr_UI_Response
 				$this->jsResponse['moduleRequiresCss'][] = $this->getModuleName($value);
 		}
 
+		if (count($requiresData)) {
+			$this->jsResponse['moduleRequiresData'] = $requiresData;
+		}
+		
 		$this->jsResponseFlag = true;
 	}
 
@@ -213,5 +241,24 @@ class Scalr_UI_Response
 	public function debugLog($key, $value)
 	{
 		$this->serverDebugLog[] = array('key' => $key, 'value' => print_r($value, true));
+	}
+
+	public function debugMysql($enabled = true)
+	{
+		global $ADODB_OUTP;
+
+		$db = Core::GetDBInstance();
+		if ($enabled) {
+			$ADODB_OUTP = function($msg, $newline) {
+				static $i = 1;
+				$msg = str_replace('<br>', '', $msg);
+				$msg = str_replace("\n", '', $msg);
+				Scalr_UI_Response::getInstance()->varDump($msg, sprintf('adodb-%04d', $i++));
+			};
+
+			$db->debug = -1;
+		} else {
+			$db->debug = false;
+		}
 	}
 }

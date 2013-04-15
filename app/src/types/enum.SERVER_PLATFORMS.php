@@ -10,7 +10,10 @@
 		
 		// Openstack based
 		const OPENSTACK = 'openstack';
-		//const RACKSPACENG = 'rackspace-ng';
+		
+		const RACKSPACENG_US = 'rackspacengus';
+		const RACKSPACENG_UK = 'rackspacenguk';
+		
 		
 		// Cloudstack based
 		const CLOUDSTACK = 'cloudstack';
@@ -29,9 +32,10 @@
 				self::NIMBULA		=> 'Nimbula',
 				self::CLOUDSTACK	=> 'Cloudstack',
 				self::OPENSTACK		=> 'Openstack',
-				self::IDCF			=> 'IDCF',
+				self::IDCF			=> 'IDC Frontier',
 				self::UCLOUD		=> 'KT uCloud',
-				//self::RACKSPACENG	=> 'Rackspace Next Gen'
+				self::RACKSPACENG_US=> 'Rackspace Open Cloud (US)',
+				self::RACKSPACENG_UK=> 'Rackspace Open Cloud (UK)'
 			);
 		}
 		

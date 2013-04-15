@@ -17,12 +17,12 @@ use Scalr\Service\Aws\AbstractHandler;
 abstract class AbstractElbHandler extends AbstractHandler
 {
 
-	/**
-	 * {@inheritdoc}
-	 * @see Scalr\Service\Aws.AbstractDataType::getServiceNames()
-	 */
-	public function getServiceNames()
-	{
-		return array(Aws::SERVICE_INTERFACE_ELB);
-	}
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\Aws.AbstractDataType::getServiceNames()
+     */
+    public function getServiceNames()
+    {
+        return array(Aws::SERVICE_INTERFACE_ELB);
+    }
 }

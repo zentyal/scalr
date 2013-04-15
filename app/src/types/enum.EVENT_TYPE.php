@@ -16,6 +16,9 @@
 		const FARM_LAUNCHED = "FarmLaunched";
 		
 		const INSTANCE_IP_ADDRESS_CHANGED = "IPAddressChanged";
+        
+        const CHECK_FAILED = "CheckFailed";
+        const CHECK_RECOVERED = "CheckRecovered";
 		
 		const NEW_MYSQL_MASTER = "NewMysqlMasterUp";
 		const MYSQL_BACKUP_COMPLETE = "MysqlBackupComplete";
@@ -63,7 +66,9 @@
 				self::DNS_ZONE_UPDATED				=> _("DNS zone updated"),
 				self::EBS_VOLUME_ATTACHED			=> _("EBS volume attached to instance."),
 				self::ROLE_OPTION_CHANGED			=> _("Role option/parameter was changed"),
-				self::SERVICE_CONFIGURATION_PRESET_CHANGED => _("Service configuration preset was modified")
+				self::SERVICE_CONFIGURATION_PRESET_CHANGED => _("Service configuration preset was modified"),
+				self::CHECK_FAILED => _("Check failed"),
+				self::CHECK_RECOVERED => _("Check recovered")
 			);
 			
 			return $descriptions[$event_type];
@@ -81,9 +86,11 @@
 				EVENT_TYPE::EBS_VOLUME_MOUNTED => EVENT_TYPE::GetEventDescription(EVENT_TYPE::EBS_VOLUME_MOUNTED),
 				EVENT_TYPE::BEFORE_INSTANCE_LAUNCH => EVENT_TYPE::GetEventDescription(EVENT_TYPE::BEFORE_INSTANCE_LAUNCH),
 				EVENT_TYPE::BEFORE_HOST_TERMINATE => EVENT_TYPE::GetEventDescription(EVENT_TYPE::BEFORE_HOST_TERMINATE),
-				EVENT_TYPE::DNS_ZONE_UPDATED => EVENT_TYPE::GetEventDescription(EVENT_TYPE::DNS_ZONE_UPDATED),
+				//EVENT_TYPE::DNS_ZONE_UPDATED => EVENT_TYPE::GetEventDescription(EVENT_TYPE::DNS_ZONE_UPDATED),
 				EVENT_TYPE::EBS_VOLUME_ATTACHED => EVENT_TYPE::GetEventDescription(EVENT_TYPE::EBS_VOLUME_ATTACHED),
-				EVENT_TYPE::BEFORE_HOST_UP => EVENT_TYPE::GetEventDescription(EVENT_TYPE::BEFORE_HOST_UP)
+				EVENT_TYPE::BEFORE_HOST_UP => EVENT_TYPE::GetEventDescription(EVENT_TYPE::BEFORE_HOST_UP),
+				EVENT_TYPE::CHECK_FAILED => EVENT_TYPE::GetEventDescription(EVENT_TYPE::CHECK_FAILED),
+				EVENT_TYPE::CHECK_RECOVERED => EVENT_TYPE::GetEventDescription(EVENT_TYPE::CHECK_RECOVERED)
 			);
 		}
 	}

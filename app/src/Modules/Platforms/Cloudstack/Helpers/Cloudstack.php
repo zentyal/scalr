@@ -61,10 +61,10 @@
 		public static function farmValidateRoleSettings($settings, $rolename)
 		{
 			if (!$settings[DBFarmRole::SETTING_CLOUDSTACK_SERVICE_OFFERING_ID])
-				throw new Exception(sprintf(_("Service offering for '%s' cloudstack role should be selected on 'Placement and type' tab"), $rolename));
+				throw new Exception(sprintf(_("Service offering for '%s' cloudstack role should be selected on 'Cloudstack settings' tab"), $rolename));
 				
-			if (!$settings[DBFarmRole::SETTING_CLOUDSTACK_NETWORK_ID])
-				throw new Exception(sprintf(_("Network offering for '%s' cloudstack role should be selected on 'Placement and type' tab"), $rolename));
+			//if (!$settings[DBFarmRole::SETTING_CLOUDSTACK_NETWORK_ID])
+			//	throw new Exception(sprintf(_("Network offering for '%s' cloudstack role should be selected on 'Cloudstack settings' tab"), $rolename));
 		}
 		
 		public static function farmUpdateRoleSettings(DBFarmRole $DBFarmRole, $oldSettings, $newSettings)

@@ -34,8 +34,10 @@ Scalr.regPage('Scalr.ui.farms.builder', function (loadParams, moduleParams) {
 			'scaling',
 			'scripting',
 			'scripting_params',
+			'storages',
 			'config_presets',
-			'tags'
+			'tags',
+			'variables'
 		],
 		proxy: 'object',
 		data: moduleParams.farm ? moduleParams.farm.roles : []
@@ -53,6 +55,9 @@ Scalr.regPage('Scalr.ui.farms.builder', function (loadParams, moduleParams) {
 		p['name'] = panel.down('#farmName').getValue();
 		p['description'] = panel.down('#farmDescription').getValue();
 		p['rolesLaunchOrder'] = 0;
+		p['variables'] = panel.down('#variables').getValue();
+		p['vpc_region'] = panel.down('[name="vpc_region"]').getValue();
+		p['vpc_id'] = panel.down('[name="vpc_id"]').getValue();
 		farm['farm'] = Ext.encode(p);
 
 		p = [];
@@ -69,7 +74,9 @@ Scalr.regPage('Scalr.ui.farms.builder', function (loadParams, moduleParams) {
 				scaling: rec.get('scaling'),
 				scripting: rec.get('scripting'),
 				scripting_params: rec.get('scripting_params'),
-				config_presets: rec.get('config_presets')
+				config_presets: rec.get('config_presets'),
+				storages: rec.get('storages'),
+				variables: rec.get('variables')
 			};
 
 			if (Ext.isObject(rec.get('params'))) {
@@ -81,14 +88,62 @@ Scalr.regPage('Scalr.ui.farms.builder', function (loadParams, moduleParams) {
 
 		farm['roles'] = Ext.encode(p);
 		farm['v2'] = 1;
+		farm['changed'] = moduleParams['farm'] ? moduleParams['farm']['changed'] : '';
 		Scalr.Request({
 			processBox: {
 				msg: 'Saving farm ...'
 			},
 			url: '/farms/builder/xBuild',
 			params: farm,
-			success: function (data) {
+			success: function(data) {
 				Scalr.event.fireEvent('redirect', '#/farms/' + data.farmId + '/view');
+			},
+			failure: function(data) {
+				if (data['changedFailure']) {
+					Scalr.utils.Window({
+						title: 'Warning',
+						layout: 'fit',
+						width: 500,
+						items: [{
+							xtype: 'displayfield',
+							fieldCls: 'x-form-field-warning',
+							value: data['changedFailure'],
+							margin: '0 0 10 0'
+						}],
+						dockedItems: [{
+							xtype: 'container',
+							dock: 'bottom',
+							layout: {
+								type: 'hbox',
+								pack: 'center'
+							},
+							items: [{
+								xtype: 'button',
+								text: 'Override',
+								handler: function() {
+									this.up('#box').close();
+									moduleParams['farm']['changed'] = ''; // TODO: do better via flag
+									saveHandler();
+								}
+							}, {
+								xtype: 'button',
+								text: 'Refresh page',
+								margin: '0 0 0 10',
+								handler: function() {
+									this.up('#box').close();
+									Scalr.event.fireEvent('refresh');
+								}
+							}, {
+								xtype: 'button',
+								text: 'Continue edit',
+								margin: '0 0 0 10',
+								handler: function() {
+									this.up('#box').close();
+								}
+							}]
+						}]
+					});
+				}
 			}
 		});
 	}
@@ -105,6 +160,7 @@ Scalr.regPage('Scalr.ui.farms.builder', function (loadParams, moduleParams) {
 			itemId: 'farm',
 			xtype: 'form',
 			bodyCls: 'x-panel-body-frame',
+			autoScroll: true,
 			items: [{
 				xtype: 'fieldset',
 				title: 'General info',
@@ -120,6 +176,7 @@ Scalr.regPage('Scalr.ui.farms.builder', function (loadParams, moduleParams) {
 					itemId: 'farmDescription',
 					fieldLabel: 'Description',
 					labelWidth: 70,
+					maxWidth: 500,
 					value: moduleParams.farm ? moduleParams.farm.farm.description : '',
 					anchor: '100%',
 					grow: true
@@ -128,6 +185,7 @@ Scalr.regPage('Scalr.ui.farms.builder', function (loadParams, moduleParams) {
 				xtype: 'fieldset',
 				title: 'Settings',
 				itemId: 'settings',
+				hidden: true,
 				items: [{
 					xtype: 'radiogroup',
 					hideLabel: true,
@@ -141,6 +199,93 @@ Scalr.regPage('Scalr.ui.farms.builder', function (loadParams, moduleParams) {
 						name: 'farm_roles_launch_order',
 						inputValue: '1'
 					}*/]
+				}]
+			}, {
+				xtype: 'fieldset',
+				title: 'Variables',
+				hidden: false,
+				items: [{
+					xtype: 'variablefield',
+					itemId: 'variables',
+					maxWidth: 1200,
+					currentScope: 'farm',
+					value: moduleParams.farm ? moduleParams.farm.farm.variables : moduleParams.farmVariables
+				}]
+			}, {
+				xtype: 'fieldset',
+				title: 'VPC',
+				//layout: 'hbox',
+				hidden: !moduleParams['farmVpcEc2Enabled'] || !Scalr.flags['betaMode'],
+				items: [{
+					xtype: 'buttongroupfield',
+					value: moduleParams['farm'] ? (moduleParams['farm']['farm']['vpc_id'] ? 1: '') : '',
+					items: [{
+						xtype: 'button',
+						text: 'Disable',
+						value: ''
+					}, {
+						text: 'Enable',
+						xtype: 'button',
+						value: '1'
+					}],
+					listeners: {
+						change: function(field, value) {
+							if (value)
+								this.next('container').show();
+							else
+								this.next('container').hide();
+						}
+					}
+				}, {
+					xtype: 'container',
+					layout: 'hbox',
+					hidden: moduleParams['farm'] ? (moduleParams['farm']['farm']['vpc_id'] ? false: true) : true,
+					items: [{
+						xtype: 'combo',
+						width: 300,
+						name: 'vpc_region',
+						editable: false,
+						store: {
+							fields: [ 'id', 'name' ],
+							data: moduleParams['farmVpcEc2Locations'] || [],
+							proxy: 'object'
+						},
+						queryMode: 'local',
+						valueField: 'id',
+						displayField: 'name',
+						value: moduleParams['farm'] ? moduleParams['farm']['farm']['vpc_region'] : '',
+						listeners: {
+							change: function(field, value) {
+								Scalr.Request({
+									processBox: {
+										type: 'action'
+									},
+									url: '/platforms/Ec2/xGetVpcList',
+									params: {
+										cloudLocation: value
+									},
+									success: function(data) {
+										field.next().store.loadData(data['vpc']);
+									}
+								})
+
+							}
+						}
+					}, {
+						xtype: 'combo',
+						width: 300,
+						name: 'vpc_id',
+						margin: '0 0 0 12',
+						editable: false,
+						store: {
+							fields: [ 'id', 'name' ],
+							//data: moduleParams['farmVpcEc2Locations'],
+							proxy: 'object'
+						},
+						queryMode: 'local',
+						valueField: 'id',
+						displayField: 'name'
+					}]
 				}]
 			}]
 		}, {
@@ -384,6 +529,7 @@ Scalr.regPage('Scalr.ui.farms.builder', function (loadParams, moduleParams) {
 		Scalr.message.Warning(moduleParams['farm']['lock'] + ' You won\'t be able to save any changes.');
 
 	moduleParams['tabParams']['farmRolesStore'] = farmRolesStore;
+	moduleParams['tabParams']['behaviors'] = moduleParams['behaviors'] || {};
 
 	for (var i = 0; i < moduleParams.tabs.length; i++)
 		panel.down('#edit').add(Scalr.cache['Scalr.ui.farms.builder.tabs.' + moduleParams.tabs[i]](moduleParams['tabParams']));

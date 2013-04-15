@@ -1,7 +1,7 @@
 <?php
 
-	require_once dirname(__FILE__).'/../../../externals/google-api-php-client-r488/src/Google_Client.php';
-	require_once dirname(__FILE__).'/../../../externals/google-api-php-client-r488/src/contrib/Google_ComputeService.php';
+	require_once dirname(__FILE__).'/../../../externals/google-api-php-client-r518/src/Google_Client.php';
+	require_once dirname(__FILE__).'/../../../externals/google-api-php-client-r518/src/contrib/Google_ComputeService.php';
 
 	class Modules_Platforms_GoogleCE implements IPlatformModule
 	{
@@ -12,9 +12,9 @@
 		const PROJECT_ID			= 'gce.project_id';
 		const ACCESS_TOKEN			= 'gce.access_token';
 		
-		const RESOURCE_BASE_URL = 'https://www.googleapis.com/compute/v1beta12/projects/';
+		const RESOURCE_BASE_URL = 'https://www.googleapis.com/compute/v1beta13/projects/';
 		
-		private function getClient(Scalr_Environment $environment, $cloudLocation)
+		public function getClient(Scalr_Environment $environment, $cloudLocation)
 		{
 			$client = new Google_Client();
 			$client->setApplicationName("Scalr GCE");
@@ -56,17 +56,38 @@
 		public function getRoleBuilderBaseImages()
 		{
 			return array(
-				'google/images/ubuntu-12-04-v20120621'	=> array('name' => 'Ubuntu 12.04', 'os_dist' => 'ubuntu', 'location' => 'us-central1-a', 'architecture' => 'x86_64'),
-				'google/images/centos-6-2-v20120621'	=> array('name' => 'CentOS 6.2', 'os_dist' => 'centos', 'location' => 'us-central1-a', 'architecture' => 'x86_64')
+				'google/images/gcel-12-04-v20130104'	=> array('name' => 'GCEL 12.04', 'os_dist' => 'ubuntu', 'location' => '', 'architecture' => 'x86_64'),
+				'google/images/centos-6-v20130104'	=> array('name' => 'CentOS 6.X', 'os_dist' => 'centos', 'location' => '', 'architecture' => 'x86_64')
 			);
 		}
 		
 		public function getLocations()
 		{
-			return array(
-				'us-central1-a' => 'GCE / us-central1-a',
-				'us-central2-a'	=> 'GCE / us-central2-a'		
-			);
+			try {
+                $environment = Scalr_UI_Request::getInstance()->getEnvironment();
+            }
+            catch(Exception $e) {
+                return array(); 
+            }
+            
+            if (!$environment || !$environment->isPlatformEnabled(SERVER_PLATFORMS::GCE))
+                return array();
+            
+            try {
+                $client = $this->getClient($environment, "fakeRegion");
+                
+                $zones = $client->zones->listZones($environment->getPlatformConfigValue(self::PROJECT_ID));
+                
+                foreach ($zones->getItems() as $zone) {
+                    if ($zone->status == 'UP')
+                    $retval[$zone->getName()] = "GCE / {$zone->getName()}";
+                }
+                
+            } catch (Exception $e) {
+                return array();
+            }
+                
+            return $retval;
 		}
 		
 		public function getPropsList()
@@ -86,7 +107,7 @@
 		
 		public function GetServerID(DBServer $DBServer)
 		{
-			return $DBServer->GetProperty(GCE_SERVER_PROPERTIES::SERVER_NAME);
+			return $DBServer->GetProperty(GCE_SERVER_PROPERTIES::SERVER_ID);
 		}
 		
 		public function GetServerFlavor(DBServer $DBServer)
@@ -249,7 +270,14 @@
 		
 		public function GetServerConsoleOutput(DBServer $DBServer)
 		{
+			$gce = $this->getClient($DBServer->GetEnvironmentObject(), $DBServer->GetProperty(GCE_SERVER_PROPERTIES::CLOUD_LOCATION));
 			
+			$retval = $gce->instances->getSerialPortOutput(
+				$DBServer->GetEnvironmentObject()->getPlatformConfigValue(self::PROJECT_ID), 
+				$DBServer->serverId
+			);
+
+			return base64_encode($retval->contents);
 		}
 		
 		private function getObjectUrl($objectName, $objectType, $projectName) {
@@ -283,7 +311,7 @@
 					$network = $info->getNetworkInterfaces();
 					
 					return array(
-						'ID'					=> $info->id,
+						'Cloud Server ID'		=> $info->id,
 						'Image ID'				=> $this->getObjectName($info->image),
 						'Machine Type'			=> $this->getObjectName($info->machineType),
 						'Public IP'				=> $network[0]->accessConfigs[0]->natIP,
@@ -352,9 +380,7 @@
 			
 			$gce = $this->getClient($environment, $launchOptions->cloudLocation);
 			
-			$instance = new Google_Instance();
-			$instance->setKind("compute#instance");
-			
+			// Create network object
 			$network = new Google_NetworkInterface();
 			$network->setKind("compute#instanceNetworkInterface");
 			$network->setNetwork($this->getObjectUrl(
@@ -362,6 +388,60 @@
 				'networks',
 				$environment->getPlatformConfigValue(self::PROJECT_ID)
 			));
+			
+			//
+			//
+			// Check firewall
+			$firewalls = $gce->firewalls->listFirewalls($environment->getPlatformConfigValue(self::PROJECT_ID));
+			$firewallFound = false;
+			foreach ($firewalls->getItems() as $f) {
+				if ($f->getName() == 'scalr-system') {
+					$firewallFound = true;
+					break;
+				}
+			}
+			
+			// Create scalr firewall
+			if (!$firewallFound) {
+				$scalrSecuritySettings = @parse_ini_file(APPPATH.'/etc/security.ini', true);
+				
+				
+				$firewall = new Google_Firewall();
+				$firewall->setName("scalr-system"); //TODO: move to security.ini
+				$firewall->setNetwork($this->getObjectUrl(
+					$networkName,
+					'networks',
+					$environment->getPlatformConfigValue(self::PROJECT_ID)
+				));
+				
+				//Get scalr IP-pool IP list and set source ranges
+				$firewall->setSourceRanges(array_values($scalrSecuritySettings['ip-pool']));
+				
+				// Set ports
+				$tcp = new Google_FirewallAllowed();
+				$tcp->setIPProtocol('tcp');
+				$tcp->setPorts(array('1-65535'));
+				$udp = new Google_FirewallAllowed();
+				$udp->setIPProtocol('udp');
+				$udp->setPorts(array('1-65535'));
+				$firewall->setAllowed(array($tcp, $udp));
+				
+				// Set target tags
+				$firewall->setTargetTags(array('scalr'));
+				
+				$gce->firewalls->insert(
+					$environment->getPlatformConfigValue(self::PROJECT_ID), $firewall
+				);	
+			}
+			///
+			////
+			//////
+			
+			
+			
+			
+			$instance = new Google_Instance();
+			$instance->setKind("compute#instance");
 			
 			$accessConfig = new Google_AccessConfig();
 			$accessConfig->setName("External NAT");
@@ -378,14 +458,60 @@
 				"https://www.googleapis.com/auth/devstorage.full_control"
 			));
 			$instance->setServiceAccounts(array($serviceAccount));
-			$instance->setZone($this->getObjectUrl(
-				$launchOptions->cloudLocation,
-				'zones',
-				$environment->getPlatformConfigValue(self::PROJECT_ID)
-			));
+			
+			if ($launchOptions->cloudLocation != 'x-scalr-custom') {
+                $availZone = $launchOptions->cloudLocation;
+            } else {
+                $location = $DBServer->GetFarmRoleObject()->GetSetting(DBFarmRole::SETTING_GCE_CLOUD_LOCATION);
+                
+                $availZones = array();
+                if (stristr($location, "x-scalr-custom")) {
+                    $zones = explode("=", $location);
+                    foreach (explode(":", $zones[1]) as $zone)
+                        if ($zone != "")
+                        array_push($availZones, $zone);
+                }
+                        
+                sort($availZones);
+                $availZones = array_reverse($availZones);
+
+                $servers = $DBServer->GetFarmRoleObject()->GetServersByFilter(array("status" => array(
+                    SERVER_STATUS::RUNNING,
+                    SERVER_STATUS::INIT,
+                    SERVER_STATUS::PENDING
+                )));
+                $availZoneDistribution = array();
+                foreach ($servers as $cDbServer) {
+                    if ($cDbServer->serverId != $DBServer->serverId)
+                        $availZoneDistribution[$cDbServer->GetProperty(GCE_SERVER_PROPERTIES::CLOUD_LOCATION)]++;
+                }
+
+                $sCount = 1000000;
+                foreach ($availZones as $zone) {
+                    if ((int)$availZoneDistribution[$zone] <= $sCount) {
+                        $sCount = (int)$availZoneDistribution[$zone];
+                        $availZone = $zone;
+                    }
+                }
+
+                $aZones = implode(",", $availZones); // Available zones
+                $dZones = ""; // Zones distribution
+                foreach ($availZoneDistribution as $zone => $num)
+                    $dZones .= "({$zone}:{$num})";
+
+                $DBServer->SetProperty("tmp.gce.avail_zone.algo2", "[A:{$aZones}][D:{$dZones}][S:{$availZone}]");
+            }
+
+            $instance->setZone($this->getObjectUrl(
+                $availZone,
+                'zones',
+                $environment->getPlatformConfigValue(self::PROJECT_ID)
+            ));
+            
+            
 			$instance->setMachineType($this->getObjectUrl(
 				$launchOptions->serverType,
-				'machine-types',
+				'machineTypes',
 				$environment->getPlatformConfigValue(self::PROJECT_ID)
 			));
 			$instance->setImage($this->getObjectUrl(
@@ -394,15 +520,30 @@
 			));
 			$instance->setName($DBServer->serverId);
 			
+			$tags = array(
+				'scalr',
+				"env-{$DBServer->envId}"
+			);
+			if ($DBServer->farmId)
+				$tags[] = "farm-{$DBServer->farmId}";
+			
+			if ($DBServer->farmRoleId)
+				$tags[] = "farmrole-{$DBServer->farmRoleId}";
+			
+			$instance->setTags($tags);
+			
 			$metadata = new Google_Metadata();
 			$items = array();
-			foreach ($userData as $key => $value) {
-				if ($value) {
-					$item = new Google_MetadataItems();
-					$item->setKey($key);
-					$item->setValue($value);
-					$items[] = $item;
-				}
+			
+			// Set user data
+		 	foreach ($userData as $k=>$v)
+        		$uData .= "{$k}={$v};";
+        	$uData = trim($uData, ";");
+			if ($uData) {
+				$item = new Google_MetadataItems();
+				$item->setKey('scalr');
+				$item->setValue($uData);
+				$items[] = $item;
 			}
 			
 			// Add SSH Key
@@ -428,7 +569,8 @@
 				
 				$DBServer->SetProperty(GCE_SERVER_PROPERTIES::PROVISIONING_OP_ID, $result->name);
 				$DBServer->SetProperty(GCE_SERVER_PROPERTIES::SERVER_NAME, $DBServer->serverId);
-				$DBServer->SetProperty(GCE_SERVER_PROPERTIES::CLOUD_LOCATION, $launchOptions->cloudLocation);
+                $DBServer->SetProperty(GCE_SERVER_PROPERTIES::SERVER_ID, $DBServer->serverId);
+				$DBServer->SetProperty(GCE_SERVER_PROPERTIES::CLOUD_LOCATION, $availZone);
 				$DBServer->SetProperty(GCE_SERVER_PROPERTIES::MACHINE_TYPE, $launchOptions->serverType);
 				$DBServer->SetProperty(SERVER_PROPERTIES::ARCHITECTURE, $launchOptions->architecture);
 				
@@ -438,30 +580,35 @@
 				throw new Exception(sprintf(_("Cannot launch new instance. %s (%s, %s)"), serialize($result), $launchOptions->imageId, $launchOptions->serverType));
 		}
 		
+        public function GetPlatformAccessData($environment, $DBServer) {
+            $accessData = new stdClass();
+            $accessData->clientId = $environment->getPlatformConfigValue(self::CLIENT_ID);
+            $accessData->serviceAccountName = $environment->getPlatformConfigValue(self::SERVICE_ACCOUNT_NAME);
+            $accessData->projectId = $environment->getPlatformConfigValue(self::PROJECT_ID);
+            $accessData->key = $environment->getPlatformConfigValue(self::KEY);
+
+            return $accessData;
+        }
+        
 		public function PutAccessData(DBServer $DBServer, Scalr_Messaging_Msg $message)
 		{
 			$put = false;
-			$put |= $message instanceof Scalr_Messaging_Msg_Rebundle;
-			$put |= $message instanceof Scalr_Messaging_Msg_HostInitResponse;
-			$put |= $message instanceof Scalr_Messaging_Msg_Mysql_PromoteToMaster;
-			$put |= $message instanceof Scalr_Messaging_Msg_Mysql_NewMasterUp;
-			$put |= $message instanceof Scalr_Messaging_Msg_Mysql_CreateDataBundle;
-			$put |= $message instanceof Scalr_Messaging_Msg_Mysql_CreateBackup;
-				
-			$put |= $message instanceof Scalr_Messaging_Msg_DbMsr_PromoteToMaster;
-			$put |= $message instanceof Scalr_Messaging_Msg_DbMsr_CreateDataBundle;
-			$put |= $message instanceof Scalr_Messaging_Msg_DbMsr_CreateBackup;
-			$put |= $message instanceof Scalr_Messaging_Msg_DbMsr_NewMasterUp;
+            $put |= $message instanceof Scalr_Messaging_Msg_Rebundle;
+            $put |= $message instanceof Scalr_Messaging_Msg_BeforeHostUp;
+            $put |= $message instanceof Scalr_Messaging_Msg_HostInitResponse;
+            $put |= $message instanceof Scalr_Messaging_Msg_Mysql_PromoteToMaster;
+            $put |= $message instanceof Scalr_Messaging_Msg_Mysql_CreateDataBundle;
+            $put |= $message instanceof Scalr_Messaging_Msg_Mysql_CreateBackup;
+            $put |= $message instanceof Scalr_Messaging_Msg_BeforeHostTerminate;
+
+            $put |= $message instanceof Scalr_Messaging_Msg_DbMsr_PromoteToMaster;
+            $put |= $message instanceof Scalr_Messaging_Msg_DbMsr_CreateDataBundle;
+            $put |= $message instanceof Scalr_Messaging_Msg_DbMsr_CreateBackup;
+            $put |= $message instanceof Scalr_Messaging_Msg_DbMsr_NewMasterUp;
 				
 			if ($put) {
 				$environment = $DBServer->GetEnvironmentObject();
-				$accessData = new stdClass();
-				$accessData->clientId = $environment->getPlatformConfigValue(self::CLIENT_ID);
-				$accessData->serviceAccountName = $environment->getPlatformConfigValue(self::SERVICE_ACCOUNT_NAME);
-				$accessData->projectId = $environment->getPlatformConfigValue(self::PROJECT_ID);
-				$accessData->key = $environment->getPlatformConfigValue(self::KEY);
-			
-				$message->platformAccessData = $accessData;
+				$message->platformAccessData = $this->GetPlatformAccessData($environment, $DBServer);
 			}
 		}
 		
