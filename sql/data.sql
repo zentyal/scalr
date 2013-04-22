@@ -985,7 +985,7 @@ INSERT INTO `config` (`id`, `key`, `value`) VALUES
 (1595, 'namedconftpl', 'zone "{zone}" {\r\n   type master;\r\n   file "{db_filename}";\r\n   allow-transfer { {allow_transfer}; };\r\n   {also-notify}\r\n};'),
 (1609, 'snmptrap_path', '/usr/bin/snmptrap'),
 (1769, 'email_address', 'admin@example.com'),
-(1770, 'email_name', 'examole'),
+(1770, 'email_name', 'example'),
 (1771, 'email_dsn', ''),
 (1772, 'team_emails', ''),
 (1782, 'secgroup_prefix', 'cfarms.'),
