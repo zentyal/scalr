@@ -37,7 +37,7 @@ class Scalr_Messaging_JsonSerializer {
         return @json_encode($retval);
 	}
 	
-	private function walkSerialize ($object, &$retval) {
+	private function walkSerialize ($object, $retval) {
 		foreach ($object as $k=>$v) {
             if (is_object($v) || is_array($v)) {
                 $this->walkSerialize($v, $retval->{$this->underScope($k)});
@@ -61,8 +61,8 @@ class Scalr_Messaging_JsonSerializer {
 		$retval = $ref->newInstance();
 		$retval->messageId = "{$msg->id}";
 		
-        $this->walkUnserialize($msg->meta, &$retval->meta);
-        $this->walkUnserialize($msg->body, &$retval);
+        $this->walkUnserialize($msg->meta, $retval->meta);
+        $this->walkUnserialize($msg->body, $retval);
         
 		return $retval;
 	}
