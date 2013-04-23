@@ -74,8 +74,8 @@
 	if (ini_get('register_gloabls') == 1)
 		$err[] = "PHP register globals enabled. Please disable it.";
 		
-	if (str_replace(".", "", PHP_VERSION) < 535)
-		$err[] = "PHP version must be 5.3.5 or greater.";
+	if (str_replace(".", "", PHP_VERSION) < 5316)
+		$err[] = "PHP version must be 5.3.16 or greater.";
 	
 	// If all extensions installed
 	if (count($err) == 0)
@@ -91,18 +91,6 @@
                 $err[] = "Unable to create etc/.cryptokey file. Please create empty etc/.cryptokey and chmod it to 0777.";
             }
 		}
-            
-		// Check files & folders permissions
-		$files = array(
-			realpath(dirname(__FILE__)."/../cache"),
-			realpath(dirname(__FILE__)."/../cache/smarty_bin")
-		);
-		
-		foreach ($files as $file)
-		{
-			if (!is_writable($file))
-				$err[] = "Insuficient permissions on file {$file}. Please chmod 0777";
-		}
 		
 		// Parse config.ini and test database connection
 		$cfg = @parse_ini_file(dirname(__FILE__)."/../etc/config.ini", true);
@@ -116,13 +104,7 @@
 			$err[] = "Cannot parse etc/config.ini file.";
 			
 		if (count($err) == 0)
-		{
 			require_once (dirname(__FILE__).'/../src/prepend.inc.php');
-			
-			// Check path to SNMP Trap
-			if (!file_exists(CONFIG::$SNMPTRAP_PATH) || !is_executable(CONFIG::$SNMPTRAP_PATH))
-				$err[] = CONFIG::$SNMPTRAP_PATH." not exists or not executable. Please check path to snmpinformer on Settings > Core Settings page.";
-		}
 	}
 	
 	if (!$CLI)
