@@ -7,7 +7,6 @@
 	Core::Load("IO/PCNTL/interface.IProcess.php");
 	Core::Load("IO/PCNTL");
     Core::Load("System/Independent/Shell/ShellFactory");
-    Core::Load("NET/SNMP");
         
     $fname = basename($argv[0]);
 
