@@ -211,3 +211,6 @@ CONFIG::$SYSDNS_SYSTEM = 0;
 // Require observer interfaces
 require_once (APPPATH.'/observers/interface.IDeferredEventObserver.php');
 require_once (APPPATH.'/observers/interface.IEventObserver.php');
+
+//Dependency injection container config
+require_once __DIR__ . '/di.php';
