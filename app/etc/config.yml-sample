@@ -78,10 +78,10 @@ scalr:
 
   aws:
     security_group_name: 'scalr.ip-pool'
-#    # for example ['111.22.33.11/28', '222.22.2.12/28']
-#    # IP Addresses of servers where scalr installed
-	ip_pool: ['8.8.8.8'] 
-#    # default value: 'scalr.'
+    # for example ['111.22.33.11/28', '222.22.2.12/28']
+    # IP Addresses of servers where scalr installed
+    ip_pool: ['8.8.8.8'] 
+    # default value: 'scalr.'
     security_group_prefix: 'scalr.'
     
   billing:
