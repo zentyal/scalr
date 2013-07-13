@@ -9,25 +9,25 @@ scalr:
       name: scalr
       user: scalr
       pass: 'scalr'
-    mongodb: &connections_mongo
-      driver: mongodb
-      host: 'localhost'
-      port: 27017
-      name: 'db'
-    ldap:
-      host: 'localhost'
-      port: ~
-      base_dn: 'DC=scalr,DC=local'
-      # user and password are preferred parameters but not a mandatory
-      user: 'scalradmin@scalr'
-      pass: 'set password'
-      
+#    mongodb: &connections_mongo
+#      driver: mongodb
+#      host: 'localhost'
+#      port: 27017
+#      name: 'db'
+#    ldap:
+#      host: 'localhost'
+#      port: ~
+#      base_dn: 'DC=scalr,DC=local'
+#      # user and password are preferred parameters but not a mandatory
+#      user: 'scalradmin@scalr'
+#      pass: 'set password'
+#      
 #   email:
 #      # Default value: null
 #      address: ~
 #      # Default value: null
 #      name: ~   
-      
+#      
 #  auditlog:
 #    # Disabled by default. Default: false
 #    enabled: false
@@ -39,7 +39,7 @@ scalr:
 #      mongodb:
 #        <<: *connections_mongo
 #        collection: 'auditlog'
-        
+#        
 #  cloudyn:
 #    master_email: ''
 #    # Allowed values: DEV | ITG | QA | PROD Default: PROD
@@ -48,25 +48,25 @@ scalr:
     support_url: 'https://groups.google.com/d/forum/scalr-discuss'
     wiki_url: 'http://wiki.scalr.com'
   
-  # must be defined  
+# must be defined  
   pma_instance_ip_address: '127.0.0.1'
-  # Allowed values: scalr | ldap 
+# Allowed values: scalr | ldap 
   auth_mode: scalr
 #  # Allowed values: PROD | DEV. Default: PROD  
 #  environment: PROD   
   # Allowed values: public | local | auto. 
   instances_connection_policy: public
-#  # By default it's allowed all avalialbe
-#  allowed_clouds: 
-#   - ec2
-#   - openstack
-#   - cloudstack
-#   - idcf
-#   - gce
-#   - eucalyptus
-#   - rackspace
-#   - rackspacenguk
-#   - rackspacengus
+  # By default it's allowed all avalialbe
+  allowed_clouds: 
+   - ec2
+   - openstack
+   - cloudstack
+   - idcf
+   - gce
+   - eucalyptus
+   - rackspace
+   - rackspacenguk
+   - rackspacengus
 #   - nimbula
 #  # Default value: 300 seconds
 #  rss_cache_lifetime: 300
@@ -77,12 +77,12 @@ scalr:
     host: 'endpoint url here'    
 
   aws:
-#    # default value: 'scalr.ip-pool'
-#    security_group_name: 'scalr.ip-pool'
+    security_group_name: 'scalr.ip-pool'
 #    # for example ['111.22.33.11/28', '222.22.2.12/28']
-#	 ip_pool: [] 
+#    # IP Addresses of servers where scalr installed
+	ip_pool: ['8.8.8.8'] 
 #    # default value: 'scalr.'
-#    security_group_prefix: 'scalr.'
+    security_group_prefix: 'scalr.'
     
   billing:
     enabled: no
@@ -98,11 +98,11 @@ scalr:
       user: 'scalr'
       pass: 'scalr'
     static:
-      enabled: yes
+      enabled: no
       nameservers: ['ns1.example-dns.net', 'ns2.example-dns.net']
       domain_name: 'example-dns.net'
     global:
-      enabled: yes
+      enabled: no
       nameservers: ['ns1.example.net', 'ns2.example.net', 'ns3.example.net', 'ns4.example.net']
       # base_domain is used for automated generation domain name of the user's servers 
       default_domain_name: 'provide.domain.here.in'
