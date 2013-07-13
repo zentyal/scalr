@@ -13,7 +13,7 @@ use Scalr\Service\Aws\S3\AbstractS3Handler;
 /**
  * ObjectHandler
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     12.11.2012
  */
 class ObjectHandler extends AbstractS3Handler
@@ -230,6 +230,8 @@ class ObjectHandler extends AbstractS3Handler
 
     /**
      * Gets ObjectData from Entity Storage.
+     *
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param   array      $key    An unique identifier looks like array('bucketName', 'objectName')
      * @return  ObjectData Returns ObjectData from entity storage if it exists or null otherwise.

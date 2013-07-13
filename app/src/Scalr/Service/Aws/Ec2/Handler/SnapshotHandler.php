@@ -22,6 +22,7 @@ class SnapshotHandler extends AbstractEc2Handler
 
     /**
      * Gets SnapshotData object from the EntityManager.
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param   string    $snapshotId  An unique identifier.
      * @return  SnapshotData|null Returns SnapshotData if it does exist in the cache or NULL otherwise.

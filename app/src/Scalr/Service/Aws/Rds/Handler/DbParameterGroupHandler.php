@@ -23,6 +23,8 @@ class DbParameterGroupHandler extends AbstractRdsHandler
     /**
      * Gets DbParameterGroupData object from the EntityManager.
      *
+     * You should be aware of the fact that the entity manager is turned off by default.
+     *
      * @param   string                    $dbParameterGroupName.
      * @return  DbParameterGroupData|null Returns DbParameterGroupData if it does exist in the cache or NULL otherwise.
      */

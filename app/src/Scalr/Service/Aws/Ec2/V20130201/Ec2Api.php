@@ -1,6 +1,8 @@
 <?php
 namespace Scalr\Service\Aws\Ec2\V20130201;
 
+use Scalr\Service\Aws\Ec2\DataType\MonitorInstancesResponseSetList;
+use Scalr\Service\Aws\Ec2\DataType\MonitorInstancesResponseSetData;
 use Scalr\Service\Aws\Ec2\DataType\InstanceAttributeType;
 use Scalr\Service\Aws\Ec2\DataType\PropagatingVgwData;
 use Scalr\Service\Aws\Ec2\DataType\RouteTableAssociationData;
@@ -141,7 +143,7 @@ use \DateTime;
  *
  * Implements Ec2 Low-Level API Actions.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     12.03.2013
  */
 class Ec2Api extends AbstractApi
@@ -259,6 +261,7 @@ class Ec2Api extends AbstractApi
         if ($response->getError() === false) {
             //Success
             $sxml = simplexml_load_string($response->getRawContent());
+            unset($response);
             if (!empty($sxml->availabilityZoneInfo->item)) {
                 $result = new AvailabilityZoneList();
                 $result
@@ -666,6 +669,98 @@ class Ec2Api extends AbstractApi
     }
 
     /**
+     * AuthorizeSecurityGroupEgress action
+     *
+     * Adds one or more egress rules to a security group for use with a VPC.
+     * Specifically, this action permits instances to send traffic to one or more
+     * destination CIDR IP address ranges, or to one or more destination security groups for the same VPC.
+     *
+     * Important!
+     * You can have up to 50 rules per group (covering both ingress and egress rules).
+     *
+     * A security group is for use with instances either in the EC2-Classic platform or in a specific VPC.
+     * This action doesn't apply to security groups for EC2-Classic.
+     *
+     * Each rule consists of the protocol (for example, TCP), plus either a CIDR range or a source group.
+     * For the TCP and UDP protocols, you must also specify the destination port or port range.
+     * For the ICMP protocol, you must also specify the ICMP type and code.
+     * You can use -1 for the type or code to mean all types or all codes.
+     *
+     * Rule changes are propagated to affected instances as quickly as possible.
+     * However, a small delay might occur.
+     *
+     * @param   IpPermissionList $ipPermissions Ip permission list object
+     * @param   string           $groupId       optional The ID of the security group to modify.
+     * @return  bool             Returns true on success
+     * @throws  ClientException
+     * @throws  Ec2Exception
+     */
+    public function authorizeSecurityGroupEgress(IpPermissionList $ipPermissions, $groupId)
+    {
+        $result = false;
+        $options = $ipPermissions->getQueryArrayBare('IpPermissions');
+        $options['GroupId'] = (string) $groupId;
+
+        $action = ucfirst(__FUNCTION__);
+        $response = $this->client->call($action, $options);
+        if ($response->getError() === false) {
+            $sxml = simplexml_load_string($response->getRawContent());
+            if ((string)$sxml->return != 'true') {
+                throw new Ec2Exception(sprintf(
+                    'Amazon Ec2 could not %s GroupId:"%s". It returned "%s"',
+                    $action, $options['GroupId'], $sxml->return
+                ));
+            }
+            $result = true;
+        }
+
+        return $result;
+    }
+
+
+    /**
+     * RevokeSecurityGroupEgress action
+     *
+     * Removes one or more egress rules from a security group for EC2-VPC.
+     * The values that you specify in the revoke request (for example, ports)
+     * must match the existing rule's values for the rule to be revoked.
+     *
+     * Each rule consists of the protocol and the CIDR range or destination security group.
+     * For the TCP and UDP protocols, you must also specify the destination port or range of ports.
+     * For the ICMP protocol, you must also specify the ICMP type and code.
+     *
+     * Rule changes are propagated to instances within the security group as quickly as possible.
+     * However, a small delay might occur.
+     *
+     * @param   IpPermissionList $ipPermissions Ip permission list object
+     * @param   string           $groupId       optional The ID of the security group to modify.
+     * @return  bool             Returns true on success
+     * @throws  ClientException
+     * @throws  Ec2Exception
+     */
+    public function revokeSecurityGroupEgress(IpPermissionList $ipPermissions, $groupId)
+    {
+        $result = false;
+        $options = $ipPermissions->getQueryArrayBare('IpPermissions');
+        $options['GroupId'] = (string) $groupId;
+
+        $action = ucfirst(__FUNCTION__);
+        $response = $this->client->call($action, $options);
+        if ($response->getError() === false) {
+            $sxml = simplexml_load_string($response->getRawContent());
+            if ((string)$sxml->return != 'true') {
+                throw new Ec2Exception(sprintf(
+                    'Amazon Ec2 could not %s GroupId:"%s". It returned "%s"',
+                    $action, $options['GroupId'], $sxml->return
+                ));
+            }
+            $result = true;
+        }
+
+        return $result;
+    }
+
+    /**
      * DescribeInstances action
      *
      * Describes one or more of your instances.
@@ -696,6 +791,7 @@ class Ec2Api extends AbstractApi
         if ($response->getError() === false) {
             //Success
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = new ReservationList();
             $result->setEc2($this->ec2);
             $result->setRequestId((string)$sxml->requestId);
@@ -765,13 +861,13 @@ class Ec2Api extends AbstractApi
                 }
                 $item->instanceId = $instanceId;
                 $item->imageId = $this->exist($v->imageId) ? (string) $v->imageId : null;
-                $item->privateDnsName = $this->exist($v->privateDnsName) ? (string) $v->privateDnsName : null;
+                $item->privateDnsName = (string) $v->privateDnsName;
                 $item->dnsName = $this->exist($v->dnsName) ? (string) $v->dnsName : null;
                 $item->reason = $this->exist($v->reason) ? (string) $v->reason : null;
                 $item->keyName = $this->exist($v->keyName) ? (string) $v->keyName : null;
                 $item->amiLaunchIndex = $this->exist($v->amiLaunchIndex) ? (string) $v->amiLaunchIndex : null;
-                $item->instanceType = $this->exist($v->instanceType) ? (string) $v->instanceType : null;
-                $item->launchTime = $this->exist($v->launchTime) ? new DateTime((string)$v->launchTime, new DateTimeZone('UTC')) : null;
+                $item->instanceType = (string) $v->instanceType;
+                $item->launchTime = new DateTime((string)$v->launchTime, new DateTimeZone('UTC'));
                 $item->kernelId = $this->exist($v->kernelId) ? (string) $v->kernelId : null;
                 $item->ramdiskId = $this->exist($v->ramdiskId) ? (string) $v->ramdiskId : null;
                 $item->platform = $this->exist($v->platform) ? (string) $v->platform : null;
@@ -790,16 +886,16 @@ class Ec2Api extends AbstractApi
                 $item->hypervisor = $this->exist($v->hypervisor) ? (string) $v->hypervisor : null;
                 $item->ebsOptimized = $this->exist($v->ebsOptimized) ? ((string)$v->ebsOptimized == 'true') : null;
                 $item
-                    ->setInstanceState($this->exist($v->instanceState) ? $this->_loadInstanceStateData($v->instanceState) : null)
+                    ->setInstanceState($this->_loadInstanceStateData($v->instanceState))
                     ->setProductCodes($this->_loadProductCodeSetList($v->productCodes))
-                    ->setPlacement($this->exist($v->placement) ? $this->_loadPlacementResponseData($v->placement) : null)
-                    ->setMonitoring($this->exist($v->monitoring) ? $this->_loadInstanceMonitoringStateData($v->monitoring) : null)
+                    ->setPlacement($this->_loadPlacementResponseData($v->placement))
+                    ->setMonitoring($this->_loadInstanceMonitoringStateData($v->monitoring))
                     ->setGroupSet($this->_loadGroupList($v->groupSet))
-                    ->setStateReason($this->exist($v->stateReason) ? $this->_loadStateReasonData($v->stateReason) : null)
+                    ->setStateReason($this->_loadStateReasonData($v->stateReason))
                     ->setBlockDeviceMapping($this->_loadInstanceBlockDeviceMappingResponseList($v->blockDeviceMapping))
                     ->setTagSet($this->_loadResourceTagSetList($v->tagSet))
                     ->setNetworkInterfaceSet($this->_loadInstanceNetworkInterfaceSetList($v->networkInterfaceSet))
-                    ->setIamInstanceProfile($this->exist($v->iamInstanceProfile) ? $this->_loadIamInstanceProfileResponseData($v->iamInstanceProfile) : null)
+                    ->setIamInstanceProfile($this->_loadIamInstanceProfileResponseData($v->iamInstanceProfile))
                 ;
                 $list->append($item);
                 if ($bAttach && $this->ec2->getEntityManagerEnabled()) {
@@ -820,7 +916,7 @@ class Ec2Api extends AbstractApi
     protected function _loadInstanceStateData(\SimpleXMLElement $sxml)
     {
         $item = null;
-        if (!empty($sxml)) {
+        if ($this->exist($sxml)) {
             $item = new InstanceStateData(
                 ($this->exist($sxml->code) ? (int)$sxml->code : null),
                 ($this->exist($sxml->name) ? (string)$sxml->name : null)
@@ -862,7 +958,7 @@ class Ec2Api extends AbstractApi
     protected function _loadPlacementResponseData(\SimpleXMLElement $sxml)
     {
         $item = null;
-        if (!empty($sxml)) {
+        if ($this->exist($sxml)) {
             $item = new PlacementResponseData();
             $item->setEc2($this->ec2);
             $item->availabilityZone = $this->exist($sxml->availabilityZone) ? (string)$sxml->availabilityZone : null;
@@ -881,7 +977,7 @@ class Ec2Api extends AbstractApi
     protected function _loadInstanceMonitoringStateData(\SimpleXMLElement $sxml)
     {
         $item = null;
-        if (!empty($sxml)) {
+        if ($this->exist($sxml)) {
             $item = new InstanceMonitoringStateData();
             $item->setEc2($this->ec2);
             $item->state = $this->exist($sxml->state) ? (string)$sxml->state : null;
@@ -898,7 +994,7 @@ class Ec2Api extends AbstractApi
     protected function _loadStateReasonData(\SimpleXMLElement $sxml)
     {
         $item = null;
-        if (!empty($sxml)) {
+        if ($this->exist($sxml)) {
             $item = new StateReasonData();
             $item->setEc2($this->ec2);
             $item->code = $this->exist($sxml->code) ? (string)$sxml->code : null;
@@ -923,6 +1019,10 @@ class Ec2Api extends AbstractApi
                 $item = new InstanceBlockDeviceMappingResponseData();
                 $item->setEc2($this->ec2);
                 $item->deviceName = $this->exist($v->deviceName) ? (string) $v->deviceName : null;
+                $item->virtualName = $this->exist($v->virtualName) ? (string) $v->virtualName : null;
+                if ($this->exist($v->noDevice)) {
+                    $item->noDevice = '';
+                }
                 $item->setEbs($this->_loadEbsInstanceBlockDeviceMappingResponseData($v->ebs));
                 $list->append($item);
                 unset($item);
@@ -940,7 +1040,7 @@ class Ec2Api extends AbstractApi
     protected function _loadEbsInstanceBlockDeviceMappingResponseData(\SimpleXMLElement $sxml)
     {
         $item = null;
-        if (!empty($sxml)) {
+        if ($this->exist($sxml)) {
             $item = new EbsInstanceBlockDeviceMappingResponseData();
             $item->setEc2($this->ec2);
             $item->volumeId = $this->exist($sxml->volumeId) ? (string)$sxml->volumeId : null;
@@ -1003,7 +1103,7 @@ class Ec2Api extends AbstractApi
     protected function _loadInstanceNetworkInterfaceSetData(\SimpleXMLElement $sxml)
     {
         $item = null;
-        if (!empty($sxml)) {
+        if ($this->exist($sxml)) {
             $item = new InstanceNetworkInterfaceSetData();
             $item->setEc2($this->ec2);
             $item->networkInterfaceId = $this->exist($sxml->networkInterfaceId) ? (string)$sxml->networkInterfaceId : null;
@@ -1034,7 +1134,7 @@ class Ec2Api extends AbstractApi
     protected function _loadInstanceNetworkInterfaceAttachmentData(\SimpleXMLElement $sxml)
     {
         $item = null;
-        if (!empty($sxml)) {
+        if ($this->exist($sxml)) {
             $item = new InstanceNetworkInterfaceAttachmentData();
             $item->setEc2($this->ec2);
             $item->attachmentId = $this->exist($sxml->attachmentId) ? (string)$sxml->attachmentId : null;
@@ -1055,7 +1155,7 @@ class Ec2Api extends AbstractApi
     protected function _loadInstanceNetworkInterfaceAssociationData(\SimpleXMLElement $sxml)
     {
         $item = null;
-        if (!empty($sxml)) {
+        if ($this->exist($sxml)) {
             $item = new InstanceNetworkInterfaceAssociationData();
             $item->setEc2($this->ec2);
             $item->ipOwnerId = $this->exist($sxml->ipOwnerId) ? (string)$sxml->ipOwnerId : null;
@@ -1097,7 +1197,7 @@ class Ec2Api extends AbstractApi
     protected function _loadIamInstanceProfileResponseData(\SimpleXMLElement $sxml)
     {
         $item = null;
-        if (!empty($sxml)) {
+        if ($this->exist($sxml)) {
             $item = new IamInstanceProfileResponseData();
             $item->setEc2($this->ec2);
             $item->arn = $this->exist($sxml->arn) ? (string)$sxml->arn : null;
@@ -1142,6 +1242,7 @@ class Ec2Api extends AbstractApi
         if ($response->getError() === false) {
             //Success
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = new ReservedInstanceList();
             $result->setEc2($this->ec2);
             $result->setRequestId((string) $sxml->requestId);
@@ -1246,6 +1347,7 @@ class Ec2Api extends AbstractApi
         if ($response->getError() === false) {
             //Success
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = new InstanceStatusList();
             $result->setEc2($this->ec2);
             $result->setRequestId((string) $sxml->requestId);
@@ -1279,7 +1381,7 @@ class Ec2Api extends AbstractApi
     protected function _loadInstanceStatusEventTypeData(\SimpleXMLElement $sxml)
     {
         $item = null;
-        if (!empty($sxml)) {
+        if ($this->exist($sxml)) {
             $item = new InstanceStatusEventTypeData();
             $item->setEc2($this->ec2);
             $item->code = $this->exist($sxml->code) ? (string)$sxml->code : null;
@@ -1299,7 +1401,7 @@ class Ec2Api extends AbstractApi
     protected function _loadInstanceStatusTypeData(\SimpleXMLElement $sxml)
     {
         $item = null;
-        if (!empty($sxml)) {
+        if ($this->exist($sxml)) {
             $item = new InstanceStatusTypeData();
             $item->setEc2($this->ec2);
             $item->setDetails($this->_loadInstanceStatusDetailsSetList($sxml->details));
@@ -1322,9 +1424,10 @@ class Ec2Api extends AbstractApi
             foreach ($sxml->item as $v) {
                 $item = new InstanceStatusDetailsSetData();
                 $item->setEc2($this->ec2);
-                $item->name = $this->exist($v->name) ? (string) $v->name : null;
-                $item->status = $this->exist($v->status) ? (string) $v->status : null;
-                $item->impairedSince = $this->exist($v->impairedSince) ? new DateTime((string)$v->impairedSince, new DateTimeZone('UTC')) : null;
+                $item->name = (string) $v->name;
+                $item->status = (string) $v->status;
+                $item->impairedSince = $this->exist($v->impairedSince) ?
+                    new DateTime((string)$v->impairedSince, new DateTimeZone('UTC')) : null;
                 $list->append($item);
                 unset($item);
             }
@@ -1430,7 +1533,7 @@ class Ec2Api extends AbstractApi
     protected function _loadInstanceStateChangeData(\SimpleXMLElement $v)
     {
         $item = null;
-        if (!empty($v)) {
+        if ($this->exist($v)) {
             $item = new InstanceStateChangeData();
             $item->setEc2($this->ec2);
             $item->instanceId = (string) $v->instanceId;
@@ -1501,6 +1604,7 @@ class Ec2Api extends AbstractApi
         if ($response->getError() === false) {
             //Success
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = new VolumeList();
             $result->setEc2($this->ec2);
             $result->setRequestId((string)$sxml->requestId);
@@ -1549,7 +1653,7 @@ class Ec2Api extends AbstractApi
     protected function _loadVolumeData(\SimpleXMLElement $v)
     {
         $item = null;
-        if (!empty($v)) {
+        if ($this->exist($v)) {
             $volumeId = (string)$v->volumeId;
             $item = $this->ec2->getEntityManagerEnabled() ? $this->ec2->volume->get($volumeId) : null;
             if ($item === null) {
@@ -1897,6 +2001,7 @@ class Ec2Api extends AbstractApi
         if ($response->getError() === false) {
             //Success
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = new ImageList();
             $result->setEc2($this->ec2);
             $result->setRequestId((string)$sxml->requestId);
@@ -1980,7 +2085,7 @@ class Ec2Api extends AbstractApi
     protected function _loadEbsBlockDeviceData(\SimpleXMLElement $sxml)
     {
         $item = null;
-        if (!empty($sxml)) {
+        if ($this->exist($sxml)) {
             $item = new EbsBlockDeviceData();
             $item->setEc2($this->ec2);
             $item->snapshotId = $this->exist($sxml->snapshotId) ? (string)$sxml->snapshotId : null;
@@ -2003,7 +2108,7 @@ class Ec2Api extends AbstractApi
      * additional volumes.
      *
      * @param   CreateImageRequestData     $request   Request object
-     * @return  ImageData                  Returns ImageData of created image on success
+     * @return  string Returns ID of the created image on success
      * @throws  ClientException
      * @throws  Ec2Exception
      */
@@ -2014,8 +2119,7 @@ class Ec2Api extends AbstractApi
         $response = $this->client->call(ucfirst(__FUNCTION__), $options);
         if ($response->getError() === false) {
             $sxml = simplexml_load_string($response->getRawContent());
-            $imageId = (string) $sxml->imageId;
-            $result = $this->describeImages(new ListDataType($imageId))->get(0);
+            $result = (string) $sxml->imageId;
         }
         return $result;
     }
@@ -2169,6 +2273,7 @@ class Ec2Api extends AbstractApi
         $response = $this->client->call(ucfirst(__FUNCTION__), $options);
         if ($response->getError() === false) {
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = new KeyPairList();
             $result->setEc2($this->ec2);
             $result->setRequestId($sxml->requestId);
@@ -2217,6 +2322,7 @@ class Ec2Api extends AbstractApi
         $response = $this->client->call(ucfirst(__FUNCTION__), $options);
         if ($response->getError() === false) {
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = new AddressList();
             $result->setEc2($this->ec2);
             $result->setRequestId($sxml->requestId);
@@ -2434,6 +2540,7 @@ class Ec2Api extends AbstractApi
         $response = $this->client->call(ucfirst(__FUNCTION__), $options);
         if ($response->getError() === false) {
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = new SnapshotList();
             $result->setEc2($this->ec2);
             $result->setRequestId((string) $sxml->requestId);
@@ -2457,7 +2564,7 @@ class Ec2Api extends AbstractApi
     protected function _loadSnapshotData(\SimpleXMLElement $v)
     {
         $item = null;
-        if (!empty($v)) {
+        if ($this->exist($v)) {
             $snapshotId = (string)$v->snapshotId;
             $item = $this->ec2->getEntityManagerEnabled() ? $this->ec2->snapshot->get($snapshotId) : null;
             if ($item === null) {
@@ -2616,6 +2723,7 @@ class Ec2Api extends AbstractApi
         $response = $this->client->call(ucfirst(__FUNCTION__), $options);
         if ($response->getError() === false) {
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = new SubnetList();
             $result->setEc2($this->ec2);
             $result->setRequestId((string) $sxml->requestId);
@@ -2639,7 +2747,7 @@ class Ec2Api extends AbstractApi
     protected function _loadSubnetData(\SimpleXMLElement $v)
     {
         $item = null;
-        if (!empty($v)) {
+        if ($this->exist($v)) {
             $subnetId = (string)$v->subnetId;
             $item = $this->ec2->getEntityManagerEnabled() ? $this->ec2->subnet->get($subnetId) : null;
             if ($item === null) {
@@ -2749,14 +2857,15 @@ class Ec2Api extends AbstractApi
     {
         $result = null;
         $options = array(
-            'InstanceId'     => (string) $instanceId,
+            'InstanceId' => (string) $instanceId,
         );
         $response = $this->client->call(ucfirst(__FUNCTION__), $options);
         if ($response->getError() === false) {
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = new GetConsoleOutputResponseData();
             $result->setEc2($this->ec2);
-            $result->output = base64_decode((string)$sxml->output);
+            $result->output = (string)$sxml->output;
             $result->timestamp = new DateTime((string)$sxml->timestamp, new DateTimeZone('UTC'));
             $result->instanceId = (string)$sxml->instanceId;
             $result->setRequestId((string)$sxml->requestId);
@@ -2788,6 +2897,7 @@ class Ec2Api extends AbstractApi
         $response = $this->client->call(ucfirst(__FUNCTION__), $options);
         if ($response->getError() === false) {
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = new PlacementGroupList();
             $result->setEc2($this->ec2);
             $result->setRequestId((string) $sxml->requestId);
@@ -2811,7 +2921,7 @@ class Ec2Api extends AbstractApi
     protected function _loadPlacementGroupData(\SimpleXMLElement $v)
     {
         $item = null;
-        if (!empty($v)) {
+        if ($this->exist($v)) {
             $groupName = (string)$v->groupName;
             $item = $this->ec2->getEntityManagerEnabled() ? $this->ec2->placementGroup->get($groupName) : null;
             if ($item === null) {
@@ -2962,6 +3072,7 @@ class Ec2Api extends AbstractApi
         $response = $this->client->call(ucfirst(__FUNCTION__), $options);
         if ($response->getError() === false) {
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = new AccountAttributeSetList();
             $result->setEc2($this->ec2);
             if (isset($sxml->accountAttributeSet->item)) {
@@ -3011,6 +3122,7 @@ class Ec2Api extends AbstractApi
         $response = $this->client->call($action, $options);
         if ($response->getError() === false) {
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = $this->_loadListByName('Vpc', $sxml->vpcSet);
             $result->setRequestId((string)$sxml->requestId);
         }
@@ -3078,6 +3190,7 @@ class Ec2Api extends AbstractApi
         $response = $this->client->call($action, $options);
         if ($response->getError() === false) {
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = $this->_loadListByName('NetworkInterface', $sxml->networkInterfaceSet);
             $result->requestId = (string)$sxml->requestId;
         }
@@ -3421,6 +3534,7 @@ class Ec2Api extends AbstractApi
         $response = $this->client->call($action, $options);
         if ($response->getError() === false) {
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $ptr = $sxml->{$options['Attribute']};
             $entity = $this->ec2->getEntityManagerEnabled() ?
                 $this->ec2->networkInterface->get($options['NetworkInterfaceId']) : null;
@@ -3589,6 +3703,7 @@ class Ec2Api extends AbstractApi
         $response = $this->client->call($action, $options);
         if ($response->getError() === false) {
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = $this->_loadListByName('InternetGateway', $sxml->internetGatewaySet);
             $result->setRequestId((string)$sxml->requestId);
         }
@@ -3817,6 +3932,7 @@ class Ec2Api extends AbstractApi
         $response = $this->client->call($action, $options);
         if ($response->getError() === false) {
             $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
             $result = $this->_loadListByName('RouteTable', $sxml->routeTableSet);
             $result->setRequestId((string)$sxml->requestId);
         }
@@ -4388,5 +4504,106 @@ class Ec2Api extends AbstractApi
             $result = $this->_loadListByName('InstanceStateChange', $sxml->instancesSet);
         }
         return $result;
+    }
+
+    /**
+     * StartInstances action
+     *
+     * Starts an Amazon EBS-backed AMI that you've previously stopped.
+     *
+     * Instances that use Amazon EBS volumes as their root devices can be quickly stopped and started.
+     * When an instance is stopped, the compute resources are released and you are not billed for hourly instance
+     * usage. However, your root partition Amazon EBS volume remains, continues to persist your data, and
+     * you are charged for Amazon EBS volume usage. You can restart your instance at any time. Each time
+     * you transition an instance from stopped to started, we charge a full instance hour, even if transitions
+     * happen multiple times within a single hour.
+     *
+     * Note! Before stopping an instance, make sure it is in a state from which it can be restarted.
+     * Stopping an instance does not preserve data stored in RAM.
+     * Performing this operation on an instance that uses an instance store as its root device returns
+     * an error.
+     *
+     * @param   ListDataType $instanceIdList One or more instance IDs.
+     *
+     * @return  InstanceStateChangeList  Return the InstanceStateChangeList
+     * @throws  ClientException
+     * @throws  Ec2Exception
+     */
+    public function startInstances(ListDataType $instanceIdList)
+    {
+        $result = false;
+        $options = $instanceIdList->getQueryArrayBare('InstanceId');
+        $action = ucfirst(__FUNCTION__);
+        $response = $this->client->call($action, $options);
+        if ($response->getError() === false) {
+            $sxml = simplexml_load_string($response->getRawContent());
+            $result = $this->_loadListByName('InstanceStateChange', $sxml->instancesSet);
+        }
+        return $result;
+    }
+
+    /**
+     * MonitorInstances action
+     *
+     * Enables monitoring for a running instance.
+     *
+     * @param   ListDataType $instanceIdList One or more instance IDs
+     * @return  MonitorInstancesResponseSetList  Returns the MonitorInstancesResponseSetList
+     * @throws  ClientException
+     * @throws  Ec2Exception
+     */
+    public function monitorInstances(ListDataType $instanceIdList)
+    {
+        $result = null;
+        $options = $instanceIdList->getQueryArrayBare('InstanceId');
+        $action = ucfirst(__FUNCTION__);
+        $response = $this->client->call($action, $options);
+        if ($response->getError() === false) {
+            $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
+            $result = $this->_loadListByName('MonitorInstancesResponseSet', $sxml->instancesSet);
+        }
+        return $result;
+    }
+
+    /**
+     * UnmonitorInstances action
+     *
+     * Disables monitoring for a running instance
+     *
+     * @param   ListDataType $instanceIdList One or more instance IDs
+     * @return  MonitorInstancesResponseSetList  Returns the MonitorInstancesResponseSetList
+     * @throws  ClientException
+     * @throws  Ec2Exception
+     */
+    public function unmonitorInstances(ListDataType $instanceIdList)
+    {
+        $result = null;
+        $options = $instanceIdList->getQueryArrayBare('InstanceId');
+        $action = ucfirst(__FUNCTION__);
+        $response = $this->client->call($action, $options);
+        if ($response->getError() === false) {
+            $sxml = simplexml_load_string($response->getRawContent());
+            $response = null;
+            $result = $this->_loadListByName('MonitorInstancesResponseSet', $sxml->instancesSet);
+        }
+        return $result;
+    }
+
+    /**
+     * Loads MonitorInstancesResponseSetData from simple xml object
+     *
+     * @param   \SimpleXMLElement $sxml
+     * @return  MonitorInstancesResponseSetData Returns MonitorInstancesResponseSetData
+     */
+    protected function _loadMonitorInstancesResponseSetData(\SimpleXMLElement $v)
+    {
+        $item = null;
+        if ($this->exist($v)) {
+            $item = new MonitorInstancesResponseSetData((string)$v->instanceId);
+            $item->setEc2($this->ec2);
+            $item->setMonitoring($this->_loadInstanceMonitoringStateData($v->monitoring));
+        }
+        return $item;
     }
 }

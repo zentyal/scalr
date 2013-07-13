@@ -5,7 +5,7 @@ namespace Scalr\Service\Aws\Client;
 /**
  * Client response interface
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     21.09.2012
  */
 interface ClientResponseInterface

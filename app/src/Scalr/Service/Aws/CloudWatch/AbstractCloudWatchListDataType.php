@@ -7,7 +7,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * AbstractCloudWatchListDataType
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     24.10.2012
  * @method    \Scalr\Service\Aws\CloudWatch   getCloudWatch()  getCloudWatch()                                          Gets an Amazon CloudWatch instance.
  * @method    AbstractCloudWatchListDataType  setCloudWatch()  setCloudWatch(\Scalr\Service\Aws\CloudWatch $cloudWatch) Sets an Amazon CloudWatch instance.

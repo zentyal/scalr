@@ -111,7 +111,7 @@ use \DateTime;
  *
  * Implements Ec2 Low-Level API Actions.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     26.12.2012
  */
 class Ec2Api extends AbstractApi
@@ -1944,7 +1944,7 @@ class Ec2Api extends AbstractApi
      * additional volumes.
      *
      * @param   CreateImageRequestData     $request   Request object
-     * @return  ImageData                  Returns ImageData of created image on success
+     * @return  string Returns ID of created image on success
      * @throws  ClientException
      * @throws  Ec2Exception
      */
@@ -1955,8 +1955,7 @@ class Ec2Api extends AbstractApi
         $response = $this->client->call(ucfirst(__FUNCTION__), $options);
         if ($response->getError() === false) {
             $sxml = simplexml_load_string($response->getRawContent());
-            $imageId = (string) $sxml->imageId;
-            $result = $this->describeImages(new ListDataType($imageId))->get(0);
+            $result = (string) $sxml->imageId;
         }
         return $result;
     }

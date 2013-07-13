@@ -22,7 +22,7 @@ use Scalr\Service\Aws\Elb\AbstractElbHandler;
  *
  * LoadBalancer API Layer to handle actions which are related to LoadBalancer object.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     05.10.2012
  */
 class LoadBalancerHandler extends AbstractElbHandler
@@ -31,15 +31,26 @@ class LoadBalancerHandler extends AbstractElbHandler
     /**
      * CreateLoadBalancer action
      *
-     * @param  string                                                  $loadBalancerName      Load Balancer Name
-     * @param  array|ListenerData|ListenerDescriptionData|ListenerList $listenersList         A list of the Listeners
-     * @param  array|string|ListDataType                               $availabilityZonesList optional A list of Availability Zones
-     * @param  array|string|ListDataType                               $subnetsList           optional A list of subnet IDs in your
-     *                                                                                        VPC to attach to your LoadBalancer.
-     * @param  array|string|ListDataType                               $securityGroupsList    optional The security groups assigned to your
-     *                                                                                        LoadBalancer within your VPC.
-     * @param  string                                                  $scheme                optional The type of LoadBalancer
-     * @return LoadBalancerDescriptionData                             Returns LoadBalancerDescriptionData.
+     * @param  string $loadBalancerName
+     *         Load Balancer Name to create
+     *
+     * @param  array|ListenerData|ListenerDescriptionData|ListenerList $listenersList
+     *         The list of the Listeners
+     *
+     * @param  array|string|ListDataType $availabilityZonesList optional
+     *         The list of Availability Zones
+     *
+     * @param  array|string|ListDataType $subnetsList optional
+     *         The list of subnet IDs in your VPC to attach to your LoadBalancer.
+     *
+     * @param  array|string|ListDataType $securityGroupsList optional
+     *         The security groups assigned to your
+     *         LoadBalancer within your VPC.
+     *
+     * @param  string $scheme optional
+     *         The type of LoadBalancer
+     *
+     * @return string Returns the DNS name of the created load balancer.
      * @throws ElbException
      * @throws ClientException
      */
@@ -47,7 +58,8 @@ class LoadBalancerHandler extends AbstractElbHandler
                            $securityGroupsList = null, $scheme = null)
     {
         return $this->getElb()->createLoadBalancer(
-            $loadBalancerName, $listenersList, $availabilityZonesList, $scheme, $securityGroupsList, $subnetsList
+            $loadBalancerName, $listenersList, $availabilityZonesList,
+            $scheme, $securityGroupsList, $subnetsList
         );
     }
 
@@ -481,6 +493,7 @@ class LoadBalancerHandler extends AbstractElbHandler
      * Gets load balancer from storage.
      *
      * It supposes that load balancer has been previously created or described.
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param    string    $loadBalancerName   A load balancer name
      * @return   LoadBalancerDescriptionData|null Returns LoadBalancerDescriptionData object if it has been created or described

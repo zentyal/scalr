@@ -8,7 +8,7 @@ use Scalr\Service\Aws\AbstractServiceRelatedType;
 /**
  * AbstractHandler
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     25.10.2012
  */
 abstract class AbstractHandler extends AbstractServiceRelatedType

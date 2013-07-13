@@ -12,7 +12,6 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.chef', function () {
 	};
 	return Ext.create('Scalr.ui.FarmsBuilderTab', {
 		tabTitle: 'Chef settings',
-		cache: {},
 		tab: 'chef',
 		serversLoaded: false,
 
@@ -54,6 +53,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.chef', function () {
 			}
 
 			this.down('[name="chef.attributes"]').setValue(settings['chef.attributes']);
+			this.down('[name="chef.daemonize"]').setValue(settings['chef.daemonize'] | 0);
 
 			this.down('[name="chefEnvironment"]').setReadOnly(true);
 			this.down('[name="chefEnvironment"]').environmentValue = settings['chef.environment'];
@@ -70,6 +70,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.chef', function () {
 			settings['chef.bootstrap'] = this.down('[name="chef.bootstrap"]').getValue() ? 1 : '';
 			settings['chef.runlist_id'] = '';
 			settings['chef.attributes'] = this.down('[name="chef.attributes"]').getValue();
+			settings['chef.daemonize'] = this.down('[name="chef.daemonize"]').getValue();
 
 			if (settings['chef.bootstrap']) {
 				var r = this.down('#runlist').store.findRecord('current', true), data = {};
@@ -103,6 +104,8 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.chef', function () {
 			xtype: 'fieldset',
 			title: 'Enable chef',
 			checkboxToggle: true,
+            toggleOnTitleClick: true,
+            collapsible: true,
 			collapsed: true,
 			checkboxName: 'chef.bootstrap',
 			layout: {
@@ -110,6 +113,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.chef', function () {
 			},
 			items: [{
 				xtype: 'container',
+                cls: 'x-panel-columned-leftcol',
 				layout: 'anchor',
 				width: 620,
 				defaults: {
@@ -257,10 +261,17 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.chef', function () {
 							'For example: %instance_index%.%farm_id%.example.com'
 					}]
 				}, {
-					xtype: 'gridpanel',
-					title: 'Runlists',
+                    xtype: 'checkbox',
+                    hideLabel: true,
+                    name: 'chef.daemonize',
+					hidden: !Scalr.flags['betaMode'],
+                    boxLabel: 'Daemonize chef client'
+                }, {
+					xtype: 'grid',
+                    margin: '30 0 0 0',
 					itemId: 'runlist',
 					hidden: true,
+                    cls: 'x-grid-shadow',
 					plugins: {
 						ptype: 'gridstore'
 					},
@@ -315,16 +326,23 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.chef', function () {
 						}
 					}],
 					dockedItems: [{
-						xtype: 'toolbar',
-						dock: 'top',
-						layout: {
-							type: 'hbox',
-							align: 'left',
-							pack: 'start'
-						},
-						items: [{
-							ui: 'paging',
-							iconCls: 'x-tbar-add',
+                        cls: 'x-toolbar',
+                        dock: 'top',
+                        layout: 'hbox',
+                        defaults: {
+                            margin: '0 0 0 10'
+                        },
+                        items: [{
+                            xtype: 'label',
+                            cls: 'x-fieldset-subheader',
+                            html: 'Runlists',
+                            margin: 0
+                        },{
+                            xtype: 'tbfill'
+                        },{
+                            xtype: 'button',
+                            ui: 'action-dark',
+                            iconCls: 'x-btn-groupacton-add',
 							handler: function() {
 								Scalr.event.fireEvent('redirect', '#/services/chef/runlists/create');
 							}

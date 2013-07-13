@@ -1,9 +1,10 @@
-<?
+<?php
+
 namespace Scalr\Farm\Role;
 
 class FarmRoleStorageDevice
 {
-    public 
+    public
         $farmRoleId,
         $envId,
         $cloudLocation,
@@ -14,58 +15,61 @@ class FarmRoleStorageDevice
         $storageId,
         $status;
 
-	protected $db;
-        
+    /**
+     * @var \ADODB_mysqli
+     */
+    protected $db;
+
     const STATUS_ACTIVE = 'active';
     const STATUS_ZOMBY  = 'zomby';
-        
+
     public function __construct()
     {
-        $this->db = \Core::GetDBInstance();
+        $this->db = \Scalr::getDb();
     }
 
-	/**
-	 * @param $configId
-	 * @return Scalr\Farm\Role\FarmRoleStorageDevice[]
-	 */
-	static public function getByConfigId($configId)
+    /**
+     * @param $configId
+     * @return Scalr\Farm\Role\FarmRoleStorageDevice[]
+     */
+    static public function getByConfigId($configId)
     {
-        $db = \Core::GetDBInstance();
-            
-        $ids = $db->GetAll("SELECT storage_id, server_index FROM farm_role_storage_devices WHERE storage_config_id = ? AND status = ?", 
+        $db = \Scalr::getDb();
+
+        $ids = $db->GetAll("SELECT storage_id, server_index FROM farm_role_storage_devices WHERE storage_config_id = ? AND status = ?",
             array($configId, self::STATUS_ACTIVE)
         );
         if (empty($ids))
             return array();
-        
+
         $retval = array();
-        foreach ($ids as $id) { 
+        foreach ($ids as $id) {
             $retval[$id['server_index']] = new self();
             $retval[$id['server_index']]->loadById($id['storage_id']);
         }
-        
+
         return $retval;
     }
 
-	/**
-	 * @param $configId
-	 * @param $serverIndex
-	 * @return bool|Scalr\Farm\Role\FarmRoleStorageDevice
-	 */
-	static public function getByConfigIdAndIndex($configId, $serverIndex)
+    /**
+     * @param $configId
+     * @param $serverIndex
+     * @return bool|Scalr\Farm\Role\FarmRoleStorageDevice
+     */
+    static public function getByConfigIdAndIndex($configId, $serverIndex)
     {
-        $db = \Core::GetDBInstance();
-        
-        $id = $db->GetOne("SELECT storage_id FROM farm_role_storage_devices WHERE storage_config_id = ? AND server_index = ? AND status = ?", 
+        $db = \Scalr::getDb();
+
+        $id = $db->GetOne("SELECT storage_id FROM farm_role_storage_devices WHERE storage_config_id = ? AND server_index = ? AND status = ?",
             array($configId, $serverIndex, self::STATUS_ACTIVE)
         );
         if (!$id)
             return false;
-        
+
         $device = new self();
         return $device->loadById($id);
     }
-    
+
     /**
      * @return Scalr\Farm\Role\FarmRoleStorageDevice
      */
@@ -73,7 +77,7 @@ class FarmRoleStorageDevice
         $info = $this->db->GetRow("SELECT * FROM farm_role_storage_devices WHERE storage_id = ?", array($id));
         if (!$info)
             return false;
-        
+
         $this->farmRoleId = $info['farm_role_id'];
         $this->serverIndex = $info['server_index'];
         $this->storageConfigId = $info['storage_config_id'];
@@ -83,28 +87,29 @@ class FarmRoleStorageDevice
         $this->storageId = $info['storage_id'];
         $this->status = $info['status'];
         $this->placement = $info['placement'];
-        
+
         return $this;
     }
-    
+
     public function getDisks()
     {
         $retval = array();
-            
+
         switch ($this->config->type) {
             case FarmRoleStorageConfig::TYPE_EBS:
             case FarmRoleStorageConfig::TYPE_CSVOL:
+            case FarmRoleStorageConfig::TYPE_CINDER:
                 $retval = array($this->config);
                 break;
             case FarmRoleStorageConfig::TYPE_RAID:
                 $retval = $this->config->disks;
                 break;
         }
-        
+
         return $retval;
     }
-    
-    public function save() 
+
+    public function save()
     {
         $this->db->Execute("INSERT INTO farm_role_storage_devices SET
             farm_role_id = ?,
@@ -127,12 +132,12 @@ class FarmRoleStorageDevice
             $this->placement,
             $this->storageId,
             $this->status,
-            
+
             @json_encode($this->config),
             $this->status,
             $this->placement
         ));
-        
+
         return $this;
     }
 }

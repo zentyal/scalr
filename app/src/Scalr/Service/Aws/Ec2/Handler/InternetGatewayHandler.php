@@ -22,6 +22,7 @@ class InternetGatewayHandler extends AbstractEc2Handler
 
     /**
      * Gets InternetGatewayData object from the EntityManager.
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param   string       $internetGatewayId  Unique Identifier.
      * @return  InternetGatewayData|null Returns InternetGatewayData if it does exist in the cache or NULL otherwise.

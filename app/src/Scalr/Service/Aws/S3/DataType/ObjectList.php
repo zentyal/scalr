@@ -6,7 +6,7 @@ use Scalr\Service\Aws\S3\AbstractS3ListDataType;
 /**
  * ObjectList
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     20.11.2012
  * @property  string  $bucketName   An bucket name which object corresponds to.
  * @method    string                                    getMarker() getMarker()        Gets an marker which indicates

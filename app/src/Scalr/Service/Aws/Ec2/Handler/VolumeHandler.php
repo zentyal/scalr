@@ -24,6 +24,7 @@ class VolumeHandler extends AbstractEc2Handler
 
     /**
      * Gets VolumeData object from the EntityManager.
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param   string                    $volumeId  Unique Identifier.
      * @return  \Scalr\Service\Aws\Ec2\DataType\VolumeData|null    Returns VolumeData if it does exist in the cache or NULL otherwise.

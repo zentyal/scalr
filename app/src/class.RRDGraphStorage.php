@@ -1,13 +1,13 @@
 <?php
 
-	class RRDGraphStorage
-	{
-		public function __construct()
-		{
-			
-		}
-		
-		
-	}
-	
+    class RRDGraphStorage
+    {
+        public function __construct()
+        {
+
+        }
+
+
+    }
+
 ?>

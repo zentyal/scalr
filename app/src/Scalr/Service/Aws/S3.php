@@ -13,7 +13,7 @@ use Scalr\Service\Aws\S3\V20060301\S3Api;
 /**
  * Amazon Simple Storage Service (S3) interface
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     12.11.2012
  * @method    \Scalr\Service\Aws\S3\V20060301\S3Api getApiHandler() getApiHandler() Gets an S3Api handler.
  * @property  \Scalr\Service\Aws\S3\Handler\BucketHandler $bucket An Bucket service interface handler.

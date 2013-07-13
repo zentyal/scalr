@@ -9,7 +9,7 @@ use Scalr\Service\Aws\Iam\AbstractIamDataType;
  *
  * The User data type contains information about a user.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     13.11.2012
  */
 class UserData extends AbstractIamDataType

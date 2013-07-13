@@ -20,7 +20,7 @@ use Scalr\Service\Aws;
 /**
  * AWS Elb TestCase
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     10.10.2012
  */
 class ElbTestCase extends AwsTestCase

@@ -16,7 +16,7 @@ use \ArrayObject;
 /**
  * BucketHandler
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     12.11.2012
  */
 class BucketHandler extends AbstractS3Handler
@@ -32,7 +32,7 @@ class BucketHandler extends AbstractS3Handler
      * @throws S3Exception
      * @throws ClientException
      */
-    public function getList ()
+    public function getList()
     {
         return $this->getS3()->getApiHandler()->listAllMyBuckets();
     }
@@ -67,7 +67,7 @@ class BucketHandler extends AbstractS3Handler
      * @throws  S3Exception
      * @throws  ClientException
      */
-    public function listObjects ($bucketName, $delimiter = null, $marker = null, $maxKeys = null, $prefix = null)
+    public function listObjects($bucketName, $delimiter = null, $marker = null, $maxKeys = null, $prefix = null)
     {
         return $this->getS3()->getApiHandler()->listObjects($bucketName, $delimiter, $marker, $maxKeys, $prefix);
     }
@@ -84,7 +84,7 @@ class BucketHandler extends AbstractS3Handler
      * @throws  ClientException
      * @throws  S3Exception
      */
-    public function delete ($bucketName)
+    public function delete($bucketName)
     {
         return $this->getS3()->getApiHandler()->deleteBucket($bucketName);
     }
@@ -104,7 +104,7 @@ class BucketHandler extends AbstractS3Handler
      * @throws  ClientException
      * @throws  S3Exception
      */
-    public function create ($bucketName, $bucketRegion = Aws::REGION_US_EAST_1, array $requestHeaders = null)
+    public function create($bucketName, $bucketRegion = Aws::REGION_US_EAST_1, array $requestHeaders = null)
     {
         return $this->getS3()->getApiHandler()->createBucket($bucketName, $bucketRegion, $requestHeaders);
     }
@@ -652,6 +652,8 @@ class BucketHandler extends AbstractS3Handler
 
     /**
      * Gets BucketData from Entity Storage.
+     *
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param   string     $bucketName A bucket name.
      * @return  BucketData Returns BucketData from entity storage if it exists or null otherwise.

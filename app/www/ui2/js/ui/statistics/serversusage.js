@@ -51,8 +51,7 @@ Scalr.regPage('Scalr.ui.statistics.serversusage', function (loadParams, modulePa
 	var panel = new Ext.create('Ext.grid.Panel', {
 		title: 'Servers Usage Statistics (instance / hours)',
 		scalrOptions: {
-			'reload': false,
-			'maximize': 'all'
+			maximize: 'all'
 		},
 		scalrReconfigureParams: { farmId: '' },
 
@@ -109,7 +108,7 @@ Scalr.regPage('Scalr.ui.statistics.serversusage', function (loadParams, modulePa
 				listeners: {
 					change: function(field, value) {
 						panel.store.proxy.extraParams.year = value;
-						panel.store.load(panel.totalSpent);
+						panel.store.load();
 					}
 				}
 			}, ' ', 'Environment:', {
@@ -135,7 +134,7 @@ Scalr.regPage('Scalr.ui.statistics.serversusage', function (loadParams, modulePa
 						panel.down('#farmId').setValue('0');
 						panel.down('#farmId').store.load();
 						if (farmId == '0')
-							panel.store.load(panel.totalSpent);
+							panel.store.load();
 					}
 				}
 			}, ' ', 'Farm:', {
@@ -164,7 +163,7 @@ Scalr.regPage('Scalr.ui.statistics.serversusage', function (loadParams, modulePa
 				listeners: {
 					change: function(field, value) {
 						panel.store.proxy.extraParams.farmId = value;
-						panel.store.load(panel.totalSpent);
+						panel.store.load();
 					}
 				}
 			},'->', {

@@ -8,7 +8,7 @@ use Scalr\Tests\Service\AwsTestCase;
 /**
  * Amazon Sqs TestCase
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     07.11.2012
  */
 class SqsTestCase extends AwsTestCase

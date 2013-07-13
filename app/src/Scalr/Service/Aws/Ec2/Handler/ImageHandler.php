@@ -23,6 +23,7 @@ class ImageHandler extends AbstractEc2Handler
 
     /**
      * Gets VolumeData object from the EntityManager.
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param   string   $imageId  Unique Identifier.
      * @return  \Scalr\Service\Aws\Ec2\DataType\ImageData|null    Returns ImageData if it does exist in the cache or NULL otherwise.
@@ -83,7 +84,7 @@ class ImageHandler extends AbstractEc2Handler
      * additional volumes.
      *
      * @param   CreateImageRequestData     $request   Request object
-     * @return  ImageData                  Returns ImageData of created image on success
+     * @return  string Returns ID of the created image on success
      * @throws  ClientException
      * @throws  Ec2Exception
      */

@@ -7,7 +7,7 @@ use Scalr\Service\Aws\AbstractRepository;
 /**
  * ElbLoadBalancerDescriptionRepository
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     03.10.2012
  */
 class ElbLoadBalancerDescriptionRepository extends AbstractRepository

@@ -8,7 +8,7 @@ use Scalr\Tests\Service\AwsTestCase;
 /**
  * Test for the S3QueryClient class
  *
- * @author   Vitaliy Demidov  <zend@i.ua>
+ * @author   Vitaliy Demidov  <vitaliy@scalr.com>
  * @since    12.11.2012
  */
 class S3QueryClientTest extends AwsTestCase

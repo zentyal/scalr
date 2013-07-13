@@ -3,13 +3,66 @@
 /**
  * Dependency injection container configuration
  *
- * @author  Vitaliy Demidov    <zend@i.ua>
+ * @author  Vitaliy Demidov    <vitaliy@scalr.com>
  * @since   01.11.2012
  */
 
-$container = Scalr\DependencyInjection\Container::getInstance();
+$container = Scalr::getContainer();
 
 /* @var $cont \Scalr\DependencyInjection\Container */
+
+$container->setShared('config', function ($cont) {
+    if ($cont('config.type') == 'yaml') {
+        $loader = new \Scalr\System\Config\Loader();
+        $cfg = $loader->load();
+    } else {
+        $cfg = @parse_ini_file(APPPATH . '/etc/config.ini', true);
+    }
+    return $cfg;
+});
+$container->setShared('config.type', function ($cont) {
+    //TODO [SCALRCORE-375] Use new config.yml. This method and related sections will be completely removed by the first of January 2014.
+    return is_readable(APPPATH . '/etc/config.ini') ? 'ini' : 'yaml';
+});
+
+//ADODB connection
+$container->setShared('adodb', function ($cont) {
+    return new \Scalr\Db\ConnectionPool($cont('adodb.dsn'));
+});
+
+$container->setShared('adodb.dsn', function ($cont) {
+    if ($cont('config.type') == 'yaml') {
+        $my = $cont->config->get('scalr.connections.mysql');
+    } else {
+        $my = $cont->config;
+        $my = $my['db'];
+    }
+    $dsn = sprintf(
+        "%s://%s:%s@%s/%s",
+        (isset($my['driver']) ? $my['driver'] : 'mysqli'),
+        $my['user'], rawurlencode($my['pass']),
+        (isset($my['host']) ? $my['host'] : 'localhost') . (isset($my['port']) ? ':' . $my['port'] : ''),
+        $my['name']
+    );
+
+    return $dsn;
+});
+
+$container->setShared('dnsdb', function ($cont) {
+    return new \Scalr\Db\ConnectionPool($cont('dnsdb.dsn'));
+});
+
+$container->setShared('dnsdb.dsn', function ($cont) {
+    $my = $cont->config->get('scalr.dns.mysql');
+    $dsn = sprintf(
+        "%s://%s:%s@%s/%s",
+        (isset($my['driver']) ? $my['driver'] : 'mysqli'),
+        $my['user'], rawurlencode($my['pass']),
+        (isset($my['host']) ? $my['host'] : 'localhost') . (isset($my['port']) ? ':' . $my['port'] : ''),
+        $my['name']
+    );
+    return $dsn;
+});
 
 $container->session = function ($cont) {
     return Scalr_Session::getInstance();
@@ -99,21 +152,15 @@ $container->aws = function ($cont, array $arguments = null) {
 };
 
 $container->setShared('auditLogStorage', function ($cont) {
-    $cont->auditLogStorageDsn = (CONFIG::$AUDITLOG_DSN ? CONFIG::$AUDITLOG_DSN :
-        (CONFIG::$DB_DRIVER . '://' . urlencode(CONFIG::$DB_USER) . ':' . urlencode(CONFIG::$DB_PASS) . '@' . CONFIG::$DB_HOST . '/' . CONFIG::$DB_NAME));
-    $type = ucfirst(strtolower(CONFIG::$AUDITLOG_ENABLED ? preg_replace('#^(mongodb|mysql).+$#i', '\\1', $cont->auditLogStorageDsn) : 'mysql'));
-    if ($type == 'Mongodb') {
-        $type = 'MongoDb';
-    }
-    $cont->auditLogStorageType = $type;
+    $dsn = $cont->get('adodb.dsn');
+    $type = 'Mysql';
     $storageClass = 'Scalr\\Logger\\' . $type . 'LoggerStorage';
-
-    return new $storageClass (array('dsn' => $cont->auditLogStorageDsn));
+    return new $storageClass (array('dsn' => $dsn));
 });
 
 $container->auditLog = function ($cont) {
-    $cont->auditLogEnabled = CONFIG::$AUDITLOG_ENABLED ? true : false;
-    $serviceid =  'auditLog.' . ((string)$cont->user->getId());
+    $cont->auditLogEnabled = $cont->config->get('scalr.auditlog.enabled') ? true : false;
+    $serviceid = 'auditLog.' . ((string)$cont->user->getId());
     if (!$cont->initialized($serviceid)) {
         $cont->setShared($serviceid, function ($cont) {
             $obj = new \Scalr\Logger\AuditLog(
@@ -136,7 +183,7 @@ $container->cloudyn = function ($cont) {
         $cont->setShared($serviceid, function ($cont) use ($params) {
             return new \Scalr\Service\Cloudyn(
                 $params['email'], $params['password'],
-                isset(CONFIG::$CLOUDYN_ENVIRONMENT) ? CONFIG::$CLOUDYN_ENVIRONMENT : null
+                ($cont('config.type') == 'yaml' ? $cont->config->get('scalr.cloudyn.environment') : 'PROD')
             );
         });
     }
@@ -218,3 +265,33 @@ $container->openstack = function ($cont, array $arguments = null) {
     }
     return $cont->get($serviceid);
 };
+
+$container->mailer = function ($cont) {
+    $mailer = new \Scalr\SimpleMailer();
+    if ($cont('config.type') == 'yaml') {
+        if ($cont->config->get('scalr.email.address')) {
+            $mailer->setFrom($cont->config->get('scalr.email.address'), $cont->config->get('scalr.email.name'));
+        }
+    }
+    return $mailer;
+};
+
+$container->set('ldap.config', function ($cont) {
+    $my = $cont->config->get('scalr.connections.ldap');
+    return new \Scalr\Net\Ldap\LdapConfig(
+        isset($my['host']) ? $my['host'] : 'localhost',
+        isset($my['port']) ? $my['port'] : null,
+        isset($my['user']) ? $my['user'] : null,
+        isset($my['pass']) ? $my['pass'] : null,
+        isset($my['base_dn']) ? $my['base_dn'] : null
+    );
+});
+
+$container->set('ldap', function ($cont, array $arguments = null) {
+    $ldapCf = $cont('ldap.config');
+    if (isset($arguments) && empty($ldapCf->user) && count($arguments) == 2) {
+        $ldapCf->user = (string) $arguments[0];
+        $ldapCf->password = (string) $arguments[1];
+    }
+    return new \Scalr\Net\Ldap\LdapClient($ldapCf);
+});

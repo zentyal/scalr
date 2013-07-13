@@ -10,7 +10,7 @@ use Scalr\Service\Aws\Sqs\AbstractSqsHandler;
 /**
  * MessageHandler for the Simple Queue Service
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     06.11.2012
  */
 class MessageHandler extends AbstractSqsHandler

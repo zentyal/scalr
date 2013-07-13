@@ -2,11 +2,12 @@
 
 use \Scalr\Service\Aws\Ec2\DataType\CreateVolumeRequestData;
 
-class EBSManagerProcess implements IProcess
+class EBSManagerProcess implements \Scalr\System\Pcntl\ProcessInterface
 {
     public $ThreadArgs;
     public $ProcessDescription = "EC2 EBS Manager";
     public $Logger;
+    public $IsDaemon;
 
     public function __construct()
     {
@@ -16,11 +17,11 @@ class EBSManagerProcess implements IProcess
 
     /**
      * {@inheritdoc}
-     * @see IProcess::OnStartForking()
+     * @see \Scalr\System\Pcntl\ProcessInterface::OnStartForking()
      */
     public function OnStartForking()
     {
-        $db = Core::GetDBInstance();
+        $db = \Scalr::getDb();
 
         $this->ThreadArgs = $db->GetAll("
             SELECT id FROM ec2_ebs
@@ -34,11 +35,11 @@ class EBSManagerProcess implements IProcess
 
     /**
      * {@inheritdoc}
-     * @see IProcess::OnEndForking()
+     * @see \Scalr\System\Pcntl\ProcessInterface::OnEndForking()
      */
     public function OnEndForking()
     {
-        $db = Core::GetDBInstance(null, true);
+        $db = \Scalr::getDb();
 
         $list = $db->GetAll("
             SELECT farm_roleid
@@ -291,11 +292,11 @@ class EBSManagerProcess implements IProcess
 
     /**
      * {@inheritdoc}
-     * @see IProcess::StartThread()
+     * @see \Scalr\System\Pcntl\ProcessInterface::StartThread()
      */
     public function StartThread($volume)
     {
-        $db = Core::GetDBInstance(null, true);
+        $db = \Scalr::getDb();
 
         $DBEBSVolume = DBEBSVolume::loadById($volume['id']);
 
@@ -498,8 +499,9 @@ class EBSManagerProcess implements IProcess
                     } else {
                         $this->logger->info("Cannot attach volume: {$e->getMessage()}");
                     }
+                    return false;
                 }
-                if ($result->status == AMAZON_EBS_STATE::IN_USE ||
+                if ($result && $result->status == AMAZON_EBS_STATE::IN_USE ||
                     $result->status == AMAZON_EBS_STATE::ATTACHING) {
                     $DBEBSVolume->attachmentStatus = EC2_EBS_ATTACH_STATUS::ATTACHING;
                     $DBEBSVolume->deviceName = $device;

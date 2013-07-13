@@ -6,7 +6,7 @@ use Scalr\Service\Aws\Sqs\AbstractSqsDataType;
 /**
  * QueueAttributeData
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     06.11.2012
  */
 class QueueAttributeData extends AbstractSqsDataType

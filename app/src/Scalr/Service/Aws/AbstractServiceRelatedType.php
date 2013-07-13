@@ -4,7 +4,7 @@ namespace Scalr\Service\Aws;
 /**
  * Amazon CloudWatch web service interface
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     24.10.2012
  */
 abstract class AbstractServiceRelatedType

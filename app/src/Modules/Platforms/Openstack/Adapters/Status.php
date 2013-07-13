@@ -1,9 +1,9 @@
 <?php
-	class Modules_Platforms_Openstack_Adapters_Status implements IModules_Platforms_Adapters_Status
-	{
-		private $platformStatus;
-		
-		/*
+    class Modules_Platforms_Openstack_Adapters_Status implements IModules_Platforms_Adapters_Status
+    {
+        private $platformStatus;
+
+        /*
         ACTIVE. The server is active and ready to use.
         BUILD. The server is being built.
         DELETED. The server was deleted. The list servers API operation does not show servers with a status of DELETED. To list deleted servers, use the changes-since parameter. See Section 1.6, “Efficient Polling with the Changes-Since Parameter”.
@@ -20,54 +20,54 @@
         UNKNOWN. The server is in an unknown state. Contact Rackspace support.
         VERIFY_RESIZE. The server is waiting for the resize operation to be confirmed so that the original server can be removed.
          */
-		
-		private $runningStatuses = array(
-			'ACTIVE', 'REBUILD','SUSPENDED','REVERT_RESIZE', 'PREP_RESIZE', 'RESIZE', 'VERIFY_RESIZE', 'PASSWORD', 'RESCUE', 'REBOOT', 
-			'HARD_REBOOT', 'SHARE_IP', 'SHARE_IP_NO_CONFIG', 'DELETE_IP', 'MIGRATING'
-		);
-		
-		public static function load($status)
-		{
-			return new Modules_Platforms_Openstack_Adapters_Status($status);
-		}
-		
-		public function __construct($status)
-		{
-			$this->platformStatus = $status;
-		}
-		
-		public function getName()
-		{
-			return $this->platformStatus;
-		}
-		
-		public function isRunning()
-		{
-			return (in_array($this->platformStatus, $this->runningStatuses) !== false);
-		}
-		
-		public function isPending()
-		{
-			return $this->platformStatus == 'BUILD' ? true : false;
-		}
-		
-		public function isTerminated()
-		{
-			return (in_array($this->platformStatus, array('DELETED', 'not-found', 'UNKNOWN', 'ERROR')) !== false);
-		}
-		
-		public function isSuspended()
-		{
-			return ($this->platformStatus == 'SUSPENDED');
-		}
-		
-		public function isPendingSuspend()
-		{
-			//
-		}
-		
-		public function isPendingRestore()
-		{
-			//
-		}
-	}
+
+        private $runningStatuses = array(
+            'ACTIVE', 'REBUILD','SUSPENDED','REVERT_RESIZE', 'PREP_RESIZE', 'RESIZE', 'VERIFY_RESIZE', 'PASSWORD', 'RESCUE', 'REBOOT',
+            'HARD_REBOOT', 'SHARE_IP', 'SHARE_IP_NO_CONFIG', 'DELETE_IP', 'MIGRATING'
+        );
+
+        public static function load($status)
+        {
+            return new Modules_Platforms_Openstack_Adapters_Status($status);
+        }
+
+        public function __construct($status)
+        {
+            $this->platformStatus = $status;
+        }
+
+        public function getName()
+        {
+            return $this->platformStatus;
+        }
+
+        public function isRunning()
+        {
+            return (in_array($this->platformStatus, $this->runningStatuses) !== false);
+        }
+
+        public function isPending()
+        {
+            return $this->platformStatus == 'BUILD' ? true : false;
+        }
+
+        public function isTerminated()
+        {
+            return (in_array($this->platformStatus, array('DELETED', 'not-found', 'UNKNOWN', 'ERROR')) !== false);
+        }
+
+        public function isSuspended()
+        {
+            return ($this->platformStatus == 'SUSPENDED');
+        }
+
+        public function isPendingSuspend()
+        {
+            //
+        }
+
+        public function isPendingRestore()
+        {
+            //
+        }
+    }

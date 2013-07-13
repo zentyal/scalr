@@ -9,7 +9,7 @@ use Scalr\Service\Aws\S3\AbstractS3DataType;
 /**
  * ObjectData
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     20.11.2012
  * @method    \Scalr\Service\Aws\S3\DataType\OwnerData       getOwner()      getOwner()                 Returns an object owner.
  * @method    \Scalr\Service\Aws\S3\DataType\ObjectData      setOwner()      setOwner(OwnerData $owner) Sets an object owner.

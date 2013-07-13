@@ -1,10 +1,11 @@
 <?php
 
-class RDSMaintenanceProcess implements IProcess
+class RDSMaintenanceProcess implements \Scalr\System\Pcntl\ProcessInterface
 {
     public $ThreadArgs;
     public $ProcessDescription = "RDS Maintenance (RDS Auto snapshots)";
     public $Logger;
+    public $IsDaemon;
 
     public function __construct()
     {
@@ -15,11 +16,11 @@ class RDSMaintenanceProcess implements IProcess
     /**
      * Auto-snapshoting
      * {@inheritdoc}
-     * @see IProcess::OnStartForking()
+     * @see \Scalr\System\Pcntl\ProcessInterface::OnStartForking()
      */
     public function OnStartForking()
     {
-        $db = Core::GetDBInstance(null, true);
+        $db = \Scalr::getDb();
 
         // selects rows where the snapshot's time has come to create new snapshot.
         $resultset = $db->Execute("
@@ -149,7 +150,7 @@ class RDSMaintenanceProcess implements IProcess
 
     /**
      * {@inheritdoc}
-     * @see IProcess::OnEndForking()
+     * @see \Scalr\System\Pcntl\ProcessInterface::OnEndForking()
      */
     public function OnEndForking()
     {
@@ -157,7 +158,7 @@ class RDSMaintenanceProcess implements IProcess
 
     /**
      * {@inheritdoc}
-     * @see IProcess::StartThread()
+     * @see \Scalr\System\Pcntl\ProcessInterface::StartThread()
      */
     public function StartThread($queue_name)
     {

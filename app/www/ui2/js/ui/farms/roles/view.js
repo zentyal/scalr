@@ -3,7 +3,7 @@ Scalr.regPage('Scalr.ui.farms.roles.view', function (loadParams, moduleParams) {
 		fields: [
 			{name: 'id', type: 'int'}, 'platform', 'location',
 			'name', 'min_count', 'max_count', 'min_LA', 'max_LA', 'running_servers', 'non_running_servers' ,'domains',
-			'image_id', 'farmid','shortcuts', 'role_id', 'scaling_algos', 'farm_status', 'location', 'allow_launch_instance'
+			'image_id', 'farmid','shortcuts', 'role_id', 'scaling_algos', 'farm_status', 'location', 'allow_launch_instance', 'is_vpc'
 		],
 		proxy: {
 			type: 'scalr.paging',
@@ -62,7 +62,7 @@ Scalr.regPage('Scalr.ui.farms.roles.view', function (loadParams, moduleParams) {
 					var data = record.data;
 
 					if (item.itemId == "option.sgEdit")
-						return (data.platform == 'euca' || data.platform == 'ec2');
+						return ((data.platform == 'euca' || data.platform == 'ec2') && !data.is_vpc);
 
 					if (item.itemId == 'option.launch')
 						return data.allow_launch_instance;

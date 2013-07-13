@@ -144,6 +144,63 @@ Ext.define('Scalr.ui.StoreProxyObject', {
 });
 
 /*
+ * Form plugins
+ */
+Ext.define('Scalr.ui.ComboAddNewPlugin', {
+	extend: 'Ext.AbstractPlugin',
+	alias: 'plugin.comboaddnew',
+	url: '',
+	postUrl: '',
+
+	init: function(comp) {
+		var me = this;
+
+		// to preserve offset for add button
+		Ext.override(comp, {
+			alignPicker: function() {
+                this.callParent();
+
+                var me = this,
+                    picker = me.getPicker(),
+                    heightAbove = me.getPosition()[1] - Ext.getBody().getScroll().top,
+                    heightBelow = Ext.Element.getViewHeight() - heightAbove - me.getHeight(),
+                    space = Math.max(heightAbove, heightBelow);
+
+				if (picker.getHeight() > space - (5 + 24)) {
+					picker.setHeight(space - (5 + 24)); // have some leeway so we aren't flush against
+				}
+			}
+		});
+
+		comp.on('render', function() {
+			var picker = this.getPicker();
+			picker.addCls('x-boundlist-hideemptygrid');
+			picker.on('render', function() {
+				this.el.createChild({
+					tag: 'div',
+					cls: 'x-boundlist-addnew'
+				}).on('click', function() {
+					comp.collapse();
+					me.handler();
+				});
+			});
+		});
+
+		Scalr.event.on('update', function(type, element) {
+			if (type == me.url) {
+				this.store.add(element);
+				this.setValue(element[this.valueField]);
+                this.fireEvent('addnew', element);
+			}
+		}, comp);
+	},
+
+	handler: function() {
+		Scalr.event.fireEvent('redirect', '#' + this.url + this.postUrl);
+	}
+});
+
+/*
  * Grid plugins
  */
 Ext.define('Scalr.ui.GridStorePlugin', {
@@ -182,7 +239,7 @@ Ext.define('Scalr.ui.GridStorePlugin', {
 					else
 						throw 'Report';
 				} catch (e) {
-					if (response.status == 200) {
+					if (response.status == 200 && Ext.isFunction(response.getAllResponseHeaders) && response.getAllResponseHeaders() && response.responseText) {
 						var report = [ "Ext.JSON.decode(): You're trying to decode an invalid JSON String" ];
 						report.push(Scalr.utils.VarDump(response.request.headers));
 						report.push(Scalr.utils.VarDump(response.request.options));
@@ -275,10 +332,11 @@ Ext.define('Scalr.ui.GridSelectionModel', {
 
 	bindComponent: function () {
 		this.callParent(arguments);
-
-		this.view.on('refresh', function() {
-			this.toggleUiHeader(false);
-		}, this);
+        this.view.on('viewready', function(){
+            this.view.on('refresh', function() {
+                this.toggleUiHeader(false);
+            }, this);
+        }, this);
 	},
 
 	getHeaderConfig: function() {
@@ -1865,6 +1923,7 @@ Ext.define('Scalr.ui.AddFieldPlugin', {
 
 	init: function (client) {
 		var me = this;
+        me.client = client;
 		client.on('afterrender', function() {
 			me.panelContainer = Ext.DomHelper.insertAfter(client.el.down('tbody'), {style: {height: '32px'}}, true);
 			var addmask = Ext.DomHelper.append(me.panelContainer,
@@ -1875,6 +1934,9 @@ Ext.define('Scalr.ui.AddFieldPlugin', {
 			addmask.down('div.x-form-addfield-plus').on('click', me.handler, client);
 		}, client);
 	},
+    run: function() {
+        this.handler.call(this.client);
+    },
 	hide: function () {
 		if (this.panelContainer)
 			this.panelContainer.remove();
@@ -2120,39 +2182,43 @@ Ext.define('Scalr.ui.LeftMenu', {
 						}
 					});
 				}
-				menus.push({
-					itemId:'teams',
-					renderData: {
-						link: '#/account/teams',
-						icon: 'teams',
-						name: 'Teams'
-					}
-				});
-				menus.push({
-					itemId:'users',
-					renderData: {
-						link: '#/account/users',
-						icon: 'users',
-						name: 'Users'
-					}
-				});
-				if (Scalr.user['type'] == 'AccountOwner' || Scalr.user['isTeamOwner']) {
-					menus.push({
-						itemId:'groups',
-						onClick: function(e) {
-							if (!Scalr.flags['featureUsersPermissions']) {
-								Scalr.message.Warning('&laquo;Access control&raquo; feature is not available under your current billing plan.');
-								e.preventDefault();
-							}
-						},
-						renderData: {
-							link: '#/account/groups',
-							icon: 'access-control',
-							name: 'Access control'
-						}
-					});
-				}
-			break;
+                if (Scalr.flags['authMode'] == 'scalr') {
+                    menus.push({
+                        itemId:'teams',
+                        renderData: {
+                            link: '#/account/teams',
+                            icon: 'teams',
+                            name: 'Teams'
+                        }
+                    });
+                }
+
+                menus.push({
+                    itemId:'users',
+                    renderData: {
+                        link: '#/account/users',
+                        icon: 'users',
+                        name: 'Users'
+                    }
+                });
+
+                if (Scalr.flags['authMode'] == 'scalr' && (Scalr.user['type'] == 'AccountOwner' || Scalr.user['isTeamOwner'])) {
+                    menus.push({
+                        itemId:'groups',
+                        onClick: function(e) {
+                            if (!Scalr.flags['featureUsersPermissions']) {
+                                Scalr.message.Warning('&laquo;Access control&raquo; feature is not available under your current billing plan.');
+                                e.preventDefault();
+                            }
+                        },
+                        renderData: {
+                            link: '#/account/groups',
+                            icon: 'access-control',
+                            name: 'Access control'
+                        }
+                    });
+                }
+			    break;
 		}
 		return menus;
 	},
@@ -2423,7 +2489,7 @@ Ext.define('Scalr.ui.GridField', {
         return this.activeError || '';
     },
 	
-   getSubmitData: function() {
+    getSubmitData: function() {
         var me = this,
             data = null;
         if (!me.disabled && me.submitValue) {
@@ -2664,130 +2730,6 @@ Ext.define('Scalr.ui.FormPicker', {
 	
 });
 
-Ext.define('Scalr.ui.CloudLocationMap', {
-	extend: 'Ext.panel.Panel',
-	alias: 'widget.cloudlocationmap',
-	width: 210,
-	height: 100,
-	layout: 'absolute',
-	cls: 'scalr-ui-cloudlocationmap',
-	
-	sizes: {
-		common: {
-			width: 210,
-			height: 100,
-			bodyStyle: 'background: url(/ui2/images/maps.png) 0 -400px no-repeat'
-		},
-		large: {
-			width: 320,
-			height: 140,
-			bodyStyle: 'background: url(/ui2/images/maps_large.png) 0 -560px no-repeat'
-		}
-	},
-	size: 'common',
-	
-	mode: 'multi',
-	platforms: [],
-	regions: {
-		us: 0,
-		sa: 3,
-		eu: 2,
-		ap: 1,
-		unknown: 4,
-		all: 5
-	},
-	locations: {
-		ec2: {
-			'ap-northeast-1': {region: 'ap', x: {common: 125, large: 183}, y: {common:27, large: 40}},
-			'ap-southeast-1': {region: 'ap', x: {common: 95, large: 142}, y: {common:58, large: 81}},
-			'ap-southeast-2': {region: 'ap', x: {common: 133, large: 193}, y: {common:88, large: 118}},
-			'eu-west-1': {region: 'eu', x: {common: 75, large: 112}, y: {common:14, large: 18}},
-			'sa-east-1': {region: 'sa', x: {common: 114, large: 170}, y: {common:51, large: 71}},
-			'us-east-1': {region: 'us', x: {common: 145, large: 212}, y: {common:53, large: 74}},
-			'us-west-1': {region: 'us', x: {common: 43, large: 78}, y: {common:50, large: 66}},
-			'us-west-2': {region: 'us', x: {common: 35, large: 72}, y: {common:26, large: 40}}
-		},
-		rackspace: {
-			'rs-LONx': {region: 'eu', x: {common: 75, large: 120}, y: {common:14, large: 18}},//rs-LONx
-			'rs-ORD1': {region: 'us', x: {common: 120, large: 180}, y: {common:32, large: 44}}
-		},
-		rackspacengus: {
-			'DFW': {region: 'us', x: {common: 100, large: 154}, y: {common:60, large: 78}},
-			'ORD': {region: 'us', x: {common: 120, large: 180}, y: {common:32, large: 44}}
-		},
-		rackspacenguk: {
-			'LON': {region: 'eu', x: {common: 75, large: 120}, y: {common:14, large: 18}}
-		}
-	},
-	
-	initComponent: function() {
-		Ext.apply(this, this.sizes[this.size]);
-		this.locations.rds = this.locations.ec2;
-		this.on('render', function(){
-			this.locationTitle = Ext.DomHelper.append(this.el.dom, '<div class="title"></div>', true)
-		});
-		this.callParent(arguments);
-	},
-	
-	selectLocation: function(platform, location, locations){
-		locations = locations || [];
-		this.clearLocations();
-		if (location == 'all') {
-			this.setBodyStyle('background-position', this.getRegionPosition('all'));
-		} else if (this.locations[platform] && this.locations[platform][location]) {
-			var me = this,
-				selectedLocation = this.locations[platform][location];
-			this.setBodyStyle('background-position', this.getRegionPosition(selectedLocation.region));
-			if (selectedLocation.region != 'unknown') {
-				Ext.Object.each(this.locations[platform], function(key, value) {
-					if (value.region == selectedLocation.region && Ext.Array.contains(locations, key) || key == location) {
-						var title = key;
-						if (me.platforms[platform] && me.platforms[platform].locations[key]) {
-							title = me.platforms[platform].locations[key];
-						}
-						var el = Ext.DomHelper.append(me.el.dom, '<div data-location="'+Ext.util.Format.htmlEncode(key)+'" style="top:'+value.y[me.size]+'px;left:'+value.x[me.size]+'px" class="location'+(location == key ? ' selected' : '')+'" title="'+Ext.util.Format.htmlEncode(title)+'"></div>', true)
-						el.on('click', function(){
-							me.fireEvent('selectlocation', this.getAttribute('data-location'));
-						});
-
-						if (me.mode == 'single' && key == location) {
-							me.locationTitle.setHTML(title);
-							me.fixTitlePosition();
-						}
-					}
-				});
-			}
-		} else {
-			this.setBodyStyle('background-position', this.getRegionPosition('unknown'));
-		}
-	},
-	
-	fixTitlePosition: function() {
-		var loc = this.el.query('.location');
-		if (loc[0]) {
-			var el = Ext.fly(loc[0]);
-			//we are trying to avoid overlapping between title and location div
-			if (el.getTop(true) > this.height/2) {
-				this.locationTitle.setTop(el.getTop(true)-35);
-			} else {
-				this.locationTitle.setTop(el.getTop(true)+20);
-			}
-		}
-	},
-	
-	clearLocations: function() {
-		var loc = this.el.query('.location');
-		for (var i=0, len=loc.length; i<len; i++) {
-			Ext.removeNode(loc[i]);
-		}
-	},
-	
-	getRegionPosition: function(region) {
-		return '0 -' + (this.regions[region]*this.height) + 'px';
-	}
-	
-});
-
 Ext.define('Scalr.ui.data.View.DynEmptyText', {
     extend: 'Ext.AbstractPlugin',
     alias: 'plugin.dynemptytext',
@@ -2799,6 +2741,8 @@ Ext.define('Scalr.ui.data.View.DynEmptyText', {
 	itemsTotal: null,
 	emptyText: 'No items were found to match your search.<p>Try modifying your search criteria or <a class="add-link" href="#">adding a new item</a></p>',
 	emptyTextNoItems: null,
+    showArrow: true,
+    forceRefresh: false,
 	
 	init: function(client) {
 		var me = this;
@@ -2836,8 +2780,13 @@ Ext.define('Scalr.ui.data.View.DynEmptyText', {
 	
 	onContainerClick: function(comp, e){
 		var el = comp.el.query('a.add-link');
-		if (el.length && e.within(el[0])) {
-			this.onAddItemClick();
+		if (el.length) {
+            for (var i=0, len=el.length; i<len; i++) {
+                if (e.within(el[i])) {
+                    this.onAddItemClick(el[i]);
+                    break;
+                }
+            }
 			e.preventDefault();
 		}
 	},
@@ -2846,10 +2795,14 @@ Ext.define('Scalr.ui.data.View.DynEmptyText', {
 		var client = this.client,
 			itemsTotal = client.store.snapshot ?  client.store.snapshot.length : client.store.data.length;
 
-		if (itemsTotal !== this.itemsTotal) {
+		if (this.forceRefresh || itemsTotal !== this.itemsTotal) {
 			var text = this.emptyText;
 			if (itemsTotal < 1) {
-				text = '<div class="x-grid-empty-inner x-grid-empty-arrow"><div class="x-grid-empty-arrow2"></div><div class="x-grid-empty-text">' + (this.emptyTextNoItems || this.emptyText) + '</div></div>';
+                if (this.showArrow) {
+                    text = '<div class="x-grid-empty-inner x-grid-empty-arrow"><div class="x-grid-empty-arrow2"></div><div class="x-grid-empty-text">' + (this.emptyTextNoItems || this.emptyText) + '</div></div>';
+                } else {
+                    text = '<div class="x-grid-empty-inner"><div class="x-grid-empty-text">' + (this.emptyTextNoItems || this.emptyText) + '</div></div>';
+                }
 			} else {
 				text = '<div class="x-grid-empty-inner">' + text + '</div>';
 			}
@@ -2857,10 +2810,17 @@ Ext.define('Scalr.ui.data.View.DynEmptyText', {
 			var emptyDiv = client.el.query('.' + Ext.baseCSSPrefix + 'grid-empty');
 			if (emptyDiv.length) {
 				Ext.fly(emptyDiv[0]).setHTML(text);
+                client.refreshSize();
 			}
 			this.itemsTotal = itemsTotal;
+            this.forceRefresh = false;
 		}
-	}
+	},
+    
+    setEmptyText: function(text, alt) {
+        this['emptyText' + (alt ? 'NoItems' : '')] = text;
+        this.forceRefresh = true;
+    }
 });
 
 Ext.define('Ext.ux.form.ToolFieldSet', {
@@ -2894,4 +2854,117 @@ Ext.define('Ext.ux.form.ToolFieldSet', {
         return Ext.widget(toolCfg);
     }
 
+});
+
+Ext.define('Scalr.CachedRequest', {
+    
+    defaultTtl: 3600,//seconds
+    
+    constructor: function() {
+        this.cache = {};
+        this.queue = {};
+    },
+    
+    getCacheId: function(config) {
+        var cacheId = [],
+            paramNames;
+        if (config) {
+            cacheId.push(config.url);
+            if (Ext.isObject(config.params)) {
+                paramNames = Ext.Array.sort(Ext.Object.getKeys(config.params));
+                Ext.Array.each(paramNames, function(value){
+                    cacheId.push(config.params[value]);
+                });
+            }
+        }
+        return cacheId.join('.');
+    },
+    
+    clearCache: function() {
+        delete this.queue;
+        delete this.cache;
+        this.cache = {};
+        this.queue = {};
+    },
+    
+    removeCache: function(params) {
+        var cacheId = this.getCacheId(params);
+        delete this.cache[cacheId];
+    },
+    
+    load: function(params, cb, scope, ttl) {
+        var me = this,
+            cacheId = me.getCacheId(params);
+        ttl = ttl === undefined ? me.defaultTtl : ttl;
+        
+        if (me.queue[cacheId] !== undefined) {
+            me.queue[cacheId].callbacks.push({fn: cb, scope: scope || me});
+        } else if (me.cache[cacheId] !== undefined && !me.isExpired(me.cache[cacheId], ttl)) {
+            if (cb !== undefined) cb.call(scope || me, me.cache[cacheId].data, 'exists', cacheId);
+        } else {
+            delete me.cache[cacheId];
+            me.queue[cacheId] = {
+                callbacks: [{fn: cb, scope: scope || me}]
+            };
+            Scalr.Request({
+                processBox: {
+                    type: 'action',
+                    msg: 'Loading ...'
+                },
+                url:  params.url,
+                params: params.params || {},
+                scope: me,
+                success: function (response) {
+                    if (me.queue[cacheId] !== undefined) {
+                        var callbacks = me.queue[cacheId].callbacks;
+                        me.cache[cacheId] = {
+                            data: response.data !== undefined ? response.data : response,
+                            time: me.getTime()
+                        };
+                        Ext.Array.each(callbacks, function(callback){
+                            if (callback.fn !== undefined && !callback.scope.isDestroyed) callback.fn.call(callback.scope, me.cache[cacheId].data, 'success', cacheId);
+                        });
+                        delete me.queue[cacheId];
+                    }
+                },
+                failure: function (response) {
+                    if (me.queue[cacheId] !== undefined) {
+                        var callbacks = me.queue[cacheId].callbacks;
+                        Ext.Array.each(callbacks, function(callback){
+                            if (callback.fn !== undefined && !callback.scope.isDestroyed) callback.fn.call(callback.scope, null, false, cacheId);
+                        });
+                        delete me.queue[cacheId];
+                    }
+                }
+            });
+        }
+        return cacheId;
+    },
+    
+    get: function(params) {
+        var cacheId = Ext.isString(params) ? params : this.getCacheId(params);
+        return this.cache[cacheId] || undefined;
+    },
+    
+    getTime: function() {
+        return Math.floor(new Date().getTime() / 1000);
+    },
+    
+    isExpired: function(data, ttl) {
+        return data.expired ? true : (ttl !== 0 ? this.getTime() - data.time > ttl : false);
+    },
+    
+    setExpired: function(params) {
+        var cacheId = Ext.isString(params) ? params : this.getCacheId(params);
+        if (this.cache[cacheId] !== undefined) {
+            this.cache[cacheId].expired = true;
+        }
+    },
+    
+    isLoaded: function(params) {
+        var cacheId = Ext.isString(params) ? params : this.getCacheId(params);
+        return this.cache[cacheId] !== undefined;
+    }
+    
+    
 });

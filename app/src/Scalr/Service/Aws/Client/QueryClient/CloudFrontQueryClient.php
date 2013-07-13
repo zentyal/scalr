@@ -9,7 +9,7 @@ use Scalr\Service\Aws\Client\QueryClientResponse;
  * HTTP Query-based requests are defined as any HTTP requests using the HTTP verb GET or POST
  * and a Query parameter named either Action or Operation.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     01.02.2013
  */
 

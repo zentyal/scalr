@@ -7,7 +7,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * AppCookieStickinessPolicyList
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    01.10.2012
  *
  * @method   AppCookieStickinessPolicyData get() get($position = null) Gets AppCookieStickinessPolicyData at specified position

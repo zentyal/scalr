@@ -22,9 +22,15 @@ Scalr.regPage('Scalr.ui.bundletasks.logs', function (loadParams, moduleParams) {
 		store: store,
 		stateId: 'grid-bundletasks-logs-view',
 		stateful: true,
-		plugins: {
+		plugins: [{
 			ptype: 'gridstore'
-		},
+		}, {
+			ptype: 'rowexpander',
+			rowBodyTpl: [
+				'<p><b>Message:</b> {message}</p>'
+			]
+		}],
+
 		tools: [{
 			id: 'close',
 			handler: function () {

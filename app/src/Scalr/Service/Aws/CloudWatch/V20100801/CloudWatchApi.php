@@ -23,7 +23,7 @@ use Scalr\Service\Aws\Client\ClientInterface;
  *
  * Implements CloudWatch Low-Level API Actions.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     24.10.2012
  */
 class CloudWatchApi extends AbstractApi

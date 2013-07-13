@@ -7,7 +7,7 @@ use Scalr\Logger\AuditLog\LogRecord;
 /**
  * Logger Storage Interface
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    01.11.2012
  */
 interface LoggerStorageInterface

@@ -14,7 +14,7 @@ use Scalr\Service\Aws\CloudWatch\AbstractCloudWatchHandler;
 /**
  * MetricHandler
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     25.10.2012
  * @method    \Scalr\Service\Aws\CloudWatch\DataType\MetricList list() list(array|DimensionFilterData|DimensionFilterList $dimensionFilterList = null, $namespace = null, $metricName = null, $nextToken = null)   ListMetrics action
  */

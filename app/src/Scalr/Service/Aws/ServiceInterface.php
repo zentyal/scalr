@@ -8,7 +8,7 @@ use Scalr\Service\AwsException;
  *
  * Descrbies common interface for all Amazon AWS services such as EC2, ELB
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     20.09.2012
  */
 interface ServiceInterface

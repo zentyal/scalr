@@ -1,90 +1,122 @@
+# Scalr\System\Config\Extension class describes the 
+# structure of this config and defines default values.
+# If you add/delete values in this config, mentioned class should be updated accordingly.
 scalr:
   connections:
     mysql: &connections_mysql
-      user: 'scalr'
+      host: 'localhost'
+      port: ~
+      name: scalr
+      user: scalr
       pass: 'scalr'
+    mongodb: &connections_mongo
+      driver: mongodb
       host: 'localhost'
-      name: 'scalr'
-    mongo: &connections_mongo
-      host: 'localhost'
+      port: 27017
       name: 'db'
-    gearman: &connections_gearman
-      servers: ['localhost']
-    
-  auditlog:
-    enabled: false
-    connetcions:
-      mongo:
-        <<: *connections_mongo
-        driver: 'mongodb'
-        collection: 'auditlog'
+    ldap:
+      host: 'localhost'
+      port: ~
+      base_dn: 'DC=scalr,DC=local'
+      # user and password are preferred parameters but not a mandatory
+      user: 'scalradmin@scalr'
+      pass: 'set password'
+      
+#   email:
+#      # Default value: null
+#      address: ~
+#      # Default value: null
+#      name: ~   
+      
+#  auditlog:
+#    # Disabled by default. Default: false
+#    enabled: false
+#    # Valid values: mysql | mongodb
+#    storage: mysql
+#    connections:
+#      mysql: 
+#        <<: *connections_mysql
+#      mongodb:
+#        <<: *connections_mongo
+#        collection: 'auditlog'
         
-  cloudyn:
-    master_email: ""
-    #Allowed values for the cloudyn.environment are [DEV|ITG|QA|PROD]
-    environment: DEV
+#  cloudyn:
+#    master_email: ''
+#    # Allowed values: DEV | ITG | QA | PROD Default: PROD
+#    environment: PROD
+  ui:
+    support_url: 'https://groups.google.com/d/forum/scalr-discuss'
+    wiki_url: 'http://wiki.scalr.com'
+  
+  # must be defined  
+  pma_instance_ip_address: '127.0.0.1'
+  # Allowed values: scalr | ldap 
+  auth_mode: scalr
+#  # Allowed values: PROD | DEV. Default: PROD  
+#  environment: PROD   
+  # Allowed values: public | local | auto. 
+  instances_connection_policy: public
+#  # By default it's allowed all avalialbe
+#  allowed_clouds: 
+#   - ec2
+#   - openstack
+#   - cloudstack
+#   - idcf
+#   - gce
+#   - eucalyptus
+#   - rackspace
+#   - rackspacenguk
+#   - rackspacengus
+#   - nimbula
+#  # Default value: 300 seconds
+#  rss_cache_lifetime: 300
+  
+  endpoint:
+#    # Devault value: http
+#    scheme: http
+    host: 'endpoint url here'    
+
+  aws:
+#    # default value: 'scalr.ip-pool'
+#    security_group_name: 'scalr.ip-pool'
+#    # for example ['111.22.33.11/28', '222.22.2.12/28']
+#	 ip_pool: [] 
+#    # default value: 'scalr.'
+#    security_group_prefix: 'scalr.'
     
   billing:
-    enabled: true
-    chargify:
-      api_key: ''
-      site_name: ''
+    enabled: no
+    chargify_api_key: ''
+    chargify_domain: ''
+    emergency_phone_number: ''
       
   dns:
-    mysql: 
+    mysql:
+      host: 'localhost'
+      port: ~
+      name: 'scalr'
       user: 'scalr'
       pass: 'scalr'
-      host: 'localhost'
-      name: 'scalr'
-    global:
-      enabled: true
-      nameservers: ['ns1.example.net', 'ns2.example.net', 'ns3.example.net', 'ns4.example.net']
     static:
-      enabled: true
+      enabled: yes
       nameservers: ['ns1.example-dns.net', 'ns2.example-dns.net']
       domain_name: 'example-dns.net'
-      
-  msg_sender:
-    client:
-      connections: 
-        mysql:
-          <<: *connections_mysql
-          driver: 'mysql+pymysql'
-          pool_recycle: 120
-          pool_size: 4
-        gearman:
-          <<: *connections_gearman
-      log_file: "/var/log/scalr.message-send-client.log"
-      pid_file: "/var/run/scalr.message-send-client.pid"
-    worker:
-      connections: 
-        mysql:
-          <<: *connections_mysql
-          driver: 'mysql+pymysql'
-          pool_recycle: 120
-          pool_size: 40
-        gearman:
-          <<: *connections_gearman
-      net_pool_size: 50
-      log_file: "/var/log/scalr.message-send-worker.log"
-      pid_file: "/var/run/scalr.message-send-worker.pid"
+    global:
+      enabled: yes
+      nameservers: ['ns1.example.net', 'ns2.example.net', 'ns3.example.net', 'ns4.example.net']
+      # base_domain is used for automated generation domain name of the user's servers 
+      default_domain_name: 'provide.domain.here.in'
 
-  snmp_stats_poller:
+  msg_sender:
     connections: 
       mysql:
         <<: *connections_mysql
         driver: 'mysql+pymysql'
         pool_recycle: 120
-        pool_size: 4
-    farm_tasks_queue_size: 1000
-    snmp_tasks_queue_size: 10000
-    rrd_tasks_queue_size: 20000
-    farm_workers_num: 2
-    snmp_workers_num: 35
-    rrd_workers_num: 5
-    rrd_db_dir: "/tmp/rrd_db_dir"
-    #log_file: "/var/log/scalr.snmp-stats-poller.log"
-    pid_file: "/var/run/scalr.snmp-stats-poller.pid"
+        pool_size: 10
+    pool_size: 50
+    log_file: "/var/log/scalr.messaging.log"
+    pid_file: "/var/run/scalr.messaging.pid"
 
   stats_poller:
     connections: 
@@ -93,15 +125,33 @@ scalr:
         driver: 'mysql+pymysql'
         pool_recycle: 120
         pool_size: 4
-    farm_tasks_queue_size: 1000
-    rrd_tasks_queue_size: 20000
-    farm_workers_num: 1
-    rrd_workers_num: 5
-    rrd_db_dir: "/tmp/rrd_db_dir"
-    #log_file: "/var/log/scalr.stats-poller.log"
-    pid_file: "/var/run/scalr.stats-poller.pid"
+    metrics: ['cpu', 'la', 'mem', 'net']
+    farm_procs: 2
+    serv_thrds: 100
+    rrd_thrds: 2
+    rrd_db_dir: '/tmp/rrd_db_dir'
+    images_path: '/var/www/graphics'
+    graphics_url: 'http://example.com/graphics'
+    log_file: '/var/log/scalr.stats-poller.log'
+    pid_file: '/var/run/scalr.stats-poller.pid'
+    
+#  monitoring:
+#    # should be provided
+#    server_url: ''
+    
+#  script:
+#    timeout:
+#      # Default value: 180 seconds
+#      sync: 180
+#      # Default value: 1200 seconds
+#      async: 1200
 
-#    [metric_check]
-#    sql_pool_size = 40
-#    net_pool_size = 1000 
-#    log_file = "/var/log/scalr.metric-check.log"
+#  phpunit: 
+#    # By default all functionl tests are skipped.
+#    skip_functional_tests: true
+#    # Most of the functional tests require user's environment to handle requests.
+#    # value from account_users.id must be provided here
+#    userid: 0
+#    # client_environments.id must be provided here
+#    envid: 0
+

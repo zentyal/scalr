@@ -9,7 +9,7 @@ use Scalr\Service\Aws\Elb\AbstractElbDataType;
  * The PolicyAttribute data type. This data type contains a key/value pair that defines properties of
  * a specific policy.
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    19.09.2012
  */
 class PolicyAttributeData extends AbstractElbDataType

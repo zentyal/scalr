@@ -23,6 +23,7 @@ class NetworkInterfaceHandler extends AbstractEc2Handler
 
     /**
      * Gets NetworkInterfaceData object from the EntityManager.
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param   string                    $networkInterfaceId  Unique Identifier.
      * @return  NetworkInterfaceData|null Returns NetworkInterfaceData if it does exist in the cache or NULL otherwise.

@@ -1,36 +1,28 @@
 Scalr.regPage('Scalr.ui.farms.builder.tabs.euca', function () {
 	return Ext.create('Scalr.ui.FarmsBuilderTab', {
-		tabTitle: 'Placement and Type',
-		cache: {},
+		tabTitle: 'Placement and type',
+        itemId: 'eucalyptus',
+		tabData: {},
 
 		isEnabled: function (record) {
 			return record.get('platform') == 'eucalyptus';
 		},
 
 		beforeShowTab: function (record, handler) {
-			var cloudLocation = record.get('cloud_location');
-
-			if (this.cacheExist(['availabilityZonesEuca', cloudLocation]))
-				handler();
-			else
-				Scalr.Request({
-					processBox: {
-						type: 'action'
-					},
-					url: '/platforms/eucalyptus/xGetAvailZones',
-					params: {
-						cloudLocation: cloudLocation
-					},
-					scope: this,
-					success: function (response) {
-						response.data.unshift({ id: '', name: 'Default' });
-						this.cacheSet(response.data, ['availabilityZonesEuca', cloudLocation]);
-						handler();
-					},
-					failure: function () {
-						this.deactivateTab();
-					}
-				});
+            this.up('#farmbuilder').cache.load(
+                {
+                    url: '/platforms/eucalyptus/xGetAvailZones',
+                    params: {
+                        cloudLocation: record.get('cloud_location')
+                    }
+                },
+                function(data, status) {
+                    this.tabData = data;
+                    status ? handler() : this.deactivateTab();
+                },
+                this,
+                0
+            );
 		},
 
 		showTab: function (record) {
@@ -44,8 +36,10 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.euca', function () {
 				this.down('[name="euca.instance_type"]').setValue(settings['euca.instance_type'] || 'm1.large');
 			}
 
-			this.down('[name="euca.availability_zone"]').store.load({ data: this.cacheGet(['availabilityZonesEuca', record.get('cloud_location')]) });
-			this.down('[name="euca.availability_zone"]').setValue(settings['euca.availability_zone'] || '');
+            var field = this.down('[name="euca.availability_zone"]');
+            field.store.load({ data: [{ id: '', name: 'Default' }] });
+			field.store.load({ data: this.tabData || [], addRecords: true });
+			field.setValue(settings['euca.availability_zone'] || '');
 		},
 
 		hideTab: function (record) {

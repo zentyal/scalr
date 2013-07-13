@@ -7,7 +7,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * PolicyAttributeTypeDescriptionList
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    16.10.2012
  * @method   PolicyAttributeTypeDescriptionData get() get($position = null) Gets PolicyAttributeTypeDescriptionData at specified position
  *                                                                          in the list.

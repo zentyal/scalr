@@ -17,6 +17,7 @@ Ext.override(Ext.form.field.File, {
 // submit form on enter on any fields in form
 Ext.override(Ext.form.field.Base, {
 	allowChangeable: true,
+	allowChangeableMsg: 'You can set this value only once',
 	validateOnBlur: false,
 
 	initComponent: function() {
@@ -35,7 +36,7 @@ Ext.override(Ext.form.field.Base, {
 		});
 
 		if (! this.allowChangeable) {
-			this.fieldCls = this.fieldCls + ' ' + 'x-form-notchangable-field';
+			this.cls += ' x-form-notchangable-field';
 		}
 	},
 
@@ -45,7 +46,7 @@ Ext.override(Ext.form.field.Base, {
 		if (! this.allowChangeable) {
 			this.changeableTip = Ext.create('Ext.tip.ToolTip', {
 				target: this.inputEl,
-				html: 'You can set this value only once'
+				html: this.allowChangeableMsg
 			});
 		}
 	},
@@ -171,6 +172,25 @@ Ext.override(Ext.form.field.TextArea, {
 		/** End */
 	}
 });
+
+Ext.override(Ext.slider.Single, {
+    showValue: false,
+	onRender: function() {
+		var me = this;
+		me.callParent(arguments);
+        
+        Ext.DomHelper.append(this.thumbs[0].el, '<div class="x-slider-thumb-inner"></div>', true);
+        if (me.showValue) {
+            this.sliderValue = Ext.DomHelper.append(this.thumbs[0].el, '<div class="x-slider-value">'+this.getValue()+'</div>', true);
+            this.on('change', function(comp, value){
+                if (this.sliderValue !== undefined) {
+                    this.sliderValue.setHTML(value);
+                }
+            });
+        }
+	}
+});
+
 
 Ext.override(Ext.form.Panel, {
 	initComponent: function() {
@@ -581,11 +601,49 @@ Ext.override(Ext.form.FieldSet, {
 			items.push(me.createToggleCmp());
 		}
 
+        if (me.collapsible && me.toggleOnTitleClick && !me.checkboxToggle) {
+            legend.listeners = {
+                click : {
+                    element: 'el',
+                    scope : me,
+                    fn : function(e, el){
+                        if(Ext.fly(el).hasCls(me.baseCls + '-header')) {
+                            me.toggle(arguments);
+                        }
+                    }
+                }
+            };
+        }
+        
 		// Title
 		items.push(me.createTitleCmp());
 
 		return legend;
+	},
+    
+	createToggleCmp: function() {
+		var me = this;
+		me.addCls('x-fieldset-with-toggle')
+		me.toggleCmp = Ext.widget({
+			xtype: 'tool',
+			type: me.collapsed ? 'collapse' : 'expand',
+			handler: me.toggle,
+			id: me.id + '-legendToggle',
+			scope: me
+		});
+		return me.toggleCmp;
+	},
+	setExpanded: function() {
+		this.callParent(arguments);
+
+		if (this.toggleCmp) {
+			if (this.collapsed)
+				this.toggleCmp.setType('collapse');
+			else
+				this.toggleCmp.setType('expand');
+		}
 	}
+    
 });
 
 Ext.override(Ext.menu.Menu, {
@@ -661,31 +719,6 @@ Ext.view.Table.override({
 			Ext.fly(this.getNodeByRecord(record)).addCls('x-grid-row-selected');
 
 		this.doStripeRows(index, index);
-	}
-});
-
-Ext.override(Ext.form.FieldSet, {
-	createToggleCmp: function() {
-		var me = this;
-		me.addCls('x-fieldset-with-toggle')
-		me.toggleCmp = Ext.widget({
-			xtype: 'tool',
-			type: me.collapsed ? 'collapse' : 'expand',
-			handler: me.toggle,
-			id: me.id + '-legendToggle',
-			scope: me
-		});
-		return me.toggleCmp;
-	},
-	setExpanded: function() {
-		this.callParent(arguments);
-
-		if (this.toggleCmp) {
-			if (this.collapsed)
-				this.toggleCmp.setType('collapse');
-			else
-				this.toggleCmp.setType('expand');
-		}
 	}
 });
 

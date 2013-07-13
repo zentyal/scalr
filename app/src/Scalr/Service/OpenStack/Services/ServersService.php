@@ -1,6 +1,7 @@
 <?php
 namespace Scalr\Service\OpenStack\Services;
 
+use Scalr\Service\OpenStack\OpenStack;
 use Scalr\Service\OpenStack\Services\Servers\Type\RebootType;
 use Scalr\Service\OpenStack\Services\Servers\Handler\ImagesHandler;
 use Scalr\Service\OpenStack\Services\Servers\Handler\KeypairsHandler;
@@ -42,6 +43,24 @@ class ServersService extends AbstractService implements ServiceInterface
      * @var array
      */
     private $cache;
+
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\OpenStack\Services.ServiceInterface::getType()
+     */
+    public static function getType()
+    {
+        return OpenStack::SERVICE_COMPUTE;
+    }
+
+    /**
+     * {@inheritdoc}
+     * @see Scalr\Service\OpenStack\Services.ServiceInterface::getVersion()
+     */
+    public function getVersion()
+    {
+        return self::VERSION_DEFAULT;
+    }
 
     public function __call($name, $args)
     {
@@ -539,23 +558,5 @@ class ServersService extends AbstractService implements ServiceInterface
     public function getLimits()
     {
         return $this->getApiHandler()->getLimits();
-    }
-
-    /**
-     * {@inheritdoc}
-     * @see Scalr\Service\OpenStack\Services.ServiceInterface::getType()
-     */
-    public static function getType()
-    {
-        return 'compute';
-    }
-
-    /**
-     * {@inheritdoc}
-     * @see Scalr\Service\OpenStack\Services.ServiceInterface::getVersion()
-     */
-    public function getVersion()
-    {
-        return self::VERSION_DEFAULT;
     }
 }

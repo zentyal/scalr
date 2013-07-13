@@ -26,7 +26,7 @@ use \CONFIG;
 /**
  * AWS TestCase
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     19.10.2012
  */
 class AwsTestCase extends TestCase
@@ -70,10 +70,10 @@ class AwsTestCase extends TestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->container = Container::getInstance();
+        $this->container = \Scalr::getContainer();
         $this->environment = new \Scalr_Environment();
         if (!$this->isSkipFunctionalTests()) {
-            $this->environment->loadById(CONFIG::$PHPUNIT_TEST_ENVID);
+            $this->environment->loadById(\Scalr::config('scalr.phpunit.envid'));
         }
     }
 

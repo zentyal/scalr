@@ -21,7 +21,7 @@ abstract class AbstractList extends \ArrayIterator
     /**
      * Constructor
      *
-     * @param   array   $array   Array of NetworkList objects.
+     * @param   array   $array   Array of the objects.
      * @throws  \InvalidArgumentException
      */
     public function __construct($array = array())

@@ -47,8 +47,8 @@ Scalr.regPage('Scalr.ui.services.apache.vhosts.view', function (loadParams, modu
 					'&nbsp;&rarr;&nbsp;<a href="#/farms/{farm_id}/roles/{farm_roleid}/view" title="Role {role_name}">{role_name}</a> ' +
 				'<tpl else><img src="/ui2/images/icons/false.png" /></tpl>'
 			},
-			{ header: "Last time modified", width: 150, dataIndex: 'last_modified', sortable: false },
-			{ header: "SSL", width: 40, dataIndex: 'is_ssl_enabled', sortable: true, xtype: 'templatecolumn', tpl:
+			{ header: "Last time modified", width: 150, dataIndex: 'last_modified', sortable: true },
+			{ header: "SSL", width: 60, dataIndex: 'is_ssl_enabled', sortable: true, align: 'center', xtype: 'templatecolumn', tpl:
 				'<tpl if="is_ssl_enabled == 1"><img src="/ui2/images/icons/true.png" /></tpl>' +
 				'<tpl if="is_ssl_enabled == 0"><img src="/ui2/images/icons/false.png" /></tpl>'
 			},
@@ -63,31 +63,13 @@ Scalr.regPage('Scalr.ui.services.apache.vhosts.view', function (loadParams, modu
 
 		multiSelect: true,
 		selModel: {
-			selType: 'selectedmodel',
-			selectedMenu: [{
-				text: 'Delete',
-				iconCls: 'x-menu-icon-delete',
-				request: {
-					confirmBox: {
-						type: 'delete',
-						msg: 'Remove selected apache virtualhost(s): %s ?'
-					},
-					processBox: {
-						type: 'delete',
-						msg: 'Removing apache virtualhost(s) ...'
-					},
-					url: '/services/apache/vhosts/xRemove/',
-					dataHandler: function(records) {
-						var vhosts = [];
-						this.confirmBox.objects = [];
-						for (var i = 0, len = records.length; i < len; i++) {
-							vhosts.push(records[i].get('id'));
-							this.confirmBox.objects.push(records[i].get('name'))
-						}
-						return { vhosts: Ext.encode(vhosts) };
-					}
-				}
-			}]
+			selType: 'selectedmodel'
+		},
+
+		listeners: {
+			selectionchange: function(selModel, selections) {
+				this.down('scalrpagingtoolbar').down('#delete').setDisabled(!selections.length);
+			}
 		},
 
 		dockedItems: [{
@@ -95,6 +77,37 @@ Scalr.regPage('Scalr.ui.services.apache.vhosts.view', function (loadParams, modu
 			store: store,
 			dock: 'top',
 			afterItems: [{
+				ui: 'paging',
+				itemId: 'delete',
+				iconCls: 'x-tbar-delete',
+				tooltip: 'Select one or more virtual hosts to delete them',
+				disabled: true,
+				handler: function() {
+					var request = {
+						confirmBox: {
+							type: 'delete',
+							msg: 'Delete selected virtual host(s): %s ?'
+						},
+						processBox: {
+							type: 'delete',
+							msg: 'Deleting selected virtual host(s) ...'
+						},
+						url: '/services/apache/vhosts/xRemove/',
+						success: function() {
+							store.load();
+						}
+					}, records = this.up('grid').getSelectionModel().getSelection(), ids = [];
+
+					request.confirmBox.objects = [];
+					for (var i = 0, len = records.length; i < len; i++) {
+						ids.push(records[i].get('id'));
+						request.confirmBox.objects.push(records[i].get('name'));
+					}
+					request.params = { vhosts: Ext.encode(ids) };
+					Scalr.Request(request);
+				}
+			}],
+			beforeItems: [{
 				ui: 'paging',
 				iconCls: 'x-tbar-add',
 				handler: function() {

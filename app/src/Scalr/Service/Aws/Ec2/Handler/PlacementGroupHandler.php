@@ -22,6 +22,7 @@ class PlacementGroupHandler extends AbstractEc2Handler
 
     /**
      * Gets SubnetData object from the EntityManager.
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param   string          $groupName  An unique identifier.
      * @return  PlacementGroupData|null Returns PlacementGroupData if it does exist in the cache or NULL otherwise.

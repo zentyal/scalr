@@ -33,7 +33,7 @@ use \DateTime;
  *
  * Implements S3 Low-Level API Actions.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     12.11.2012
  */
 class S3Api extends AbstractApi

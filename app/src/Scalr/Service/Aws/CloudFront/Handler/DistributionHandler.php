@@ -22,6 +22,8 @@ class DistributionHandler extends AbstractCloudFrontHandler
     /**
      * Gets DistributionData object from the EntityManager.
      *
+     * You should be aware of the fact that the entity manager is turned off by default.
+     *
      * @param   string    $distributionId An distributionId.
      * @return  DistributionData|null Returns DistributionData if it does exist in the cache or NULL otherwise.
      */

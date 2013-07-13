@@ -1,6 +1,6 @@
 Scalr.regPage('Scalr.ui.tools.aws.ec2.eips.view', function (loadParams, moduleParams) {
 	var store = Ext.create('store.store', {
-		fields: [ 'ipaddress','instance_id', 'farm_id', 'farm_name', 'role_name', 'indb', 'farm_roleid', 'server_id', 'server_index' ],
+		fields: [ 'ipaddress','instance_id', 'domain', 'allocation_id', 'farm_id', 'farm_name', 'role_name', 'indb', 'farm_roleid', 'server_id', 'server_index' ],
 		proxy: {
 			type: 'scalr.paging',
 			extraParams: loadParams,
@@ -48,6 +48,8 @@ Scalr.regPage('Scalr.ui.tools.aws.ec2.eips.view', function (loadParams, modulePa
 				'<tpl if="! farm_id"><img src="/ui2/images/icons/false.png" /></tpl>'
 			},
 			{ header: "IP address", width: 200, dataIndex: 'ipaddress', sortable: false },
+			{ header: "Type", width: 80, dataIndex: 'domain', sortable: false },
+			{ header: "Allocation ID", width: 200, dataIndex: 'allocation_id', sortable: false },
 			{ header: "Auto-assigned", width: 150, dataIndex: 'role_name', sortable: true, xtype: 'templatecolumn', align:'center', tpl:
 				'<tpl if="indb"><img src="/ui2/images/icons/true.png"></tpl>' +
 				'<tpl if="!indb"><img src="/ui2/images/icons/false.png"></tpl>'

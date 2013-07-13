@@ -16,7 +16,7 @@ Scalr.regPage('Scalr.ui.farms.monitoring.view', function (loadParams, modulePara
 		panel.down('#' + watchername + farm + role).html = '<div style="position: relative; top: 48%; text-align: center; width: 100%; height: 50%;"><img src = "/ui2/images/icons/anim/loading_16x16.gif">&nbsp;Loading...</div>';
 		Scalr.Request({
 			scope: this,
-			url: '/server/statistics_proxy.php?version=2&task=get_stats_image_url&farmid=' + farm + '&watchername=' + watchername + '&graph_type=' + type + '&role=' + role,
+			url: '/server/statistics.php?version=2&task=get_stats_image_url&farmid=' + farm + '&watchername=' + watchername + '&graph_type=' + type + '&role=' + role,
 			success: function (data, response, options) {
 				panel.down('#' + watchername + farm + role).body.update('<img src = "' + data.msg + '">');
 				

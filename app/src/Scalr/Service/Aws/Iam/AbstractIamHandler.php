@@ -7,7 +7,7 @@ use Scalr\Service\Aws\AbstractHandler;
 /**
  * AbstractIamHandler
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     13.11.2012
  * @property  \Scalr\Service\Aws\Iam   $iam      An Amazon SQS instance
  * @method    \Scalr\Service\Aws\Iam   getIam()  getIam()                              Gets an Amazon Iam instance.

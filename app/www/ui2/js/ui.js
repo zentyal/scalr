@@ -376,6 +376,7 @@ Scalr.application.applyContext = function(context) {
 
 	// clear global store
 	Scalr.data.reloadDefer('*');
+    Scalr.cachedRequest.clearCache();
 
 	if (Ext.isObject(Scalr.user)) {
 		Scalr.timeoutHandler.enabled = true;
@@ -407,7 +408,7 @@ Scalr.application.applyContext = function(context) {
 							Scalr.event.fireEvent('redirect', '#/farms/build', true);
 						} else if (platform == 'rackspace' || platform == 'gce') {
 							Scalr.message.Success('Cloud credentials successfully configured. You need to create some roles before you will be able to create your first farm.');
-							Scalr.event.fireEvent('redirect', '#/roles/builder2', true);
+							Scalr.event.fireEvent('redirect', '#/roles/builder', true);
 						} else {
 							Scalr.message.Success('Cloud credentials successfully configured. Please create role from already running server. <a href="http://wiki.scalr.com/display/docs/Import+a+non+Scalr+server" target="_blank">More info here.</a>');
 							Scalr.event.fireEvent('redirect', '#/servers/import2', true);
@@ -538,7 +539,7 @@ Scalr.application.createMenu = function(context) {
 					href: '#/roles/view'
 				}, {
 					cls: 'create',
-					href: '#/roles/builder2'
+					href: '#/roles/builder'
 				}]
 			}, {
 				text: 'Servers',
@@ -585,7 +586,7 @@ Scalr.application.createMenu = function(context) {
 				}]
 			}, {
 				xtype: 'menuitemtop',
-				text: 'Apache Virtual Hosts',
+				text: 'Apache virtual hosts',
 				href: '#/services/apache/vhosts/view',
 				iconCls: 'x-topmenu-icon-apachevhosts',
 				links: [{
@@ -644,6 +645,10 @@ Scalr.application.createMenu = function(context) {
 				text: 'Global variables',
 				href: '#/core/variables',
 				iconCls: 'x-topmenu-icon-variables'
+			}, {
+				text: 'SSL certificates',
+				href: '#/services/ssl/certificates/view',
+				iconCls: 'x-topmenu-icon-sslcertificates'
 			}, {
 				text: 'Chef',
 				hideOnClick: false,
@@ -942,6 +947,15 @@ Scalr.application.createMenu = function(context) {
 			}
 		});
 
+		if (Scalr.user['type'] == 'AccountOwner' && Scalr.flags['billingExists'])
+			menu.push({
+				text: 'Billing',
+				href: '#/billing',
+				reorderable: false,
+				hrefTarget: '_self',
+				cls: 'x-icon-billing'
+			});
+
 		/*var account = {
 			cls: 'x-icon-account',
 			tooltip: 'Accounting',
@@ -965,12 +979,12 @@ Scalr.application.createMenu = function(context) {
 			reorderable: false,
 			menu: [{
 				text: 'Wiki',
-				href: 'http://wiki.scalr.com',
+				href: Scalr.flags['wikiUrl'],
 				iconCls: 'x-topmenu-icon-wiki',
 				hrefTarget: '_blank'
 			}, {
 				text: 'Support',
-				href: 'http://groups.google.com/group/scalr-discuss',
+				href: Scalr.flags['supportUrl'],
 				iconCls: 'x-topmenu-icon-support',
 				hrefTarget: '_blank'
 			}]
@@ -984,6 +998,10 @@ Scalr.application.createMenu = function(context) {
 		}, {
 			text: 'Accounts',
 			href: '#/admin/accounts',
+			hrefTarget: '_self'
+		}, {
+			text: 'Admins',
+			href: '#/admin/users',
 			hrefTarget: '_self'
 		}, {
 			text: 'Logs',
@@ -1010,9 +1028,6 @@ Scalr.application.createMenu = function(context) {
 			menu: [{
 				text: 'Default DNS records',
 				href: '#/dnszones/defaultRecords2'
-			}, {
-				text: 'Core settings',
-				href: '#/admin/settings/core'
 			}]
 		});
 
@@ -1082,7 +1097,15 @@ window.onhashchange = function (e) {
 		return;
 	}
 
+    var addStatisticGa = function(link) {
+        // Google analytics
+        if (typeof _gaq != 'undefined') {
+            _gaq.push(['_trackPageview', link]);
+        }
+    }
+
 	var cacheLink = function (link, cache) {
+        var cacheOriginal = cache.trim();
 		var re = cache.replace(/\/\{[^\}]+\}/g, '/([^\\}\\/]+)').replace(/\//g, '\\/'), fieldsRe = /\/\{([^\}]+)\}/g, fields = [];
 
 		while ((elem = fieldsRe.exec(cache)) != null) {
@@ -1092,6 +1115,7 @@ window.onhashchange = function (e) {
 		return {
 			scalrReconfigureFlag: false,
 			scalrRegExp: new RegExp('^' + re + '$'),
+            scalrCacheStr: cacheOriginal,
 			scalrCache: cache,
 			scalrParamFields: fields,
 			scalrParamGets: function (link) {
@@ -1116,6 +1140,7 @@ window.onhashchange = function (e) {
 
 			Ext.apply(param, this.scalrParamGets(link));
 
+            addStatisticGa(this.scalrCacheStr);
 			loaded = Scalr.application.layout.setActiveItem(this, param);
 			return false;
 		}
@@ -1160,6 +1185,7 @@ window.onhashchange = function (e) {
 
 						Ext.apply(c, cache);
 						Scalr.application.add(c);
+                        addStatisticGa(c.scalrCacheStr);
 
 						if (Scalr.state.pageChangeInProgressInvalid) {
 							if (options.processBox)
@@ -1288,13 +1314,13 @@ Scalr.timeoutHandler = {
 		this.run();
 	},
 	run: function () {
-		this.params['uiStorage'] = Scalr.storage.dump(true);
+		//this.params['uiStorage'] = Scalr.storage.dump(true);
 		Ext.Ajax.request({
 			url: '/guest/xPerpetuumMobile',
 			params: this.params,
 			timeout: this.timeoutRequest,
 			scope: this,
-			doNotShowError: true,
+			hideErrorMessage: true,
 			callback: function (options, success, response) {
 				if (success) {
 					try {
@@ -1390,7 +1416,7 @@ Scalr.timeoutHandler = {
 						'text-align': 'center'
 					}
 				}).applyStyles({ background: '-webkit-gradient(linear, left top, left bottom, from(#FCD9C5), to(#F0BCAC))'
-					}).applyStyles({ background: '-moz-linear-gradient(top, #FCD9C5, #F0BCAC)' });
+				}).applyStyles({ background: '-moz-linear-gradient(top, #FCD9C5, #F0BCAC)' });
 
 				this.schedule();
 
@@ -1407,189 +1433,187 @@ Scalr.timeoutHandler = {
 	}
 };
 
-/*
- Scalr.timeoutHandler = {
- defaultTimeout: 60000,
- timeoutRun: 60000,
- timeoutRequest: 5000,
- params: {},
- enabled: false,
- forceCheck: false,
- locked: false,
- lockedCheck: true,
- clearDom: function () {
- if (Ext.get('body-timeout-mask'))
- Ext.get('body-timeout-mask').remove();
+Scalr.timeoutHandler22 = {
+	defaultTimeout: 60000,
+	timeoutRun: 60000,
+	timeoutRequest: 5000,
+	params: {},
+	enabled: false,
+	forceCheck: false,
+	locked: false,
+	lockedCheck: true,
+	clearDom: function () {
+		if (Ext.get('body-timeout-mask'))
+			Ext.get('body-timeout-mask').remove();
 
- if (Ext.get('body-timeout-container'))
- Ext.get('body-timeout-container').remove();
- },
- schedule: function () {
- this.timeoutId = Ext.Function.defer(this.run, this.timeoutRun, this);
- },
- createTimer: function (cont) {
- clearInterval(this.timerId);
- var f = Ext.Function.bind(function (cont) {
- var el = cont.child('span');
- if (el) {
- var s = parseInt(el.dom.innerHTML);
- s -= 1;
- if (s < 0)
- s = 0;
- el.update(s.toString());
- } else {
- clearInterval(this.timerId);
- }
- }, this, [ cont ]);
+		if (Ext.get('body-timeout-container'))
+			Ext.get('body-timeout-container').remove();
+	},
+	schedule: function () {
+		this.timeoutId = Ext.Function.defer(this.run, this.timeoutRun, this);
+	},
+	createTimer: function (cont) {
+		clearInterval(this.timerId);
+		var f = Ext.Function.bind(function (cont) {
+			var el = cont.child('span');
+			if (el) {
+				var s = parseInt(el.dom.innerHTML);
+				s -= 1;
+				if (s < 0)
+					s = 0;
+				el.update(s.toString());
+			} else {
+				clearInterval(this.timerId);
+			}
+		}, this, [ cont ]);
 
- this.timerId = setInterval(f, 1000);
- },
- undoSchedule: function () {
- clearTimeout(this.timeoutId);
- clearInterval(this.timerId);
- },
- restart: function () {
- this.undoSchedule();
- this.run();
- },
- run: function () {
- if (!this.locked && !this.forceCheck) {
- var cur = new Date(), tm = Scalr.storage.get('system-pm-updater');
- if (cur < tm) {
- this.schedule();
- return;
- }
+		this.timerId = setInterval(f, 1000);
+	},
+	undoSchedule: function () {
+		clearTimeout(this.timeoutId);
+		clearInterval(this.timerId);
+	},
+	restart: function () {
+		this.undoSchedule();
+		this.run();
+	},
+	run: function () {
+		if (!this.locked && !this.forceCheck) {
+			var cur = new Date(), tm = Scalr.storage.get('system-pm-updater');
+			if (cur < tm) {
+				this.schedule();
+				return;
+			}
 
- Scalr.storage.set('system-pm-updater', Ext.Date.add(cur, Ext.Date.SECOND, this.timeoutRun/1000));
- }
+			Scalr.storage.set('system-pm-updater', Ext.Date.add(cur, Ext.Date.SECOND, this.timeoutRun/1000));
+		}
 
- Ext.Ajax.request({
- url: this.forceCheck || this.locked && this.lockedCheck ? '/ui/js/connection.js?r=' + new Date().getTime() : '/guest/xPerpetuumMobile',
- params: this.params,
- method: 'GET',
- timeout: this.timeoutRequest,
- scope: this,
- doNotShowError: true,
- callback: function (options, success, response) {
- if (success) {
- try {
- if (this.locked && this.lockedCheck) {
- this.lockedCheck = false;
- this.run();
- return;
- } else if (this.forceCheck) {
- this.forceCheck = false;
- this.schedule();
- return;
- } else {
- var response = Ext.decode(response.responseText);
- }
+		Ext.Ajax.request({
+			url: this.forceCheck || this.locked && this.lockedCheck ? '/ui/js/connection.js?r=' + new Date().getTime() : '/guest/xPerpetuumMobile',
+			params: this.params,
+			method: 'GET',
+			timeout: this.timeoutRequest,
+			scope: this,
+			hideErrorMessage: true,
+			callback: function (options, success, response) {
+				if (success) {
+					try {
+						if (this.locked && this.lockedCheck) {
+							this.lockedCheck = false;
+							this.run();
+							return;
+						} else if (this.forceCheck) {
+							this.forceCheck = false;
+							this.schedule();
+							return;
+						} else {
+							var response = Ext.decode(response.responseText);
+						}
 
- if (response.success != true)
- throw 'False';
+						if (response.success != true)
+							throw 'False';
 
- this.clearDom();
- this.timeoutRun = this.defaultTimeout;
+						this.clearDom();
+						this.timeoutRun = this.defaultTimeout;
 
- if (! response.isAuthenticated) {
- Scalr.state.userNeedLogin = true;
- Scalr.event.fireEvent('redirect', '#/guest/login', true);
- this.schedule();
- return;
- } else if (! response.equal) {
- document.location.reload();
- return;
- } else {
- if (this.locked) {
- this.locked = false;
- this.lockedCheck = true;
- Scalr.event.fireEvent('unlock');
- Scalr.storage.set('system-pm-updater-status', this.locked);
- // TODO: проверить, нужно ли совместить в unlock
- window.onhashchange(true);
- }
+						if (! response.isAuthenticated) {
+							Scalr.state.userNeedLogin = true;
+							Scalr.event.fireEvent('redirect', '#/guest/login', true);
+							this.schedule();
+							return;
+						} else if (! response.equal) {
+							document.location.reload();
+							return;
+						} else {
+							if (this.locked) {
+								this.locked = false;
+								this.lockedCheck = true;
+								Scalr.event.fireEvent('unlock');
+								Scalr.storage.set('system-pm-updater-status', this.locked);
+								// TODO: проверить, нужно ли совместить в unlock
+								window.onhashchange(true);
+							}
 
- this.schedule();
- return;
- }
- } catch (e) {
- this.schedule();
- return;
- }
- }
+							this.schedule();
+							return;
+						}
+					} catch (e) {
+						this.schedule();
+						return;
+					}
+				}
 
- if (response.aborted == true) {
- this.schedule();
- return;
- }
+				if (response.aborted == true) {
+					this.schedule();
+					return;
+				}
 
- if (response.timedout == true) {
- this.schedule();
- return;
- }
+				if (response.timedout == true) {
+					this.schedule();
+					return;
+				}
 
- Scalr.event.fireEvent('lock');
- this.locked = true;
- Scalr.storage.set('system-pm-updater-status', this.locked);
+				Scalr.event.fireEvent('lock');
+				this.locked = true;
+				Scalr.storage.set('system-pm-updater-status', this.locked);
 
- var mask = Ext.get('body-timeout-mask') || Ext.getBody().createChild({
- id: 'body-timeout-mask',
- tag: 'div',
- style: {
- position: 'absolute',
- top: 0,
- left: 0,
- width: '100%',
- height: '100%',
- background: '#CCC',
- opacity: '0.5',
- 'z-index': 300000
- }
- });
+				var mask = Ext.get('body-timeout-mask') || Ext.getBody().createChild({
+					id: 'body-timeout-mask',
+					tag: 'div',
+					style: {
+						position: 'absolute',
+						top: 0,
+						left: 0,
+						width: '100%',
+						height: '100%',
+						background: '#CCC',
+						opacity: '0.5',
+						'z-index': 300000
+					}
+				});
 
- this.timeoutRun += 6000;
- if (this.timeoutRun > 60000)
- this.timeoutRun = 60000;
+				this.timeoutRun += 6000;
+				if (this.timeoutRun > 60000)
+					this.timeoutRun = 60000;
 
- if (! Ext.get('body-timeout-container'))
- this.timeoutRun = 5000;
+				if (! Ext.get('body-timeout-container'))
+					this.timeoutRun = 5000;
 
- var cont = Ext.get('body-timeout-container') || Ext.getBody().createChild({
- id: 'body-timeout-container',
- tag: 'div',
- style: {
- position: 'absolute',
- top: '5px',
- left: '5px',
- right: '5px',
- 'z-index': 300001,
- background: '#F6CBBA',
- border: '1px solid #BC7D7A',
- 'box-shadow': '0 1px #FEECE2 inset',
- font: 'bold 13px arial',
- color: '#420404',
- padding: '10px',
- 'text-align': 'center'
- }
- }).applyStyles({ background: '-webkit-gradient(linear, left top, left bottom, from(#FCD9C5), to(#F0BCAC))'
- }).applyStyles({ background: '-moz-linear-gradient(top, #FCD9C5, #F0BCAC)' });
+				var cont = Ext.get('body-timeout-container') || Ext.getBody().createChild({
+					id: 'body-timeout-container',
+					tag: 'div',
+					style: {
+						position: 'absolute',
+						top: '5px',
+						left: '5px',
+						right: '5px',
+						'z-index': 300001,
+						background: '#F6CBBA',
+						border: '1px solid #BC7D7A',
+						'box-shadow': '0 1px #FEECE2 inset',
+						font: 'bold 13px arial',
+						color: '#420404',
+						padding: '10px',
+						'text-align': 'center'
+					}
+				}).applyStyles({ background: '-webkit-gradient(linear, left top, left bottom, from(#FCD9C5), to(#F0BCAC))'
+					}).applyStyles({ background: '-moz-linear-gradient(top, #FCD9C5, #F0BCAC)' });
 
- this.schedule();
+				this.schedule();
 
- cont.update('Not connected to Scalr. Connecting in <span>' + this.timeoutRun/1000 + '</span>s. <a href="#">Try now</a> ');
- cont.child('a').on('click', function (e) {
- e.preventDefault();
- cont.update('Not connected to Scalr. Trying now');
- this.undoSchedule();
- this.run();
- }, this);
- this.createTimer(cont);
- }
- });
- }
- };
+				cont.update('Not connected to Scalr. Connecting in <span>' + this.timeoutRun/1000 + '</span>s. <a href="#">Try now</a> ');
+				cont.child('a').on('click', function (e) {
+					e.preventDefault();
+					cont.update('Not connected to Scalr. Trying now');
+					this.undoSchedule();
+					this.run();
+				}, this);
+				this.createTimer(cont);
+			}
+		});
+	}
+};
 
- */
 
 Scalr.Init = function (context) {
 	Ext.get('loading-div-child').applyStyles('-webkit-animation: pulse 1.5s infinite;');
@@ -1644,7 +1668,7 @@ Scalr.Init = function (context) {
 		return false;
 	};
 
+    Scalr.cachedRequest = Ext.create('Scalr.CachedRequest');
 	Scalr.application.render('body-container');
 	Scalr.application.applyContext(context);
-
 };

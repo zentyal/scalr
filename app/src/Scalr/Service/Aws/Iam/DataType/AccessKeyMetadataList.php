@@ -7,7 +7,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * AccessKeyMetadataList
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    14.11.2012
  *
  * @method   AccessKeyMetadataData get() get($position = null) Gets AccessKeyMetadataData at specified position

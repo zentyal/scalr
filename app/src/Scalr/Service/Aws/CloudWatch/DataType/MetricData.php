@@ -10,7 +10,7 @@ use Scalr\Service\Aws\CloudWatch\DataType\DimensionList;
  * The Metric data type contains information about a specific metric. If you call ListMetrics,
  * Amazon CloudWatch returns information contained by this data type.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     24.10.2012
  * @property  DimensionList             $dimensions           A list of dimensions associated with the metric.
  *                                                            Length constraints: Minimum of 0 item(s) in the list.

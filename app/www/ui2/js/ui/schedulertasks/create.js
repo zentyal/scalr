@@ -23,12 +23,12 @@ Scalr.regPage('Scalr.ui.schedulertasks.create', function (loadParams, modulePara
 				name: 'id'
 			}, {
 				xtype: 'textfield',
-				fieldLabel: 'Task name',
+				fieldLabel: 'Name',
 				name: 'name',
 				allowBlank: false
 			}, {
 				xtype: 'combo',
-				fieldLabel: 'Task type',
+				fieldLabel: 'Type',
 				store: [ ['script_exec', 'Execute script'], ['terminate_farm', 'Terminate farm'], ['launch_farm', 'Launch farm']],
 				editable: false,
 				name: 'type',
@@ -60,7 +60,13 @@ Scalr.regPage('Scalr.ui.schedulertasks.create', function (loadParams, modulePara
 						}
 					}
 				}
-			}]
+			}, {
+                xtype: 'textarea',
+                fieldLabel: 'Description',
+                name: 'comments',
+                grow: true,
+                growMin: 22
+            }]
 		}, {
 			xtype: 'farmroles',
 			title: 'Target',

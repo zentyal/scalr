@@ -8,7 +8,7 @@ use Scalr\Service\Aws\Sqs\DataType\QueueAttributeList;
 /**
  * MessageData
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     08.11.2012
  */
 class MessageData extends AbstractSqsDataType

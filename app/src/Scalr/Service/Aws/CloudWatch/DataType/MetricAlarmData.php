@@ -9,7 +9,7 @@ use Scalr\Service\Aws\CloudWatch\AbstractCloudWatchDataType;
  * The MetricAlarm data type represents an alarm.
  * You can use PutMetricAlarm to create or update an alarm.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     24.10.2012
  * @property  DimensionList             $dimensions           A list of dimensions associated with the metric.
  *                                                            Length constraints: Minimum of 0 item(s) in the list.

@@ -11,7 +11,7 @@ use Scalr\Service\Aws\Client\QueryClient\S3QueryClient;
  *
  * Ensures to provide common properties and behaviour for all Services.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     10.10.2012
  */
 abstract class AbstractService

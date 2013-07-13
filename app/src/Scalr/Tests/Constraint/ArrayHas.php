@@ -4,7 +4,7 @@ namespace Scalr\Tests\Constraint;
 /**
  * ArrayHas constraint class
  *
- * @author   Vitaliy Demidov  <zend@i.ua>
+ * @author   Vitaliy Demidov  <vitaliy@scalr.com>
  * @since    12.11.2012
  */
 class ArrayHas extends \PHPUnit_Framework_Constraint

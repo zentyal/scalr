@@ -27,7 +27,7 @@ class InstanceStateData extends AbstractEc2DataType
 
     const CODE_STOPPED       = 80;
 
-    const NAME_pending       = 'pending';
+    const NAME_PENDING       = 'pending';
 
     const NAME_RUNNING       = 'running';
 

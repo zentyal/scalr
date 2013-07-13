@@ -172,7 +172,7 @@ Scalr.regPage('Scalr.ui.dnszones.create2', function (loadParams, moduleParams) {
 					}, {
 						xtype: 'displayinfofield',
 						margin: '0 0 0 5',
-						value: 'Each server in this farm will add int-rolename ext-rolename records. Leave blank if you don\'t need such records.'
+						value: 'Each server in this farm will add int-rolename ext-rolename records. Leave blank if you don`t need such records.'
 					}]
 				}, {
 					xtype: 'fieldcontainer',
@@ -216,7 +216,7 @@ Scalr.regPage('Scalr.ui.dnszones.create2', function (loadParams, moduleParams) {
 					}, {
 						xtype: 'displayinfofield',
 						margin: '0 0 0 5',
-						info: 'Email address of the person responsible for this zone and to which email may be sent to report errors or problems. In the jargon this is called the RNAME field which is why we called it email-addr. The email address of a suitable DNS admin but more commonly the technical contact for the domain. By convention (in RFC 2142) it is suggested that the reserved mailbox hostmaster be used for this purpose but any sensible and stable email address will work. NOTE: Format is mailbox-name.domain.com, for example, hostmaster.example.com (uses a dot not the more normal @ sign, since @ has other uses in the zone file) but mail is sent to hostmaster@example.com. Most commonly ending with a \'.\' (dot) but if the email address lies within this domain you can just use hostmaster (see also example below).'
+						info: 'Email address of the person responsible for this zone and to which email may be sent to report errors or problems. In the jargon this is called the RNAME field which is why we called it email-addr. The email address of a suitable DNS admin but more commonly the technical contact for the domain. By convention (in RFC 2142) it is suggested that the reserved mailbox hostmaster be used for this purpose but any sensible and stable email address will work. NOTE: Format is mailbox-name.domain.com, for example, hostmaster.example.com (uses a dot not the more normal @ sign, since @ has other uses in the zone file) but mail is sent to hostmaster@example.com. Most commonly ending with a &quot;.&quot; (dot) but if the email address lies within this domain you can just use hostmaster (see also example below).'
 					}]
 				}, {
 					xtype: 'fieldcontainer',
@@ -267,7 +267,7 @@ Scalr.regPage('Scalr.ui.dnszones.create2', function (loadParams, moduleParams) {
 					}, {
 						xtype: 'displayinfofield',
 						margin: '0 0 0 5',
-						info: 'Signed 32 bit time value in seconds. Indicates the time when the slave will try to refresh the zone from the master (by reading the master DNS SOA RR). RFC 1912 recommends 1200 to 43200 seconds, low (1200) if the data is volatile or 43200 (12 hours) if it\'s not. If you are using NOTIFY you can set for much higher values, for instance, 1 or more days (> 86400 seconds).'
+						info: 'Signed 32 bit time value in seconds. Indicates the time when the slave will try to refresh the zone from the master (by reading the master DNS SOA RR). RFC 1912 recommends 1200 to 43200 seconds, low (1200) if the data is volatile or 43200 (12 hours) if it`s not. If you are using NOTIFY you can set for much higher values, for instance, 1 or more days (> 86400 seconds).'
 					}]
 				}]
 			}]

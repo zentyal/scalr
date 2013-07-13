@@ -22,6 +22,7 @@ class RouteTableHandler extends AbstractEc2Handler
 
     /**
      * Gets RouteTableData object from the EntityManager.
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param   string       $routeTableId  Unique Identifier.
      * @return  RouteTableData|null Returns RouteTableData if it does exist in the cache or NULL otherwise.

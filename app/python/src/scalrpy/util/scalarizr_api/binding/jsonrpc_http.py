@@ -10,7 +10,6 @@ from __future__ import with_statement
 
 import os
 import binascii
-import logging
 import sys
 import time
 import urllib2
@@ -26,16 +25,17 @@ from scalrpy import rpc
 from scalrpy.util import cryptotool
 
 
-
 class Security(object):
     DATE_FORMAT = "%a %d %b %Y %H:%M:%S UTC"
     
     def __init__(self, crypto_key):
         self._crypto_key = binascii.a2b_base64(crypto_key)
 
+
     def _read_crypto_key(self, crypto_key_path):
         return binascii.a2b_base64(open(crypto_key_path).read().strip())
     
+
     def sign(self, data, key, timestamp=None):
         date = time.strftime(self.DATE_FORMAT, timestamp or time.gmtime())
         canonical_string = data + date
@@ -59,6 +59,7 @@ class Security(object):
             return cryptotool.decrypt(crypto_algo, data, self._crypto_key)
         except:
             raise rpc.InvalidRequestError('Failed to decrypt data')
+
 
     def encrypt_data(self, data):
         try:

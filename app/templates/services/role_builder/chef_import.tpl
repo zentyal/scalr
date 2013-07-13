@@ -58,6 +58,8 @@ get_behaviour() {
 			echo "\"recipe[mongodb]\", "
 	elif [ "$bhv" = "percona" ]; then
 			echo "\"recipe[percona]\", "
+	elif [ "$bhv" = "tomcat" ]; then
+			echo "\"recipe[tomcat]\", "
     fi	
 }
 
@@ -114,7 +116,7 @@ if [ "$rhel" -eq 0 ] && [ "$fedora" -eq 0 ]; then
 		fi
 	fi
 	action "Updating package list" "apt-get update"
-	action "Installing essential packages" "apt-get -y install ruby ruby1.8-dev libopenssl-ruby rdoc ri irb build-essential wget make tar ssl-cert git"
+	action "Installing essential packages" "apt-get -y install ruby ruby-dev libopenssl-ruby rdoc ri irb build-essential wget make tar git-core"
 	action 'Downloading rubygems' "wget -c http://production.cf.rubygems.org/rubygems/rubygems-1.8.24.tgz"
 	action 'Unpacking rubygems' "tar zxf rubygems-1.8.24.tgz"
 	cd rubygems-1.8.24
@@ -143,12 +145,17 @@ else
 fi
 
 cd /tmp
-action "Installing chef" "gem install chef --no-ri --no-rdoc"
+action "Installing chef" "gem install chef --version '< 11' --no-ri --no-rdoc"
 mkdir -p /tmp/chef-solo
 action "Creating chef configuration file" "echo -e 'file_cache_path \"/tmp/chef-solo/cookbooks\"\r\ncookbook_path \"/tmp/chef-solo/cookbooks\"' > /tmp/solo.rb"
 action "Retrieving cookbooks from scalr's public repo" "git clone git://github.com/Scalr/cookbooks.git /tmp/chef-solo"
 action "Creating runlist" 		'echo $CHEF_RUNLIST | tee /tmp/soft.json'
-action "Installing software" "chef-solo -c /tmp/solo.rb -j /tmp/soft.json"
+chef_solo_exec=`which chef-solo`
+if [ -z "$chef_solo_exec" ]; then
+	chef_solo_exec=`gem contents chef | grep bin/chef-solo | head -1`
+fi
+
+action "Installing software" "$chef_solo_exec -c /tmp/solo.rb -j /tmp/soft.json"
 
 
 

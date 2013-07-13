@@ -115,19 +115,26 @@ Ext.define('Scalr.ui.PagingToolbar', {
 		return items;
 	},
 
+	evaluatePageSize: function() {
+		var grid = this.gridContainer, view = grid.getView();
+		if (Ext.isDefined(grid.height) && view.rendered)
+			return Math.floor(view.el.getHeight() / 26); // row's height
+	},
+
 	getPageSize: function() {
 		var pageSize = 0;
 		if (Ext.state.Manager.get(this.pageSizeStorageName, 'auto') != 'auto')
-			pageSize= Ext.state.Manager.get(this.pageSizeStorageName, 'auto');
+			pageSize = Ext.state.Manager.get(this.pageSizeStorageName, 'auto');
 		else {
-			var panel = this.up('panel'), view = (panel.getLayout().type == 'card') ? panel.getLayout().getActiveItem().view : panel;
-			if (Ext.isDefined(panel.height) && view && view.rendered)
+			//var panel = this.up('panel'), view = (panel.getLayout().type == 'card') ? panel.getLayout().getActiveItem().view : panel;
+            var grid = this.gridContainer, view = grid.getView();
+			if (Ext.isDefined(grid.height) && view && view.rendered)
 				pageSize = Math.floor(view.el.getHeight() / 26); // row's height
 		}
 		return pageSize;
 	},
 
-	setPageSizeAndLoad: function() {
+	setPageSizeAndLoad2: function() {
 		// TODO check this code, move to gridContainer
 		var panel = this.up('panel'), view = (panel.getLayout().type == 'card') ? panel.getLayout().getActiveItem().view : panel;
 		if (Ext.isDefined(panel.height) && view && view.rendered) {
@@ -137,6 +144,36 @@ Ext.define('Scalr.ui.PagingToolbar', {
 				panel.store.totalCount = this.data.total;
 			} else
 				panel.store.load();
+		}
+	},
+
+    setPageSizeAndLoad: function() {
+        var grid = this.gridContainer, view = grid.getView();
+        if (Ext.isDefined(grid.height) && view.rendered) {
+            grid.store.pageSize = this.getPageSize();
+            if (Ext.isObject(this.data)) {
+                grid.store.loadData(this.data.data);
+                grid.store.totalCount = this.data.total;
+            } else
+                grid.store.load();
+        }
+    },
+
+    moveNext : function(){
+		var me = this,
+			total = me.getPageData().pageCount,
+			next = me.store.currentPage + 1;
+
+		if (me.store.currentPage == 1 && me.store.pageSize != me.evaluatePageSize()) {
+			// if page has less records, that it could include, load more records per page
+			if (me.fireEvent('beforechange', me, next) !== false) {
+				me.store.pageSize = me.evaluatePageSize();
+				me.store.load();
+			}
+		} else if (next <= total) {
+			if (me.fireEvent('beforechange', me, next) !== false) {
+				me.store.nextPage();
+			}
 		}
 	},
 
@@ -150,6 +187,8 @@ Ext.define('Scalr.ui.PagingToolbar', {
 				if (this.scalrReconfigureParams)
 					Ext.applyIf(loadParams, this.scalrReconfigureParams);
 				Ext.apply(this.store.proxy.extraParams, loadParams);
+                if (this.scalrReconfigureParams)
+                    this.fireEvent('scalrreconfigure', this.store.proxy.extraParams);
 			};
 			this.refreshHandler = Ext.Function.bind(function () {
 				this.store.load();

@@ -1,9 +1,9 @@
 <?php
 
 /**
- * 
+ *
  * @author Marat Komarov
- * 
+ *
  * @property string $accountName *
  * @property int $accountOwner
  * @property string $website
@@ -33,45 +33,45 @@
  * @property string $shippingCountry
  * @property string $description
  */
-class Scalr_Service_ZohoCrm_Entity_Account 
-		extends Scalr_Service_ZohoCrm_Entity {
-	
-	function __construct () {
-		parent::__construct();
-		
-		$this->nameLabelMap = array_merge($this->nameLabelMap, array(
-			"id" => "ACCOUNTID",
-			"accountName" => "Account Name",
-			"accountOwner" => "Account Owner",
-			"website" => "Website",
-			"tickerSymbol" => "Ticker Symbol",
-			"parentAccount" => "Parent Account",
-			"employees" => "Employees",
-			"ownership" => "Ownership",
-			"industry" => "Industry",
-			"accountType" => "Account Type",
-			"accountNumber" => "Account Number",
-			"accountSite" => "Account Site",
-			"phone" => "Phone",
-			"fax" => "Fax",
-			"email" => "Email",
-			"rating" => "Rating",
-			"sicCode" => "SIC Code",
-			"annualRevenue" => "Annual Revenue",
-		
-			"billingStreet" => "Billing Street",
-			"billingCity" => "Billing City",
-			"billingState" => "Billing State",
-			"billingCode" => "Billing Code",
-			"billingCountry" => "Billing Country",
-		
-			"shippingStreet" => "Shipping Street",
-			"shippingCity" => "Shipping City",
-			"shippingState" => "Shipping State",
-			"shippingCode" => "Shipping Code",
-			"shippingCountry" => "Shipping Country",
-		
-			"description" => "Description"
-		));
-	}
+class Scalr_Service_ZohoCrm_Entity_Account
+        extends Scalr_Service_ZohoCrm_Entity {
+
+    function __construct () {
+        parent::__construct();
+
+        $this->nameLabelMap = array_merge($this->nameLabelMap, array(
+            "id" => "ACCOUNTID",
+            "accountName" => "Account Name",
+            "accountOwner" => "Account Owner",
+            "website" => "Website",
+            "tickerSymbol" => "Ticker Symbol",
+            "parentAccount" => "Parent Account",
+            "employees" => "Employees",
+            "ownership" => "Ownership",
+            "industry" => "Industry",
+            "accountType" => "Account Type",
+            "accountNumber" => "Account Number",
+            "accountSite" => "Account Site",
+            "phone" => "Phone",
+            "fax" => "Fax",
+            "email" => "Email",
+            "rating" => "Rating",
+            "sicCode" => "SIC Code",
+            "annualRevenue" => "Annual Revenue",
+
+            "billingStreet" => "Billing Street",
+            "billingCity" => "Billing City",
+            "billingState" => "Billing State",
+            "billingCode" => "Billing Code",
+            "billingCountry" => "Billing Country",
+
+            "shippingStreet" => "Shipping Street",
+            "shippingCity" => "Shipping City",
+            "shippingState" => "Shipping State",
+            "shippingCode" => "Shipping Code",
+            "shippingCountry" => "Shipping Country",
+
+            "description" => "Description"
+        ));
+    }
 }

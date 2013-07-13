@@ -1,32 +1,7 @@
-.x-grid-role-scripting .x-grid-cell, .x-grid-role-scripting .x-grid-rowwrap-div{
-	background:transparent!important;
-	box-shadow:none!important;
-}
-
 .x-grid-role-scripting .x-grid-dirty-cell{
     background-image: url("/ui2/js/extjs-4.1/theme/images/grid/dirty.gif") !important;
     background-position: 0 0 !important;
     background-repeat: no-repeat !important;
-}
-
-.x-grid-role-scripting .x-grid-row .x-grid-rowwrap-div{
-	background-color: #FFF!important;
-}
-
-.x-grid-role-scripting .x-grid-row-alt .x-grid-rowwrap-div{
-	background-color: #F4F4F4!important;
-}
-
-.x-grid-role-scripting .x-grid-row-over .x-grid-rowwrap-div{
-	background-color: #e3e3e3!important;
-}
-
-.x-grid-role-scripting .x-grid-row-focused .x-grid-rowwrap-div{
-	background-color: #e3e3e3!important;
-}
-
-.x-grid-role-scripting .x-grid-row-selected .x-grid-rowwrap-div{
-	background-color: #C6CED7!important;
 }
 
 .x-grid-role-scripting .x-grid-row-system{
@@ -46,4 +21,13 @@
 .x-grid-role-scripting .x-grid-rowbody{
 	font-size: 12px;
 	line-height:14px;
+}
+
+.x-grid-role-scripting .x-grid-empty{
+    padding-top:2px;
+}
+
+.x-grid-role-scripting .x-grid-empty img{
+    position:relative;
+    top:5px;
 }

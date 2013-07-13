@@ -22,6 +22,7 @@ class SubnetHandler extends AbstractEc2Handler
 
     /**
      * Gets SubnetData object from the EntityManager.
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param   string     $subnetId  An unique identifier.
      * @return  SubnetData|null Returns SubnetData if it does exist in the cache or NULL otherwise.

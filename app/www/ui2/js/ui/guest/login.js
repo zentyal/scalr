@@ -44,11 +44,27 @@ Scalr.regPage('Scalr.ui.guest.login', function (loadParams, moduleParams) {
 						this.bodyEl.appendChild('textfield-user-password-inputEl');
 					}
 				}
+            }, {
+                xtype: 'combobox',
+                store: {
+                    fields: [ 'id', 'name' ],
+                    proxy: 'object'
+                },
+                queryMode: 'local',
+                valueField: 'id',
+                displayField: 'name',
+                name: 'accountId',
+                hidden: true,
+                disabled: true,
+                fieldLabel: 'Account',
+                editable: false,
+                allowBlank: false
 			}, {
 				xtype: 'checkbox',
 				name: 'scalrKeepSession',
 				inputType: 'checkbox',
 				checked: true,
+                hidden: Scalr.flags['authMode'] == 'ldap',
 				boxLabel: 'Remember me'
 			}, {
 				xtype: 'component',
@@ -92,7 +108,7 @@ Scalr.regPage('Scalr.ui.guest.login', function (loadParams, moduleParams) {
 						this.prev().hide();
 					}
 				}
-			}, {
+            }, {
 				xtype: 'hiddenfield',
 				name: 'userTimezone',
 				value: (new Date()).getTimezoneOffset()
@@ -140,8 +156,9 @@ Scalr.regPage('Scalr.ui.guest.login', function (loadParams, moduleParams) {
 							form: this.up('form').getForm(),
 							url: '/guest/xLogin',
 							success: function (data) {
-								if (data['tfa']) {
+                                if (data['tfa']) {
 									Scalr.event.fireEvent('redirect', data['tfa'], true, this.up('form').getForm().getValues());
+
 								} else {
 									Scalr.event.fireEvent('unlock');
 									if (Ext.isChrome) {
@@ -158,27 +175,43 @@ Scalr.regPage('Scalr.ui.guest.login', function (loadParams, moduleParams) {
 										});
 									}
 								}
-							},
+
+                                var field = this.up('form').down('[name="accountId"]');
+                                field.reset();
+                                field.hide();
+                                field.disable();
+                            },
 							failure: function (data) {
 								if (Ext.isChrome) {
 									history.back();
 								}
 
-								if (data && data['loginattempts'] && data['loginattempts'] > 2) {
-									this.up('form').down('[name="scalrCaptcha"]').show().enable().reset();
+                                if (data) {
+                                    if (data['loginattempts'] && data['loginattempts'] > 2) {
+                                        this.up('form').down('[name="scalrCaptcha"]').show().enable().reset();
 
-									if (Ext.isObject(Recaptcha))
-										Recaptcha.reload();
-								}
-								else
-									this.up('form').down('[name="scalrCaptcha"]').hide().disable();
-							}
+                                        if (Ext.isObject(Recaptcha))
+                                            Recaptcha.reload();
+                                    } else {
+                                        this.up('form').down('[name="scalrCaptcha"]').hide().disable();
+                                    }
+
+                                    if (data['accounts']) {
+                                        var field = this.up('form').down('[name="accountId"]');
+                                        field.store.loadData(data['accounts']);
+                                        field.reset();
+                                        field.show();
+                                        field.enable();
+                                    }
+                                }
+                            }
 						});
 					}
 				}
 			}, {
 				xtype: 'button',
 				text: 'Forgot password?',
+                hidden: Scalr.flags['authMode'] == 'ldap',
 				margin: '0 0 0 10',
 				handler: function () {
 					Scalr.event.fireEvent('redirect', '#/guest/recoverPassword' , true, {

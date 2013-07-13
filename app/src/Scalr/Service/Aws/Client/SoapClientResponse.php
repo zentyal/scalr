@@ -8,7 +8,7 @@ use Scalr\Service\Aws\DataType\Loader\ErrorLoader;
 /**
  * Soap Client Response
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     28.02.2013
  */
 class SoapClientResponse implements ClientResponseInterface

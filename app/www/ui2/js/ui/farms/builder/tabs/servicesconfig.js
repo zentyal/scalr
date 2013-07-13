@@ -1,23 +1,27 @@
 Scalr.regPage('Scalr.ui.farms.builder.tabs.servicesconfig', function () {
 	return Ext.create('Scalr.ui.FarmsBuilderTab', {
 		tabTitle: 'Services config',
-		cache: {},
-
+        deprecated: true,
+		tabData: {},
+        layout: 'anchor',
+        
 		isEnabled: function (record) {
 			return record.get('platform') != 'rds';
 		},
 
 		beforeShowTab: function (record, handler) {
-			var behaviors = record.get('behaviors').split(','), beh = [], me = this;
+			var me = this, 
+                beh = [];
 
-			Ext.Array.each(behaviors, function (behavior) {
-				if (! me.cacheExist(['behaviors', behavior]))
-					beh.push(behavior);
+			Ext.Array.each(record.get('behaviors').split(','), function (behavior) {
+                if (me.tabData[behavior] === undefined) {
+                    beh.push(behavior);
+                }
 			});
 
-			if (! beh.length)
+			if (! beh.length) {
 				handler();
-			else
+            } else {
 				Scalr.Request({
 					processBox: {
 						type: 'action'
@@ -30,7 +34,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.servicesconfig', function () {
 					success: function (response) {
 						for (var i in response.data) {
 							response.data[i].unshift({ id: 0, name: 'Service defaults' });
-							this.cacheSet(response.data[i], ['behaviors', i]);
+                            me.tabData[i] = response.data[i];
 						}
 
 						handler();
@@ -39,10 +43,14 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.servicesconfig', function () {
 						this.deactivateTab();
 					}
 				});
+            }
 		},
 
 		showTab: function (record) {
-			var behaviors = record.get('behaviors').split(','), config_presets = record.get('config_presets') || {}, fieldset = this.down('#servicesconfig'), me = this;
+			var me = this,
+                behaviors = record.get('behaviors').split(','), 
+                config_presets = record.get('config_presets') || {}, 
+                fieldset = me.down('#servicesconfig');
 
 			Ext.Array.each(behaviors, function (behavior) {
 				fieldset.add({
@@ -50,7 +58,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.servicesconfig', function () {
 					store: {
 						fields: [ 'id', 'name' ],
 						proxy: 'object',
-						data: me.cacheGet(['behaviors', behavior])
+						data: me.tabData[behavior]
 					},
 					fieldLabel: behavior,
 					valueField: 'id',
@@ -78,6 +86,11 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.servicesconfig', function () {
 		},
 
 		items: [{
+			xtype: 'displayfield',
+			fieldCls: 'x-form-field-warning',
+            anchor: '100%',
+			value: 'Services config is deprecated.'
+		}, {
 			xtype: 'fieldset',
 			itemId: 'servicesconfig',
 			defaults: {

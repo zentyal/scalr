@@ -24,9 +24,7 @@ class MysqlLoggerStorage implements LoggerStorageInterface
     protected $options;
 
     /**
-     * Mysql instance
-     *
-     * @var ADOConnection
+     * @var \ADODB_mysqli
      */
     private $db;
 

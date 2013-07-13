@@ -1,6 +1,11 @@
 <?php
 namespace Scalr\Tests\Service\Aws\DataType;
 
+use Scalr\Service\Aws\Ec2\DataType\IpPermissionList;
+use Scalr\Service\Aws\Ec2\DataType\BlockDeviceMappingData;
+use Scalr\Service\Aws\Ec2\DataType\ResourceTagSetData;
+use Scalr\Service\Aws\Ec2\DataType\ResourceTagSetList;
+use Scalr\Service\Aws\Ec2\DataType\GroupList;
 use Scalr\Service\Aws\Elb\DataType\LoadBalancerDescriptionData;
 use Scalr\Service\Aws\Elb\DataType\ListenerDescriptionList;
 use Scalr\Service\Aws\Elb\DataType\ListenerDescriptionData;
@@ -14,7 +19,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * AWS ListDataType test
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     25.09.2012
  */
 class ListDataTypeTest extends AwsTestCase
@@ -273,5 +278,45 @@ class ListDataTypeTest extends AwsTestCase
         foreach ($lb2->listenerDescriptions as $listenerDescription) {
             $this->assertInstanceOf($elbClassName, $listenerDescription->getElb());
         }
+    }
+
+    /**
+     * @test
+     */
+    public function testIssetMemberOfTheList()
+    {
+        $list = new ResourceTagSetList();
+        $list->append(new ResourceTagSetData('key-0', 'value-0'));
+        $this->assertFalse(isset($list[46]));
+        $this->assertFalse(isset($list[1]->key));
+        $this->assertTrue(isset($list[0]->value));
+        $this->assertTrue(isset($list->get(0)->value));
+        $this->assertTrue(empty($list->get(3)->value));
+
+        //non-existent variable test
+        $this->assertFalse(isset($foo[0]->missing[12]->none_xistent));
+    }
+
+    /**
+     * @test
+     * @expectedException \InvalidArgumentException
+     */
+    public function testNonReflectionProperties()
+    {
+        $data = new BlockDeviceMappingData();
+        $data->newOption = 'new-option';
+    }
+
+    /**
+     * @test
+     */
+    public function testConstructorFromArrayPartialProperties()
+    {
+        //We provide there not all the properties from the property array
+        $list = new IpPermissionList(array(array(
+            'ipProtocol' => 'tcp',
+        )));
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\IpPermissionData'), $list[0]);
+        $this->assertEquals('tcp', $list[0]->ipProtocol);
     }
 }

@@ -1,6 +1,10 @@
 <?php
 namespace Scalr\Tests\Service\OpenStack;
 
+use Scalr\Service\OpenStack\Services\Network\Type\CreatePort;
+use Scalr\Service\OpenStack\Services\Network\Type\AllocationPool;
+use Scalr\Service\OpenStack\Services\Servers\Type\Network;
+use Scalr\Service\OpenStack\Services\Servers\Type\NetworkList;
 use Scalr\Service\OpenStack\Services\Servers\Type\Personality;
 use Scalr\Service\OpenStack\Services\Servers\Type\PersonalityList;
 use Scalr\Service\OpenStack\Services\Volume\Type\VolumeStatus;
@@ -23,14 +27,35 @@ use Scalr\Service\OpenStack\OpenStack;
 class OpenStackTest extends OpenStackTestCase
 {
 
-    const OPENSTACK_TEST_IMAGE_ID = '13d55079-cd3a-4955-8b84-892b06d9b7e6';
-    const OPENSTACK_TEST_REGION = 'vega';
+    const VOLUME_SIZE = 100;
 
-    const RACKSPACE_NG_US_TEST_IMAGE_ID = '3afe97b2-26dc-49c5-a2cc-a2fc8d80c001';
-    const RACKSPACE_NG_US_TEST_REGION = 'DFW';
+    const NAME_NETWORK = 'net';
 
-    const RACKSPACE_NG_UK_TEST_IMAGE_ID = '3afe97b2-26dc-49c5-a2cc-a2fc8d80c001';
-    const RACKSPACE_NG_UK_TEST_REGION = 'LON';
+    const NAME_SUBNET = 'subnet';
+
+    const NAME_PORT = 'port';
+
+    /**
+     * Provider of the instances for the functional tests
+     */
+    public function providerRs()
+    {
+        return array(
+            //Enter.It Grizzly
+            array(\SERVER_PLATFORMS::OPENSTACK, 'EnterIt', 'cb457ffd-469e-4fae-9bb0-3f618e69d74f'),
+
+//             //Nebula
+//             array(\SERVER_PLATFORMS::OPENSTACK, 'RegionOne', '07b26892-9716-453f-9443-9b5e90d2c978'),
+
+//             //Open Cloud System
+//             array(\SERVER_PLATFORMS::OPENSTACK, 'RegionOne', '7a0d5ff5-efa1-4dae-a18e-0238fe27f287'),
+
+            //Rackspace US
+            array(\SERVER_PLATFORMS::RACKSPACENG_US, 'DFW', '3afe97b2-26dc-49c5-a2cc-a2fc8d80c001'),
+            //Rackspase UK
+            array(\SERVER_PLATFORMS::RACKSPACENG_UK, 'LON', '3afe97b2-26dc-49c5-a2cc-a2fc8d80c001'),
+        );
+    }
 
     /**
      * Gets test server name
@@ -96,18 +121,6 @@ class OpenStackTest extends OpenStackTestCase
     }
 
     /**
-     * Provider of the instances for the functional tests
-     */
-    public function providerRs()
-    {
-        return array(
-            array(\SERVER_PLATFORMS::OPENSTACK, self::OPENSTACK_TEST_REGION, self::OPENSTACK_TEST_IMAGE_ID),
-            array(\SERVER_PLATFORMS::RACKSPACENG_US, self::RACKSPACE_NG_US_TEST_REGION, self::RACKSPACE_NG_US_TEST_IMAGE_ID),
-            array(\SERVER_PLATFORMS::RACKSPACENG_UK, self::RACKSPACE_NG_UK_TEST_REGION, self::RACKSPACE_NG_UK_TEST_IMAGE_ID),
-        );
-    }
-
-    /**
      * @test
      * @dataProvider providerRs
      */
@@ -119,6 +132,7 @@ class OpenStackTest extends OpenStackTestCase
         /* @var $rs OpenStack */
         if ($this->getContainer()->environment->isPlatformEnabled($platform)) {
             $rs = $this->getContainer()->openstack($platform, $region);
+//             $rs->getClient()->setDebug(true);
             $this->assertInstanceOf($this->getOpenStackClassName('OpenStack'), $rs);
         } else {
             //Environment has not been activated yet.
@@ -161,6 +175,165 @@ class OpenStackTest extends OpenStackTestCase
         $this->assertTrue(is_array($aExtensions));
         unset($aExtensions);
 
+        $hasNetwork = $rs->hasService(OpenStack::SERVICE_NETWORK);
+
+        if ($hasNetwork) {
+            //Quantum API tests
+            $testNetworkName = self::getTestName(self::NAME_NETWORK);
+            $testSubnetName = self::getTestName(self::NAME_SUBNET);
+            $testPortName = self::getTestName(self::NAME_PORT);
+
+            //ListNetworks test
+            $networks = $rs->network->networks->list(null, array(
+                'status' => 'ACTIVE',
+                'shared' => false
+            ));
+            $this->assertInternalType('array', $networks);
+            if (isset($networks[0])) {
+                $this->assertInternalType('object', $networks[0]);
+                $this->assertNotEmpty($networks[0]->id);
+
+                //Show Network test
+                $network = $rs->network->networks->list($networks[0]->id);
+                $this->assertEquals($networks[0], $network);
+                unset($network);
+            }
+            unset($networks);
+
+            //ListSubnets test
+            $subnets = $rs->network->subnets->list();
+            $this->assertInternalType('array', $subnets);
+            if (isset($subnets[0])) {
+                $this->assertInternalType('object', $subnets[0]);
+                $this->assertNotEmpty($subnets[0]->id);
+
+                //Show Subnet test
+                $subnet = $rs->network->subnets->list($subnets[0]->id);
+                $this->assertEquals($subnets[0], $subnet);
+                unset($subnet);
+            }
+            unset($subnets);
+
+            //ListPorts test
+            $ports = $rs->network->ports->list();
+            $this->assertInternalType('array', $ports);
+            if (isset($ports[0])) {
+                $this->assertInternalType('object', $ports[0]);
+                $this->assertNotEmpty($ports[0]->id);
+
+                //Show Port test
+                $port = $rs->network->ports->list($ports[0]->id);
+                $this->assertEquals($ports[0], $port);
+                unset($port);
+            }
+            unset($ports);
+
+            //Tries to find the networks that were created recently by this test
+            //but hadn't been removed at any reason.
+            $networks = $rs->network->networks->list(null, array(
+                'name' => $testNetworkName
+            ));
+            foreach ($networks as $network) {
+                //Removes previously created networks
+                $rs->network->networks->update($network->id, null, false);
+                $rs->network->networks->delete($network->id);
+            }
+            unset($networks);
+
+            //Tries to find the ports that were created recently by this test
+            //but hadn't been removed at any reason.
+            $ports = $rs->network->ports->list(null, array(
+                'name' => array($testPortName, $testPortName . '1')
+            ));
+            foreach ($ports as $port) {
+                //Removes previously created ports
+                $rs->network->ports->delete($port->id);
+            }
+            unset($ports);
+
+            //Tries to find the subnets that where created by this test but hadn't been removed yet.
+            $subnets = $rs->network->subnets->list(null, array(
+                'name' => array($testSubnetName, $testSubnetName . '1')
+            ));
+            $this->assertInternalType('array', $subnets);
+            foreach ($subnets as $subnet) {
+                //Removes previously created subnets
+                $rs->network->subnets->delete($subnet->id);
+            }
+
+            //Creates new network
+            $network = $rs->network->networks->create($testNetworkName, false, false);
+            $this->assertInternalType('object', $network);
+            $this->assertNotEmpty($network->id);
+            $this->assertEquals(false, $network->admin_state_up);
+            $this->assertEquals(false, $network->shared);
+
+            //Updates newtork state
+            $network = $rs->network->networks->update($network->id, null, true);
+            $this->assertInternalType('object', $network);
+            $this->assertEquals(true, $network->admin_state_up);
+
+            //Creates subnet
+            $subnet = $rs->network->subnets->create(array(
+                'network_id'       => $network->id,
+                //ip_version is set internally with 4, but you can provide it explicitly
+                'cidr'             => '10.0.3.0/24',
+                'name'             => $testSubnetName,
+                'allocation_pools' => array(
+                                          new AllocationPool('10.0.3.20', '10.0.3.22')
+                                      ),
+            ));
+            $this->assertInternalType('object', $subnet);
+            $this->assertEquals($testSubnetName, $subnet->name);
+            $this->assertNotEmpty($subnet->id);
+            $this->assertInternalType('array', $subnet->allocation_pools);
+            $this->assertNotEmpty($subnet->allocation_pools);
+            $this->assertEquals('10.0.3.22', $subnet->allocation_pools[0]->end);
+
+            //Updates the subnet
+            $subnet = $rs->network->subnets->update($subnet->id, array(
+                'name' => $testSubnetName . '1'
+            ));
+            $this->assertInternalType('object', $subnet);
+            $this->assertNotEmpty($subnet->name);
+            $this->assertEquals($testSubnetName . '1', $subnet->name);
+
+            //Removes subnet
+            $ret = $rs->network->subnets->delete($subnet->id);
+            $this->assertTrue($ret);
+
+            //Creates port
+
+            //Let's use object here
+            $req = new CreatePort($network->id);
+            $req->name = $testPortName;
+
+            //You may pass object aw well as array
+            $port = $rs->network->ports->create($req);
+            $this->assertInternalType('object', $port);
+            $this->assertEquals($network->id, $port->network_id);
+            $this->assertEquals($testPortName, $port->name);
+            $this->assertNotEmpty($port->id);
+
+            //Updates port
+            $port = $rs->network->ports->update($port->id, array(
+                'name' => $testPortName . '1'
+            ));
+            $this->assertInternalType('object', $port);
+            $this->assertEquals($testPortName . '1', $port->name);
+
+            //Removes port
+            $ret = $rs->network->ports->delete($port->id);
+            $this->assertTrue($ret);
+
+            //Removes created network
+            $rs->network->networks->update($network->id, null, false);
+            $ret = $rs->network->networks->delete($network->id);
+            $this->assertTrue($ret);
+            unset($network);
+
+        }
+
         //List snapshots test
         $snList = $rs->volume->snapshots->list();
         $this->assertTrue(is_array($snList));
@@ -188,63 +361,63 @@ class OpenStackTest extends OpenStackTestCase
             if ($v->display_name == self::getTestVolumeName()) {
                 if (in_array($v->status, array(VolumeStatus::STATUS_AVAILABLE, VolumeStatus::STATUS_ERROR))) {
                     $ret = $rs->volume->deleteVolume($v->id);
-                } else {
-                    printf("\nVolume id:%s has status '%s'. Display name is %s\n", $v->id, $v->status, $v->display_name);
                 }
             }
         }
 
         //Create Volume test
-// 		$volume = $rs->volume->createVolume(100, self::getTestVolumeName());
-// 		$this->assertTrue(is_object($volume));
-// 		$this->assertNotEmpty($volume->id);
+        $volume = $rs->volume->createVolume(self::VOLUME_SIZE, self::getTestVolumeName());
+        $this->assertTrue(is_object($volume));
+        $this->assertNotEmpty($volume->id);
 
-// 		$maxTimeout = 300;
-// 		$sleep = 2;
-// 		while (!in_array($volume->status, array(VolumeStatus::STATUS_AVAILABLE, VolumeStatus::STATUS_ERROR))) {
-// 			sleep($sleep);
-// 			$volume = $rs->volume->getVolume($volume->id);
-// 			$this->assertTrue(is_object($volume));
-// 			$this->assertNotEmpty($volume->id);
-// 			$maxTimeout -= $sleep;
-// 			$sleep = $sleep * 2;
-// 			if ($maxTimeout <= 0) break;
-// 		}
-// 		$this->assertTrue(in_array($volume->status, array(VolumeStatus::STATUS_AVAILABLE, VolumeStatus::STATUS_ERROR)));
+        for ($t = time(), $s = 1; (time() - $t) < 300 &&
+            !in_array($volume->status, array(VolumeStatus::STATUS_AVAILABLE, VolumeStatus::STATUS_ERROR)); $s += 5) {
+            sleep($s);
+            $volume = $rs->volume->getVolume($volume->id);
+            $this->assertTrue(is_object($volume));
+            $this->assertNotEmpty($volume->id);
+        }
+        $this->assertContains($volume->status, array(VolumeStatus::STATUS_AVAILABLE, VolumeStatus::STATUS_ERROR));
 
-// 		//Too long running test
-// 		//Create snapshot test
-// 		$snap = $rs->volume->snapshots->create($volume->id, self::getTestSnapshotName());
-// 		$this->assertTrue(is_object($snap));
-// 		$this->assertNotEmpty($snap->id);
+//         //Create snapshot test
+//         //WARNING! It takes too long time.
+//         $snap = $rs->volume->snapshots->create($volume->id, self::getTestSnapshotName());
+//         $this->assertTrue(is_object($snap));
+//         $this->assertNotEmpty($snap->id);
+//         for ($t = time(), $s = 1; (time() - $t) < 600 && !in_array($snap->status, array('available', 'error')); $s += 5) {
+//             sleep($s);
+//             $snap = $rs->volume->snapshots->get($snap->id);
+//             $this->assertNotEmpty($snap->id);
+//         }
+//         $this->assertContains($snap->status, array('available', 'error'));
 
-// 		$maxTimeout = 400;
-// 		$sleep = 3;
-// 		while (!in_array($snap->status, array('available', 'error'))) {
-// 			sleep($sleep);
-// 			$snap = $rs->volume->snapshots->get($snap->id);
-// 			$this->assertNotEmpty($snap->id);
-// 			$maxTimeout -= $sleep;
-// 			$sleep = $sleep * 2;
-// 			if ($maxTimeout <= 0) break;
-// 		}
-// 		$this->assertTrue(in_array($snap->status, array('available', 'error')));
-// 		//Delete snapshot test
-// 		$ret = $rs->volume->snapshots->delete($snap->id);
-// 		$this->assertTrue($ret);
-// 		unset($snap);
+//         //Delete snapshot test
+//         $ret = $rs->volume->snapshots->delete($snap->id);
+//         $this->assertTrue($ret);
+//         unset($snap);
+
+//         sleep(5);
 
         //Delete Volume test
-// 		$ret = $rs->volume->deleteVolume($volume->id);
-// 		$this->assertTrue($ret);
-// 		unset($volume);
+        $ret = $rs->volume->deleteVolume($volume->id);
+        $this->assertTrue($ret);
+        unset($volume);
 
+        sleep(5);
+
+        $pool = null;
         if ($rs->servers->isExtensionSupported(ServersExtension::floatingIpPools())) {
             $aFloatingIpPools = $rs->servers->listFloatingIpPools();
             $this->assertTrue(is_array($aFloatingIpPools));
+            foreach ($aFloatingIpPools as $v) {
+                $pool = $v->name;
+                break;
+            }
+            $this->assertNotNull($pool);
             unset($aFloatingIpPools);
         }
         if ($rs->servers->isExtensionSupported(ServersExtension::floatingIps())) {
+            $this->assertNotNull($pool);
             $aFloatingIps = $rs->servers->floatingIps->list();
             $this->assertTrue(is_array($aFloatingIps));
             foreach ($aFloatingIps as $v) {
@@ -254,7 +427,8 @@ class OpenStackTest extends OpenStackTestCase
             }
             unset($aFloatingIps);
 
-            $fip = $rs->servers->floatingIps->create('nova');
+            //default pool for rackspase is 'nova'
+            $fip = $rs->servers->floatingIps->create($pool);
             $this->assertTrue(is_object($fip));
             $r = $rs->servers->floatingIps->delete($fip->id);
             $this->assertTrue($r);
@@ -265,7 +439,10 @@ class OpenStackTest extends OpenStackTestCase
             } catch (RestClientException $e) {
                 if ($e->error->code == 404) {
                     $this->assertTrue(true);
-                } else throw $e;
+                } else {
+                    //OpenStack Grizzly fails with 500 error code.
+                    //throw $e;
+                }
             }
             unset($fip);
         }
@@ -273,6 +450,12 @@ class OpenStackTest extends OpenStackTestCase
         //List flavors test
         $flavorsList = $listFlavors = $rs->servers->listFlavors();
         $this->assertTrue(is_array($flavorsList));
+        $flavorId = null;
+        foreach ($flavorsList as $v) {
+            $flavorId = $v->id;
+            break;
+        }
+        $this->assertNotNull($flavorId);
         unset($flavorsList);
 
         //List servers test
@@ -294,9 +477,12 @@ class OpenStackTest extends OpenStackTestCase
         $personality = new PersonalityList(array(
             new Personality('/etc/scalr/private.d/.user-data', base64_encode('super data'))
         ));
+
+        $netList = null;
+
         //Create server test
         $srv = $rs->servers->createServer(
-            self::getTestServerName(), '2', $imageId, null, null, $personality, null
+            self::getTestServerName(), $flavorId, $imageId, null, null, $personality, $netList
         );
         $this->assertInstanceOf('stdClass', $srv);
 
@@ -304,16 +490,10 @@ class OpenStackTest extends OpenStackTestCase
         $this->assertInstanceOf('stdClass', $srv);
         $this->assertNotEmpty($srv->status);
 
-        $maxTimeout = 900;
-        $sleep = 3;
-        while (!in_array($srv->status, array('ACTIVE', 'ERROR'))) {
-            sleep($sleep);
+        for ($t = time(), $s = 10; (time() - $t) < 600 && !in_array($srv->status, array('ACTIVE', 'ERROR')); $s += 1) {
+            sleep($s);
             $srv = $rs->servers->getServerDetails($srv->id);
-            $maxTimeout -= $sleep;
-            $sleep = $sleep * 2;
-            if ($maxTimeout <= 0) break;
         }
-        $this->assertTrue(in_array($srv->status, array('ACTIVE', 'ERROR')));
         $this->assertContains($srv->status, array('ACTIVE', 'ERROR'));
 
         if ($rs->servers->isExtensionSupported(ServersExtension::consoleOutput())) {
@@ -410,15 +590,19 @@ class OpenStackTest extends OpenStackTestCase
             $this->assertTrue($ret);
         }
 
-// 		$imageId = $rs->servers->images->create($srv->id, self::getTestName('image'));
-// 		$this->assertTrue(is_string($imageId));
+        //Create image test
+        $imageId = $rs->servers->images->create($srv->id, self::getTestName('image'));
+        $this->assertTrue(is_string($imageId));
 
         //It requires ACTIVE state of server
-// 		$res = $rs->servers->resizeServer($srv->id, $srv->name, '3');
-// 		$this->assertTrue($res);
+//         $res = $rs->servers->resizeServer($srv->id, $srv->name, '3');
+//         $this->assertTrue($res);
 
-// 		$res = $rs->servers->confirmResizedServer($srv->id);
-// 		$this->assertTrue($res);
+//         $res = $rs->servers->confirmResizedServer($srv->id);
+//         $this->assertTrue($res);
+
+        $ret = $rs->servers->images->delete($imageId);
+        $this->assertTrue($ret);
 
         //Update server test
         $renamedDetails = $rs->servers->updateServer($srv->id, self::getTestServerName('renamed'));

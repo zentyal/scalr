@@ -128,6 +128,40 @@ class SecurityGroupData extends AbstractEc2DataType
     }
 
     /**
+     * AuthorizeSecurityGroupEgress action
+     *
+     * Adds one or more egress rules to a security group for use with a VPC.
+     * Specifically, this action permits instances to send traffic to one or more
+     * destination CIDR IP address ranges, or to one or more destination security groups for the same VPC.
+     *
+     * Important!
+     * You can have up to 50 rules per group (covering both ingress and egress rules).
+     *
+     * A security group is for use with instances either in the EC2-Classic platform or in a specific VPC.
+     * This action doesn't apply to security groups for EC2-Classic.
+     *
+     * Each rule consists of the protocol (for example, TCP), plus either a CIDR range or a source group.
+     * For the TCP and UDP protocols, you must also specify the destination port or port range.
+     * For the ICMP protocol, you must also specify the ICMP type and code.
+     * You can use -1 for the type or code to mean all types or all codes.
+     *
+     * Rule changes are propagated to affected instances as quickly as possible.
+     * However, a small delay might occur.
+     *
+     * @param   IpPermissionList|IpPermissionData|array $ipPermissions
+     *          Ip permission list object
+     *
+     * @return  bool Returns true on success
+     * @throws  ClientException
+     * @throws  Ec2Exception
+     */
+    public function authorizeEgress($ipPermissions)
+    {
+        $this->throwExceptionIfNotInitialized();
+        return $this->getEc2()->securityGroup->authorizeEgress($ipPermissions, $this->groupId);
+    }
+
+    /**
      * RevokeSecurityGroupIngress action
      *
      * This action applies to both EC2 security groups and VPC security groups.
@@ -151,6 +185,33 @@ class SecurityGroupData extends AbstractEc2DataType
     {
         $this->throwExceptionIfNotInitialized();
         return $this->getEc2()->securityGroup->revokeIngress($ipPermissions, $this->groupId);
+    }
+
+    /**
+     * RevokeSecurityGroupEgress action
+     *
+     * Removes one or more egress rules from a security group for EC2-VPC.
+     * The values that you specify in the revoke request (for example, ports)
+     * must match the existing rule's values for the rule to be revoked.
+     *
+     * Each rule consists of the protocol and the CIDR range or destination security group.
+     * For the TCP and UDP protocols, you must also specify the destination port or range of ports.
+     * For the ICMP protocol, you must also specify the ICMP type and code.
+     *
+     * Rule changes are propagated to instances within the security group as quickly as possible.
+     * However, a small delay might occur.
+     *
+     * @param   IpPermissionList|IpPermissionData|array $ipPermissions
+     *          Ip permission list
+     *
+     * @return  bool   Returns true on success
+     * @throws  ClientException
+     * @throws  Ec2Exception
+     */
+    public function revokeEgress($ipPermissions)
+    {
+        $this->throwExceptionIfNotInitialized();
+        return $this->getEc2()->securityGroup->revokeEgress($ipPermissions, $this->groupId);
     }
 
     /**

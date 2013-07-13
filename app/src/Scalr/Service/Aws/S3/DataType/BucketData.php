@@ -8,7 +8,7 @@ use Scalr\Service\Aws\S3\AbstractS3DataType;
 /**
  * BucketData
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     12.11.2012
  */
 class BucketData extends AbstractS3DataType

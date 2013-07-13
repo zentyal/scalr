@@ -7,7 +7,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * LoadBalancerDescriptionList
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    02.10.2012
  * @method   LoadBalancerDescriptionData get() get($position = null) Gets LoadBalancerDescriptionData at specified position
  *                                                                   in the list.

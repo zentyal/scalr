@@ -46,12 +46,22 @@ Scalr.regPage('Scalr.ui.admin.users.view', function (loadParams, moduleParams) {
 			{ text: 'Last login', width: 170, dataIndex: 'dtlastlogin', sortable: true },
 			{
 				xtype: 'optionscolumn',
+				getVisibility: function(record) {
+					if (record.get('email') == 'admin') {
+						return (Scalr.user.userName == 'admin');
+					} else
+						return true;
+				},
+				getOptionVisibility: function (item, record) {
+					return !(item.itemId == 'option.delete' && record.get('email') == 'admin');
+				},
 				optionsMenu: [{
 					text: 'Edit',
 					iconCls: 'x-menu-icon-edit',
 					href: '#/admin/users/{id}/edit'
 				}, {
 					text: 'Remove',
+					itemId: 'option.delete',
 					iconCls: 'x-menu-icon-delete',
 					request: {
 						confirmBox: {

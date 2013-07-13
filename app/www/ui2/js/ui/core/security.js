@@ -9,6 +9,7 @@ Scalr.regPage('Scalr.ui.core.security', function (loadParams, moduleParams) {
 		},
 		items: [{
 			xtype: 'fieldset',
+            hidden: Scalr.flags['authMode'] == 'ldap',
 			items: [{
 				xtype: 'textfield',
 				inputType:'password',
@@ -44,7 +45,7 @@ Scalr.regPage('Scalr.ui.core.security', function (loadParams, moduleParams) {
 							Scalr.utils.Window({
 								xtype: 'form',
 								title: 'Enable two-factor authentication',
-								width: 350,
+								width: 400,
 								items: [{
 									xtype: 'fieldset',
 									defaults: {

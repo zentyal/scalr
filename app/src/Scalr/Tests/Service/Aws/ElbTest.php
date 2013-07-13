@@ -24,7 +24,7 @@ use Scalr\Service\Aws;
 /**
  * AWS Elb Test
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     25.09.2012
  */
 class ElbTest extends ElbTestCase
@@ -111,7 +111,10 @@ class ElbTest extends ElbTestCase
         $tries = 0;
         do {
             try {
-                $loadBalancer = $this->elb->loadBalancer->create($loadBalancerName, $listenersList, $availabilityZonesList, $subnetsList, $securityGroupsList, $scheme);
+                $dnsName = $this->elb->loadBalancer->create(
+                    $loadBalancerName, $listenersList, $availabilityZonesList, $subnetsList, $securityGroupsList, $scheme
+                );
+                $loadBalancer = $this->elb->loadBalancer->describe($loadBalancerName)->get(0);
                 break;
             } catch (QueryClientException $e) {
                 if ($e->getErrorData()->getCode() != ErrorData::ERR_DUPLICATE_LOAD_BALANCER_NAME) {
@@ -201,17 +204,17 @@ class ElbTest extends ElbTestCase
         $lb2 = $repo->find(self::getTestName(self::LB_NAME_FUNC_TEST_2));
         $this->assertInstanceOf(self::CLASS_LOAD_BALANCER_DESCRIPTION_DATA, $lb2);
         try {
-            $lbSameName = $this->elb->loadBalancer->create(self::getTestName(self::LB_NAME_FUNC_TEST_2), array(
+            $dnsName = $this->elb->loadBalancer->create(self::getTestName(self::LB_NAME_FUNC_TEST_2), array(
                 array(
                     'loadBalancerPort' => 1026,
-                    'instancePort' => 1026,
-                    'protocol' => 'HTTP',
+                    'instancePort'     => 1026,
+                    'protocol'         => 'HTTP',
                     'sslCertificateId' => null
                 )
             ), array(
                 AwsTestCase::AVAILABILITY_ZONE_D
             ));
-            $this->assertTrue(false, 'QueryClientException should be raised.');
+            $this->assertTrue(false, 'QueryClientException must be thrown here.');
         } catch (QueryClientException $exeption) {
             $this->assertInstanceOf(self::CLASS_ERROR_DATA, $exeption->getErrorData());
             $this->assertEquals(ErrorData::ERR_DUPLICATE_LOAD_BALANCER_NAME, $exeption->getErrorData()->getCode());
@@ -230,7 +233,7 @@ class ElbTest extends ElbTestCase
         $this->assertEquals(2, count($list));
         try {
             $this->elb->loadBalancer->describe('unknown-load-balancer-name');
-            $this->assertTrue(false, 'QueryClientException should be raised!');
+            $this->assertTrue(false, 'QueryClientException must be thrown here!');
         } catch (QueryClientException $e) {
             $this->assertInstanceOf(self::CLASS_ERROR_DATA, $e->getErrorData());
             $this->assertEquals(ErrorData::ERR_LOAD_BALANCER_NOT_FOUND, $e->getErrorData()->getCode());
@@ -245,7 +248,7 @@ class ElbTest extends ElbTestCase
             $one->applySecurityGroups(array(
                 'sg-1'
             ));
-            $this->assertTrue(false, 'QueryClientException should be raised.');
+            $this->assertTrue(false, 'QueryClientException must be thrown here.');
         } catch (QueryClientException $e) {
             $this->assertEquals(ErrorData::ERR_INVALID_CONFIGURATION_REQUEST, $e->getErrorData()->getCode());
         }
@@ -442,7 +445,7 @@ class ElbTest extends ElbTestCase
             $this->assertNotContains(AwsTestCase::AVAILABILITY_ZONE_A, $ret);
             $this->assertEquals($ret, $loadBalancer->availabilityZones);
 
-            //Tests that depends from Instance which should be previously created.
+            //It depends from the instance which should be created before this test.
             //RunInstance test
             $request = new RunInstancesRequestData('ami-82fa58eb', 1, 1);
             $request->instanceType = 'm1.small';

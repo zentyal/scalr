@@ -118,7 +118,7 @@ class LogRecord
      */
     public static function generateUuid()
     {
-        return sprintf( '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
             // 32 bits for "time_low"
             mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ),
 

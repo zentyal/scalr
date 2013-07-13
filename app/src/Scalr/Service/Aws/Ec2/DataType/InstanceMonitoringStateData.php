@@ -16,6 +16,8 @@ class InstanceMonitoringStateData extends AbstractEc2DataType
 
     const STATE_DISABLED = 'disabled';
 
+    const STATE_DISABLING = 'disabling';
+
     const STATE_ENABLED  = 'enabled';
 
     const STATE_PENDING  = 'pending';

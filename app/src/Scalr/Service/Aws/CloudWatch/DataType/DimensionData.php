@@ -8,7 +8,7 @@ use Scalr\Service\Aws\CloudWatch\AbstractCloudWatchDataType;
  *
  * The Dimension data type further expands on the identity of a metric using a Name, Value pair.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     24.10.2012
  * @method string        getMetricName() getMetricName()                   Gets a metric name which is associated with dimension.
  * @method DimensionData setMetricName() setMetricName(string $metricName) Sets the metric name which is associated with dimension.

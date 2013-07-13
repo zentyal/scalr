@@ -38,6 +38,11 @@ Ext.define('Scalr.ui.VariableField', {
 		ct.suspendLayouts();
 		ct.removeAll();
 
+		if (value.length < 10)
+			this.down('filterfield').hide();
+		else
+			this.down('filterfield').show();
+
 		for (var i in value) {
 			var f = ct.add({
 				currentScope: currentScope,
@@ -49,6 +54,7 @@ Ext.define('Scalr.ui.VariableField', {
 			f.setFieldValues(value[i]);
 
 			f.down('[name="value"]').emptyText = value[i]['defaultValue'] || '';
+
 			if (value[i]['flagRequiredGlobal'] == 1) {
 				if (! f.down('[name="value"]').emptyText)
 					f.down('[name="value"]').allowBlank = false;
@@ -63,8 +69,20 @@ Ext.define('Scalr.ui.VariableField', {
 				f.down('[name="flagFinal"]').disable();
 				f.down('[name="flagFinal"]').setValue(1);
 				f.down('[name="flagRequired"]').disable();
-				f.down('#delete').disable();
+
+				if (value[i]['scope'] != currentScope)
+					f.down('#delete').disable();
 			}
+
+			// not to change required and final for high-scope variables or for last scope (farmrole)
+			if (value[i]['defaultScope'] != currentScope || currentScope == 'farmrole') {
+				f.down('[name="flagFinal"]').disable();
+				f.down('[name="flagRequired"]').disable();
+			}
+
+			// not to remove variables from higher scopes
+			if (value[i]['defaultScope'] != currentScope)
+				f.down('#delete').disable();
 
 			if (value[i]['flagDelete'] == 1)
 				f.hide();
@@ -108,21 +126,30 @@ Ext.define('Scalr.ui.VariableField', {
 				newValue: true
 			});
 			f.down('[name="newName"]').validatorNames = names;
+			if (currentScope == 'farmrole') {
+				f.down('[name="flagFinal"]').disable();
+				f.down('[name="flagRequired"]').disable();
+			}
 			ct.resumeLayouts(true);
 		};
 
-		ct.add({
+		var f = ct.add({
 			xtype: 'variablevaluefield',
 			currentScope: currentScope,
 			plugins: {
 				ptype: 'addfield',
 				handler: handler
 			}
-		}).setFieldValues({
+		});
+		f.setFieldValues({
 			defaultScope: currentScope,
 			scope: currentScope,
 			newValue: true
 		});
+		if (currentScope == 'farmrole') {
+			f.down('[name="flagFinal"]').disable();
+			f.down('[name="flagRequired"]').disable();
+		}
 
 		ct.resumeLayouts(true);
 	},
@@ -146,6 +173,30 @@ Ext.define('Scalr.ui.VariableField', {
 						f.removeCls('x-form-display-field-mark');
 				});
 			}
+		}, {
+			xtype: 'container',
+            layout: 'hbox',
+            margin: '0 0 8 0',
+            defaults: {
+                style: 'font-weight:bold;text-shadow: 0 1px #fff;'
+            },
+            items: [{
+                xtype: 'label',
+                text: 'Scope',
+                width: 52
+            },{
+                xtype: 'label',
+                text: 'Name',
+                width: 154
+            },{
+                xtype: 'label',
+                text: 'Value',
+                flex: 1
+            },{
+                xtype: 'label',
+                text: 'Options',
+                width: 75
+            }]
 		}, {
 			xtype: 'container',
 			itemId: 'ct',
@@ -186,11 +237,11 @@ Ext.define('Scalr.ui.VariableField', {
 		}, {
 			xtype: 'displayfield',
 			cls: 'scalr-ui-variablefield scalr-ui-variablefield-flag-required',
-			value: '<div class="x-btn-inner"></div> Required to set on lower level'
+			value: '<div class="x-btn-inner"></div> Shall be set on a lower level'
 		}, {
 			xtype: 'displayfield',
 			cls: 'scalr-ui-variablefield scalr-ui-variablefield-flag-final',
-			value: '<div class="x-btn-inner"></div> Cannot be changed on lower level'
+			value: '<div class="x-btn-inner"></div> Cannot be changed on a lower level'
 		}, {
 			xtype: 'component',
 			cls: 'x-fieldset-delimiter'
@@ -232,11 +283,27 @@ Ext.define('Scalr.ui.VariableValueField', {
 	}, {
 		xtype: 'displayfield',
 		name: 'scope',
+        width: 46,
 		fieldSubTpl: '<div class="icon"><div id="{id}" style="display: none"></div></div>',
+		updateTitle: function(value) {
+			var names = {
+				env: 'Environment',
+				role: 'Role',
+				farm: 'Farm',
+				farmrole: 'FarmRole'
+			};
+			this.bodyEl.down('div.icon').set({ title: names[value] || value });
+		},
 		listeners: {
 			change: function(field, value, prev) {
 				this.removeCls('scalr-ui-variablefield-scope-' + prev);
 				this.addCls('scalr-ui-variablefield-scope-' + value);
+
+				if (this.rendered)
+					this.updateTitle(value);
+			},
+			afterrender: function() {
+				this.updateTitle(this.getValue());
 			}
 		}
 	}, {
@@ -255,6 +322,7 @@ Ext.define('Scalr.ui.VariableValueField', {
 		fieldCls: 'x-form-field',
 		submitValue: false,
 		allowChangeable: false,
+		allowChangeableMsg: 'Variable name, cannot be changed',
 		margin: '0 0 0 5',
 		width: 150,
 		validatorNames: [],
@@ -323,6 +391,11 @@ Ext.define('Scalr.ui.VariableValueField', {
 						this.setMode('multi', true);
 					}
 				},
+
+				focus: function() {
+					var c = this.up('container');
+					c.prev('[name="scope"]').setValue(c.up('variablevaluefield').currentScope);
+				},
 				
 				blur: function() {
 					var c = this.up('container');
@@ -351,6 +424,7 @@ Ext.define('Scalr.ui.VariableValueField', {
 		baseCls: 'x-btn-base-image-background',
 		margin: '0 0 0 5',
 		name: 'flagFinal',
+		tooltip: 'Cannot be changed on a lower level',
 		inputValue: 1,
 		enableToggle: true,
 		submitValue: false
@@ -360,6 +434,7 @@ Ext.define('Scalr.ui.VariableValueField', {
 		baseCls: 'x-btn-base-image-background',
 		margin: '0 0 0 5',
 		name: 'flagRequired',
+		tooltip: 'Shall be set on a lower level',
 		inputValue: 1,
 		enableToggle: true,
 		submitValue: false

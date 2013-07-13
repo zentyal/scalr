@@ -9,7 +9,7 @@ use Scalr\Service\Aws\Elb\AbstractElbDataType;
  * The PolicyAttributeTypeDescription data type. This data type is used to describe values that are
  * acceptable for the policy attribute
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    19.09.2012
  */
 class PolicyAttributeTypeDescriptionData extends AbstractElbDataType

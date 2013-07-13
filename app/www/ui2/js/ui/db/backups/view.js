@@ -3,8 +3,8 @@ Scalr.regPage('Scalr.ui.db.backups.view', function (loadParams, moduleParams) {
 	var panel = Ext.create('Ext.panel.Panel', {
 		title: 'DB Backups',
 		scalrOptions: {
-			'maximize': 'all'
-			//'reload': false
+			maximize: 'all'
+			//reload: false
 		},
 		dataStore: {},
 		scalrReconfigureParams: {},
@@ -30,14 +30,44 @@ Scalr.regPage('Scalr.ui.db.backups.view', function (loadParams, moduleParams) {
 			xtype: 'toolbar',
 			dock: 'top',
 			items: [{
-				xtype: 'triggerfield',
-				triggerCls: 'x-form-search-trigger',
+				xtype: 'combo',
+				fieldLabel: 'Farm',
+				labelWidth: 34,
 				width: 250,
-				emptyText: 'Search',
-				onTriggerClick: function() {
-					panel.getListbyDateAndSet();
+				matchFieldWidth: false,
+				listConfig: {
+					minWidth: 150
+				},
+				store: {
+					fields: [ 'id', 'name' ],
+					data: moduleParams['farms'],
+					proxy: 'object'
+				},
+				editable: false,
+				queryMode: 'local',
+				itemId: 'farmId',
+				value: loadParams['farmId'] || 0,
+				valueField: 'id',
+				displayField: 'name',
+				listeners: {
+					change: function() {
+						panel.getListbyDateAndSet({
+							farmId: this.getValue()
+						});
+					}
 				}
 			}, ' ', {
+				iconCls: 'x-tbar-page-prev',
+				ui: 'paging',
+				xtype: 'button',
+				handler: function() {
+					var dt = new Date(this.next().getValue());
+					dt = Ext.Date.add(dt, Ext.Date.MONTH, -1);
+					this.next().setValue(dt);
+					panel.down('#dbbackupsScalrMonthcalendar').setCurrentDate(dt);
+					panel.getListbyDateAndSet();
+				}
+			}, {
 				xtype: 'monthfield',
 				format: 'F Y',
 				value: new Date(),
@@ -49,7 +79,25 @@ Scalr.regPage('Scalr.ui.db.backups.view', function (loadParams, moduleParams) {
 						panel.getListbyDateAndSet();
 					}
 				}
-			}, ' ', {
+			}, {
+				iconCls: 'x-tbar-page-next',
+				ui: 'paging',
+				xtype: 'button',
+				handler: function() {
+					var dt = new Date(this.prev().getValue());
+					dt = Ext.Date.add(dt, Ext.Date.MONTH, 1);
+					this.prev().setValue(dt);
+					panel.down('#dbbackupsScalrMonthcalendar').setCurrentDate(dt);
+					panel.getListbyDateAndSet();
+				}
+			}, '-', {
+                iconCls: 'x-tbar-loading',
+                ui: 'paging',
+                xtype: 'button',
+                handler: function() {
+                    panel.getListbyDateAndSet();
+                }
+            },' ', {
 				hidden: true,
 				xtype: 'button',
 				text: 'Back to the month view',
@@ -64,14 +112,20 @@ Scalr.regPage('Scalr.ui.db.backups.view', function (loadParams, moduleParams) {
 		}],
 		getListbyDateAndSet: function () {
 			Scalr.Request({
-				url: 'db/backups/xGetListBackups',
+				url: '/db/backups/xGetListBackups',
 				processBox: {
 					type: 'action'
 				},
-				params: { time: panel.convertDateFromPicker(), query: panel.down('triggerfield').getRawValue(), farmId: loadParams['farmId'] },
+				params: {
+					time: panel.convertDateFromPicker(),
+					farmId: panel.down('#farmId').getValue()
+				},
 				success: function (data, response, options) {
-					if(data && data[ 'backups' ]) {
-						panel.down('#dbbackupsScalrMonthcalendar').setStoreData(data['backups'][panel.getCurrentMonthAndYear()] );
+					if(data && data['backups']) {
+						panel.down('#dbbackupsScalrMonthcalendar').setStoreData(data['backups'][panel.getCurrentMonthAndYear()]);
+                        panel.down('#dbbackupsScalrDaycalendar').setStoreData(
+                            panel.down('#dbbackupsScalrMonthcalendar').getStoreData(panel.down('#dbbackupsScalrDaycalendar').getCurrentDate())
+                        );
 						panel.dataStore = data['backups'];
 					}
 				}
@@ -84,13 +138,13 @@ Scalr.regPage('Scalr.ui.db.backups.view', function (loadParams, moduleParams) {
 			} else return '';
 		},
 		convertDateForDayView: function (day) {
-			if(this.down('#dateSelector')) {
+			if (this.down('#dateSelector')) {
 				var value = this.down('#dateSelector').getValue();
 				return new Date((value.getMonth()+1) + '/' + day + '/' + value.getFullYear());
 			} else return '';
 		},
 		getCurrentMonthAndYear: function () {
-			return Ext.Date.format(panel.down( '#dbbackupsScalrMonthcalendar' ).getCurrentDate(),'n Y');
+			return Ext.Date.format(panel.down('#dbbackupsScalrMonthcalendar').getCurrentDate(),'n Y');
 		},
 		onBoxReady: function () {
 			if(!moduleParams['backups'])
@@ -107,7 +161,7 @@ Scalr.regPage('Scalr.ui.db.backups.view', function (loadParams, moduleParams) {
 				if (e.getTarget('div.scalr-ui-dbbackups-cell-content')) {
 					Scalr.event.fireEvent('redirect', '#/db/backups/details?backupId=' + e.getTarget('div.scalr-ui-dbbackups-cell-content').getAttribute('backupId'));
 				}
-				if (e.getTarget( 'div.scalr-ui-dbbackups-cell-title-right') && !e.getTarget('div.scalr-ui-dbbackups-cell-content')) {
+				if (e.getTarget('div.scalr-ui-dbbackups-cell-title-right') && !e.getTarget('div.scalr-ui-dbbackups-cell-content')) {
 					var currentMonthYear = panel.down('#dateSelector').getValue();
 					panel.down('#dbbackupsScalrDaycalendar').setCurrentDate(
 						panel.convertDateForDayView(

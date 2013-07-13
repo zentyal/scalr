@@ -11,14 +11,14 @@ $ScalrUpdate->Run();
 
 class Update20130311
 {
-	public function Run()
-	{
-		global $db;
+    public function Run()
+    {
+        global $db;
 
-		$time = microtime(true);
+        $time = microtime(true);
 
-		$db->Execute('ALTER TABLE  `messages` ADD  `ipaddress` VARCHAR( 15 ) NULL');
-        
+        $db->Execute('ALTER TABLE  `messages` ADD  `ipaddress` VARCHAR( 15 ) NULL');
+
         $db->Execute("CREATE  TABLE IF NOT EXISTS `global_variables` (
               `env_id` INT NOT NULL ,
               `role_id` INT NOT NULL ,
@@ -36,20 +36,20 @@ class Update20130311
               INDEX `farm_role_id` (`farm_role_id` ASC) )
             ENGINE = InnoDB
         ");
-        
+
         $db->Execute("ALTER TABLE  `global_variables` ADD FOREIGN KEY (  `env_id` ) REFERENCES `client_environments` (
             `id`
             ) ON DELETE CASCADE ON UPDATE NO ACTION ;
         ");
 
-		print "Done.\n";
+        print "Done.\n";
 
-		$t = round(microtime(true) - $time, 2);
+        $t = round(microtime(true) - $time, 2);
 
-		printf("Upgrade process took %0.2f seconds\n\n\n", $t);
-	}
+        printf("Upgrade process took %0.2f seconds\n\n\n", $t);
+    }
 
-	public function migrate()
-	{
-	}
+    public function migrate()
+    {
+    }
 }

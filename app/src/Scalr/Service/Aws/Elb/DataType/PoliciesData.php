@@ -10,7 +10,7 @@ use Scalr\Service\Aws\Elb\DataType\LbCookieStickinessPolicyList;
  *
  * Contains the result of a successful invocation of DescribeLoadBalancers
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    19.09.2012
  * @property AppCookieStickinessPolicyList $appCookieStickinessPolicies A list of the AppCookieStickinessPolicy objects created
  *                                                                      with CreateAppCookieStickinessPolicy

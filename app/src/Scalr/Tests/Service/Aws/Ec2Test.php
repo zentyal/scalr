@@ -1,6 +1,8 @@
 <?php
 namespace Scalr\Tests\Service\Aws;
 
+use Scalr\Service\Aws\Ec2\DataType\EbsBlockDeviceData;
+use Scalr\Service\Aws\Ec2\DataType\InstanceMonitoringStateData;
 use Scalr\Service\Aws\Ec2\DataType\InstanceStateChangeData;
 use Scalr\Service\Aws\Ec2\DataType\InstanceAttributeType;
 use Scalr\Service\Aws\Ec2\DataType\RouteData;
@@ -84,7 +86,16 @@ class Ec2Test extends AwsTestCase
 
     const NAME_SUBNET = 'subnet';
 
-    const NAME_TAG_VALUE = 'tag-value';
+    const NAME_TAG_VALUE = 'tag → value';
+
+    const NAME_SNAPSHOT = 'sn';
+
+    const NAME_SECURITY_GROUP_VPC = 'sg-vpc';
+
+    const INSTANCE_TYPE = 'm1.small';
+
+    const INSTANCE_IMAGE_ID = 'ami-82fa58eb';
+
 
     /**
      * {@inheritdoc}
@@ -113,6 +124,31 @@ class Ec2Test extends AwsTestCase
     public function getEc2Mock($callback = null)
     {
         return $this->getServiceInterfaceMock('Ec2');
+    }
+
+    public function testUnmonitorInstances()
+    {
+        $ec2 = $this->getEc2Mock();
+        $list = $ec2->instance->unmonitor(array('i-43a4412a', 'i-23a3397d'));
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\MonitorInstancesResponseSetList'), $list);
+        $this->assertSame($ec2, $list->getEc2());
+        $this->assertEquals(2, count($list));
+
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\MonitorInstancesResponseSetData'), $list->get(0));
+        $this->assertSame($ec2, $list->get(0)->getEc2());
+        $this->assertEquals('i-43a4412a', $list->get(0)->instanceId);
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\InstanceMonitoringStateData'), $list->get(0)->monitoring);
+        $this->assertSame($ec2, $list->get(0)->monitoring->getEc2());
+        $this->assertEquals(InstanceMonitoringStateData::STATE_DISABLED, $list->get(0)->monitoring->state);
+
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\MonitorInstancesResponseSetData'), $list->get(1));
+        $this->assertSame($ec2, $list[1]->getEc2());
+        $this->assertEquals('i-23a3397d', $list[1]->instanceId);
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\InstanceMonitoringStateData'), $list[1]->monitoring);
+        $this->assertSame($ec2, $list[1]->monitoring->getEc2());
+        $this->assertEquals(InstanceMonitoringStateData::STATE_DISABLED, $list[1]->monitoring->state);
+
+        $ec2->getEntityManager()->detachAll();
     }
 
     /**
@@ -200,7 +236,7 @@ class Ec2Test extends AwsTestCase
         $this->assertInstanceOf($this->getAwsClassName('Ec2'), $i1->instanceState->getEc2());
         $this->assertEquals(16, $i1->instanceState->code);
         $this->assertEquals('running', $i1->instanceState->name);
-        $this->assertNull($i1->privateDnsName);
+        $this->assertEquals('', $i1->privateDnsName);
         $this->assertNull($i1->dnsName);
         $this->assertNull($i1->reason);
         $this->assertEquals('VPCKey', $i1->keyName);
@@ -711,7 +747,7 @@ class Ec2Test extends AwsTestCase
         $this->assertEquals('59dbff89-35bd-4eac-99ed-be587EXAMPLE', $output->getRequestId());
         $this->assertEquals('i-28a64341', $output->instanceId);
         $this->assertEquals('2010-10-14T01:12:41+00:00', $output->timestamp->format('c'));
-        $this->assertContains('727MB LOWMEM available.', $output->output);
+        $this->assertContains('YXZlIGFuZCByZXN0b3JlLi4uIGRvbmUuCg==', $output->output);
     }
 
     /**
@@ -828,6 +864,22 @@ class Ec2Test extends AwsTestCase
     /**
      * @test
      */
+    public function testFunctionalErrorMessageShouldContainAction()
+    {
+        $this->skipIfEc2PlatformDisabled();
+        $aws = $this->getContainer()->aws(AwsTestCase::REGION);
+
+        try {
+            $group = $aws->ec2->securityGroup->create('5 &% illegal group name ^{', '');
+            $this->assertTrue(false, 'ClientException must be thrown here.');
+        } catch (ClientException $e) {
+            $this->assertContains('Request CreateSecurityGroup failed.', $e->getMessage());
+        }
+    }
+
+    /**
+     * @test
+     */
     public function testFunctionalEc2()
     {
         $this->skipIfEc2PlatformDisabled();
@@ -838,17 +890,6 @@ class Ec2Test extends AwsTestCase
         $aws2 = $this->getContainer()->aws(Aws::REGION_US_WEST_2);
 
         $nameTag = new ResourceTagSetData(self::TAG_NAME_KEY, self::getTestName(self::NAME_TAG_VALUE));
-
-        $placementGroups = $aws->ec2->placementGroup->describe(
-            null, new PlacementGroupFilterData(PlacementGroupFilterNameType::groupName(), self::getTestName('placement-group'))
-        );
-        $this->assertInstanceOf($this->getEc2ClassName('DataType\\PlacementGroupList'), $placementGroups);
-        /* @var $pg PlacementGroupData */
-        foreach ($placementGroups as $pg) {
-            $pg->delete();
-            unset($pg);
-        }
-        unset($placementGroups);
 
         $subnetList = $aws->ec2->subnet->describe();
         $this->assertInstanceOf($this->getEc2ClassName('DataType\\SubnetList'), $subnetList);
@@ -862,7 +903,13 @@ class Ec2Test extends AwsTestCase
         $this->assertInstanceOf($this->getEc2ClassName('DataType\\VolumeList'), $volumeList);
         unset($volumeList);
 
-        $snapshotList = $aws->ec2->snapshot->describe(null, 'self', new SnapshotFilterData(SnapshotFilterNameType::tag(self::TAG_NAME_KEY), self::getTestName(self::NAME_TAG_VALUE)));
+        $snapshotList = $aws->ec2->snapshot->describe(
+            null, 'self',
+            new SnapshotFilterData(
+                SnapshotFilterNameType::tag(self::TAG_NAME_KEY),
+                self::getTestName(self::NAME_TAG_VALUE)
+            )
+        );
         $this->assertInstanceOf($this->getEc2ClassName('DataType\\SnapshotList'), $snapshotList);
         /* @var $sn SnapshotList */
         foreach ($snapshotList as $sn) {
@@ -871,7 +918,11 @@ class Ec2Test extends AwsTestCase
         unset($snapshotList);
 
         $reservationsList = $aws->ec2->instance->describe(
-            null, new InstanceFilterData(InstanceFilterNameType::tag(self::TAG_NAME_KEY), self::getTestName(self::NAME_TAG_VALUE))
+            null,
+            new InstanceFilterData(
+                InstanceFilterNameType::tag(self::TAG_NAME_KEY),
+                self::getTestName(self::NAME_TAG_VALUE)
+            )
         );
         $this->assertInstanceOf($this->getEc2ClassName('DataType\\ReservationList'), $reservationsList);
         foreach ($reservationsList as $r) {
@@ -892,11 +943,33 @@ class Ec2Test extends AwsTestCase
                         $aws->ec2->address->release($v->publicIp);
                     }
                     unset($adlist);
-                    $i->terminate();
+                } else if ($ds->instanceState->name == InstanceStateData::NAME_TERMINATED ||
+                           $ds->instanceState->name == InstanceStateData::NAME_SHUTTING_DOWN) {
+                    continue;
                 }
-                break;
+                $i->terminate();
+                $i = $i->refresh();
+                for ($t = time(); time() - $t < 100 && isset($i->instanceState) &&
+                     !in_array($i->instanceState->name, array(InstanceStateData::NAME_TERMINATED)); sleep(5)) {
+                    $i = $i->refresh();
+                }
             }
         }
+
+        $placementGroups = $aws->ec2->placementGroup->describe(
+            null,
+            new PlacementGroupFilterData(
+                PlacementGroupFilterNameType::groupName(),
+                self::getTestName('placement-group')
+            )
+        );
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\PlacementGroupList'), $placementGroups);
+        /* @var $pg PlacementGroupData */
+        foreach ($placementGroups as $pg) {
+            $pg->delete();
+            unset($pg);
+        }
+        unset($placementGroups);
 
         $reservedInstancesList = $aws->ec2->reservedInstance->describe();
         $this->assertInstanceOf($this->getEc2ClassName('DataType\\ReservedInstanceList'), $reservedInstancesList);
@@ -926,27 +999,114 @@ class Ec2Test extends AwsTestCase
         $this->assertInstanceOf($this->getEc2ClassName('DataType\\AddressList'), $al);
         unset($al);
 
+        //Describes keypair
+        $keyname = self::getTestName('keyname');
+        $kplist = $aws->ec2->keyPair->describe(null, array('key-name' => $keyname));
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\KeyPairList'), $kplist);
+        if (count($kplist) > 0) {
+            foreach ($kplist as $kp) {
+                $kp->delete();
+            }
+        }
+        unset($kplist);
+
+        //Creates keypair
+        $kp = $aws->ec2->keyPair->create($keyname);
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\KeyPairData'), $kp);
+        $this->assertEquals($keyname, $kp->keyName);
+        $this->assertNotNull($kp->keyFingerprint);
+        $this->assertNotNull($kp->keyMaterial);
+
+        //We should be assured that group which is used for the test does not exists
+        $list = $aws->ec2->securityGroup->describe(
+            null, null,
+            new SecurityGroupFilterData(SecurityGroupFilterNameType::groupName(), self::getTestName('security-group'))
+        );
+        if (count($list) > 0) {
+            foreach ($list as $v) {
+                $v->delete();
+            }
+        }
+        unset($list);
+
+        //Creates security group
+        $securityGroupId = $aws->ec2->securityGroup->create(self::getTestName('security-group'), self::getTestName('security-group') . ' description');
+        $this->assertNotEmpty($securityGroupId);
+        sleep(2);
+        /* @var $sg SecurityGroupData */
+        $sg = $aws->ec2->securityGroup->describe(null, $securityGroupId)->get(0);
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\SecurityGroupData'), $sg);
+        $this->assertNotEmpty($sg->groupId);
+        $this->assertEquals(self::getTestName('security-group'), $sg->groupName);
+        $this->assertContains(self::getTestName('security-group'), $sg->groupDescription);
+
+        $ret = $sg->createTags($nameTag);
+        $this->assertTrue($ret);
+
+        //Verifies that security group entity which is stored in manager is the same object
+        $sgMirror = $aws->ec2->securityGroup->get($sg->groupId);
+        $this->assertSame($sg, $sgMirror);
+        unset($sgMirror);
+
+        //Athorizes Security Group Ingress
+        $ipperm = new IpPermissionData('tcp', 80, 80, new IpRangeList(array(new IpRangeData('192.0.2.0/24'), new IpRangeData('192.51.100.0/24'))));
+        $ret = $sg->authorizeIngress($ipperm);
+        $this->assertTrue($ret);
+
+        $ipperm2 = new IpPermissionData('tcp', 8080, 8080, new IpRangeList(array(new IpRangeData('192.66.12.0/24'))));
+        $ret = $sg->authorizeIngress($ipperm2);
+        $this->assertTrue($ret);
+        $ret = $sg->revokeIngress($ipperm2);
+        $this->assertTrue($ret);
+
+        //Describes itself
+        $sg->refresh();
+        $this->assertContains(self::TAG_NAME_KEY, $sg->tagSet->getQueryArrayBare('Tag'));
+
+        //Creates placement group
+        $ret = $aws->ec2->placementGroup->create(self::getTestName('placement-group'));
+        $this->assertTrue($ret);
+        //Sometimes it takes a moment
+        sleep(3);
+        $pg = $aws->ec2->placementGroup->describe(self::getTestName('placement-group'))->get(0);
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\PlacementGroupData'), $pg);
+        $this->assertEquals(self::getTestName('placement-group'), $pg->groupName);
+        $this->assertSame($pg, $aws->ec2->placementGroup->get($pg->groupName));
 
         //RunInstance test
-        $request = new RunInstancesRequestData('ami-82fa58eb', 1, 1);
-        $request->instanceType = 'm1.small';
-        $placement = new PlacementResponseData();
-        $placement->availabilityZone = AwsTestCase::AVAILABILITY_ZONE_A;
-        $request->setPlacement($placement);
+        $request = new RunInstancesRequestData(self::INSTANCE_IMAGE_ID, 1, 1);
+        $request->instanceType = self::INSTANCE_TYPE;
+        //Placement groups may not be used with instances of type 'm1.small'.
+        $request->setPlacement(new PlacementResponseData(AwsTestCase::AVAILABILITY_ZONE_A));
+        $request->setMonitoring(true);
+        $request->ebsOptimized = false;
+        $request->userData = base64_encode("test=26;");
+        $request->appendSecurityGroupId($securityGroupId);
+        $request->appendBlockDeviceMapping(new BlockDeviceMappingData(
+            "/dev/sdb", 'ephemeral0', null,
+            new EbsBlockDeviceData(1, null, null, null, true)
+        ));
+        $request->keyName = $keyname;
+
         $rd = $aws->ec2->instance->run($request);
         $this->assertInstanceOf($this->getEc2ClassName('DataType\\ReservationData'), $rd);
         /* @var $ind InstanceData */
         $ind = $rd->instancesSet[0];
         unset($request);
 
+        //Monitors instance
+        $ret = $ind->monitor();
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\MonitorInstancesResponseSetList'), $ret);
+        $this->assertContains($ret->get(0)->monitoring->state, array(
+            InstanceMonitoringStateData::STATE_PENDING,
+            InstanceMonitoringStateData::STATE_ENABLED,
+        ));
+        unset($ret);
+
         //Instance state must be in the running state
-        $maxTimeout = 300;
-        $interval = 2;
-        while ($ind->instanceState->name !== InstanceStateData::NAME_RUNNING && $maxTimeout > 0) {
-            sleep($interval);
-            $maxTimeout -= $interval;
-            $interval *= 2;
-            $ind->refresh();
+        for ($t = time(), $s = 5; time() - $t < 300 && $ind->instanceState->name !== InstanceStateData::NAME_RUNNING; $s += 5) {
+            sleep($s);
+            $ind = $ind->refresh();
         }
         $this->assertEquals(InstanceStateData::NAME_RUNNING, $ind->instanceState->name);
 
@@ -960,19 +1120,32 @@ class Ec2Test extends AwsTestCase
         //Removes an extratag
         $ind->deleteTags(array(array('key' => 'Extratag', 'value' => null)));
 
+        $this->assertEquals(self::INSTANCE_TYPE, $ind->instanceType);
+        $this->assertEquals(self::INSTANCE_IMAGE_ID, $ind->imageId);
+        $this->assertEquals(false, $ind->ebsOptimized);
+        $this->assertContains($ind->monitoring->state, array('enabled', 'pending'));
+        $this->assertEquals(AwsTestCase::AVAILABILITY_ZONE_A, $ind->placement->availabilityZone);
+        $this->assertEquals($keyname, $ind->keyName);
+
+        $this->assertContains($securityGroupId, array_map(function($arr){
+            return $arr->groupId;
+        }, iterator_to_array($ind->groupSet, false)));
+
+        $this->assertContains(array("/dev/sdb", ''), array_map(function($arr){
+            return array($arr->deviceName, $arr->virtualName);
+        }, iterator_to_array($ind->blockDeviceMapping, false)));
+
         //Creates AMI
 //         $cr = new CreateImageRequestData($ind->instanceId, sprintf(self::getTestName('i%s'), $ind->instanceId));
 //         $cr->description = 'It is supposed to be removed immediately after creation.';
-//         $ami = $aws->ec2->image->create($cr);
+//         $imageId = $aws->ec2->image->create($cr);
+//         sleep(3);
+//         $ami = $aws->ec2->image->describe($imageId);
 //         $this->assertInstanceOf($this->getEc2ClassName('DataType\\ImageData'), $ami);
 //         $this->assertNotNull($ami->imageId);
 //         //Waits while snapshot is created.
-//         $maxTimeout = 300;
-//         $interval = 2;
-//         while ($ami->imageState === ImageData::STATE_PENDING && $maxTimeout > 0) {
-//             sleep($interval);
-//             $maxTimeout -= $interval;
-//             $interval *= 2;
+//         for ($t = time(), $s = 5; time() - $t < 300 && $ami->imageState === ImageData::STATE_PENDING; $s += 5) {
+//             sleep($s);
 //             $ami = $ami->refresh();
 //         }
 //         $this->assertTrue(in_array($ami->imageState, array(ImageData::STATE_AVAILABLE, SnapshotData::STATUS_ERROR)));
@@ -1020,29 +1193,6 @@ class Ec2Test extends AwsTestCase
         unset($adlist);
         unset($address);
 
-        //Describes keypair
-        $keyname = self::getTestName('keyname');
-        $kplist = $aws->ec2->keyPair->describe(null, array('key-name' => $keyname));
-        $this->assertInstanceOf($this->getEc2ClassName('DataType\\KeyPairList'), $kplist);
-        if (count($kplist) > 0) {
-            foreach ($kplist as $kp) {
-                $kp->delete();
-            }
-        }
-        unset($kplist);
-
-        //Creates keypair
-        $kp = $aws->ec2->keyPair->create($keyname);
-        $this->assertInstanceOf($this->getEc2ClassName('DataType\\KeyPairData'), $kp);
-        $this->assertEquals($keyname, $kp->keyName);
-        $this->assertNotNull($kp->keyFingerprint);
-        $this->assertNotNull($kp->keyMaterial);
-
-        //Removes keypair
-        $ret = $kp->delete();
-        $this->assertTrue($ret);
-        unset($kp);
-
         //Creates the volume
         $cvRequest = new CreateVolumeRequestData(AwsTestCase::AVAILABILITY_ZONE_A);
         $cvRequest->setSize(2)->setVolumeType(CreateVolumeRequestData::VOLUME_TYPE_STANDARD);
@@ -1055,13 +1205,9 @@ class Ec2Test extends AwsTestCase
         $this->assertTrue($res);
 
         //Volume must be in the Available status
-        $maxTimeout = 120;
-        $interval = 2;
-        while ($vd->status !== VolumeData::STATUS_AVAILABLE && $maxTimeout > 0) {
-            sleep($interval);
-            $maxTimeout -= $interval;
-            $interval *= 2;
-            $vd->refresh();
+        for ($t = time(), $s = 2; time() - $t < 300 && $vd->status !== VolumeData::STATUS_AVAILABLE; $s += 5) {
+            sleep($s);
+            $vd = $vd->refresh();
         }
         $this->assertEquals(VolumeData::STATUS_AVAILABLE, $vd->status);
 
@@ -1070,17 +1216,13 @@ class Ec2Test extends AwsTestCase
         $this->assertInstanceOf($this->getEc2ClassName('DataType\\AttachmentSetResponseData'), $at);
 
         //Creates snapshot
-        $sn = $vd->createSnapshot(self::getTestName(self::NAME_TAG_VALUE));
+        $sn = $vd->createSnapshot(self::getTestName(self::NAME_SNAPSHOT));
         $this->assertInstanceOf($this->getEc2ClassName('DataType\\SnapshotData'), $sn);
         $this->assertNotEmpty($sn->snapshotId);
         $sn->createTags($nameTag);
         //Waits while snapshot is created.
-        $maxTimeout = 300;
-        $interval = 2;
-        while ($sn->status === SnapshotData::STATUS_PENDING && $maxTimeout > 0) {
-            sleep($interval);
-            $maxTimeout -= $interval;
-            $interval *= 2;
+        for ($t = time(), $s = 2; time() - $t < 300 && $sn->status === SnapshotData::STATUS_PENDING; $s += 5) {
+            sleep($s);
             $sn->refresh();
         }
         $this->assertTrue(in_array($sn->status, array(SnapshotData::STATUS_COMPLETED, SnapshotData::STATUS_ERROR)));
@@ -1094,12 +1236,8 @@ class Ec2Test extends AwsTestCase
         $csn = $aws2->ec2->snapshot->describe($copySnapshotId)->get(0);
         $this->assertInstanceOf($this->getEc2ClassName('DataType\\SnapshotData'), $csn);
         //Waits while snapshot is created.
-        $maxTimeout = 300;
-        $interval = 2;
-        while ($csn->status === SnapshotData::STATUS_PENDING && $maxTimeout > 0) {
-            sleep($interval);
-            $maxTimeout -= $interval;
-            $interval *= 2;
+        for ($t = time(), $s = 2; time() - $t < 600 && $csn->status === SnapshotData::STATUS_PENDING; $s += 5) {
+            sleep($s);
             $csn = $csn->refresh();
         }
         $this->assertTrue(in_array($csn->status, array(SnapshotData::STATUS_COMPLETED, SnapshotData::STATUS_ERROR)));
@@ -1154,70 +1292,64 @@ class Ec2Test extends AwsTestCase
         $this->assertInstanceOf($this->getEc2ClassName('DataType\\GetConsoleOutputResponseData'), $consoleOutput);
         unset($consoleOutput);
 
+        //Reboots the instance
+        $ret = $ind->reboot();
+        $this->assertTrue($ret);
+
         //Stoping the instance
         $scList = $ind->stop(true);
         $this->assertInstanceOf($this->getEc2ClassName('DataType\\InstanceStateChangeList'), $scList);
         $this->assertEquals(1, count($scList));
         unset($scList);
-        for ($t = time(); time() - $t < 100 && $ind->instanceState->name !== InstanceStateData::NAME_STOPPED; sleep(5)) {
+        for ($t = time(); time() - $t < 300 && $ind->instanceState->name !== InstanceStateData::NAME_STOPPED; sleep(5)) {
             $ind = $ind->refresh();
         }
         $this->assertEquals(InstanceStateData::NAME_STOPPED, $ind->instanceState->name);
 
         //Modifies instance attribute
+        //Instance is required to be stopped.
         $ret = $ind->modifyAttribute(InstanceAttributeType::userData(), base64_encode('user data'));
         $this->assertTrue($ret);
+
+        //Starts the instance
+        $scList = $ind->start();
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\InstanceStateChangeList'), $scList);
+        unset($scList);
+        $ind = $ind->refresh();
+        for ($t = time(), $s = 5; time() - $t < 200 && $ind->instanceState->name !== InstanceStateData::NAME_RUNNING; $s += 5) {
+            sleep($s);
+            $ind = $ind->refresh();
+        }
+        $this->assertEquals(InstanceStateData::NAME_RUNNING, $ind->instanceState->name);
+
+        //Unmonitors instance
+        $ret = $ind->unmonitor();
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\MonitorInstancesResponseSetList'), $ret);
+        $this->assertContains($ret->get(0)->monitoring->state, array(
+            InstanceMonitoringStateData::STATE_DISABLING,
+            InstanceMonitoringStateData::STATE_DISABLED,
+        ));
+        unset($ret);
 
         //Terminates the instance
         $st = $ind->terminate();
         $this->assertInstanceOf($this->getEc2ClassName('DataType\\InstanceStateChangeList'), $st);
         $this->assertEquals(1, count($st));
         $this->assertEquals($rd->instancesSet[0]->instanceId, $st[0]->getInstanceId());
-        unset($ind);
 
-        //We should be assured that group which is used for the test does not exists
-        $list = $aws->ec2->securityGroup->describe(
-            null, null,
-            new SecurityGroupFilterData(SecurityGroupFilterNameType::groupName(), self::getTestName('security-group'))
-        );
-        if (count($list) > 0) {
-            foreach ($list as $v) {
-                $v->delete();
-            }
+        for ($t = time(); time() - $t < 200 && $ind && $ind->instanceState->name != InstanceStateData::NAME_TERMINATED; sleep(5)) {
+            $ind = $ind->refresh();
         }
-        unset($list);
+        $this->assertTrue(!$ind || $ind->instanceState->name == InstanceStateData::NAME_TERMINATED);
+        if (isset($ind)) {
+            unset($ind);
+        }
 
-        //Creates security group
-        /* @var $sg SecurityGroupData */
-        $sg = $aws->ec2->securityGroup->create(self::getTestName('security-group'), self::getTestName('security-group') . ' description');
-        $this->assertInstanceOf($this->getEc2ClassName('DataType\\SecurityGroupData'), $sg);
-        $this->assertNotEmpty($sg->groupId);
-        $this->assertEquals(self::getTestName('security-group'), $sg->groupName);
-        $this->assertContains(self::getTestName('security-group'), $sg->groupDescription);
-
-        $ret = $sg->createTags($nameTag);
+        //Removes keypair
+        $ret = $kp->delete();
         $this->assertTrue($ret);
+        unset($kp);
 
-        //Verifies that security group entity which is stored in manager is the same object
-        $sgMirror = $aws->ec2->securityGroup->get($sg->groupId);
-        $this->assertSame($sg, $sgMirror);
-        unset($sgMirror);
-
-        //Athorizes Security Group Ingress
-        $ipperm = new IpPermissionData('tcp', 80, 80, new IpRangeList(array(new IpRangeData('192.0.2.0/24'), new IpRangeData('192.51.100.0/24'))));
-        $ret = $sg->authorizeIngress($ipperm);
-        $this->assertTrue($ret);
-
-        $ipperm2 = new IpPermissionData('tcp', 8080, 8080, new IpRangeList(array(new IpRangeData('192.66.12.0/24'))));
-        $ret = $sg->authorizeIngress($ipperm2);
-        $this->assertTrue($ret);
-        $ret = $sg->revokeIngress($ipperm2);
-        $this->assertTrue($ret);
-        //Describes itself
-        $sg->refresh();
-        $this->assertContains(self::TAG_NAME_KEY, $sg->tagSet->getQueryArrayBare('Tag'));
-
-        sleep(1);
         //Removes security group
         $sg->delete();
         //Verifies that security group is detached from the storage
@@ -1225,15 +1357,6 @@ class Ec2Test extends AwsTestCase
         $this->assertNull($sgMirror);
         unset($sg);
 
-        //Creates placement group
-        $ret = $aws->ec2->placementGroup->create(self::getTestName('placement-group'));
-        $this->assertTrue($ret);
-        //Sometimes it takes a moment
-        sleep(3);
-        $pg = $aws->ec2->placementGroup->describe(self::getTestName('placement-group'))->get(0);
-        $this->assertInstanceOf($this->getEc2ClassName('DataType\\PlacementGroupData'), $pg);
-        $this->assertEquals(self::getTestName('placement-group'), $pg->groupName);
-        $this->assertSame($pg, $aws->ec2->placementGroup->get($pg->groupName));
         //Deletes placement group.
         $ret = $pg->delete();
         $this->assertTrue($ret);
@@ -1329,6 +1452,18 @@ class Ec2Test extends AwsTestCase
         }
         unset($igwList);
 
+        //We should be assured that group which is used for the test does not exists
+        $list = $aws->ec2->securityGroup->describe(
+            null, null,
+            new SecurityGroupFilterData(SecurityGroupFilterNameType::groupName(), self::getTestName(self::NAME_SECURITY_GROUP_VPC))
+        );
+        if (count($list) > 0) {
+            foreach ($list as $v) {
+                $v->delete();
+            }
+        }
+        unset($list);
+
         //Describes VPC
         $vpcList = $aws->ec2->vpc->describe(null, array(array(
             'name'  => VpcFilterNameType::tag(self::TAG_NAME_KEY),
@@ -1352,6 +1487,65 @@ class Ec2Test extends AwsTestCase
         $this->assertTrue($vpc->state == VpcData::STATE_AVAILABLE);
         $ret = $vpc->createTags($nameTag);
         $this->assertTrue($ret);
+
+        //Creates an VPC Security group
+        $securityGroupId = $aws->ec2->securityGroup->create(
+            self::getTestName(self::NAME_SECURITY_GROUP_VPC), self::getTestName(self::NAME_SECURITY_GROUP_VPC) . ' description', $vpc->vpcId);
+        $this->assertNotEmpty($securityGroupId);
+        sleep(2);
+
+        $sg = $aws->ec2->securityGroup->describe(null, $securityGroupId)->get(0);
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\SecurityGroupData'), $sg);
+
+        //Authorizes security group Egress
+        //Example, how to construct the list with arrays
+        $ipperm3array = array(array(
+            'ipProtocol' => 'tcp',
+            'fromPort'   => 80,
+            'toPort'     => 80,
+            'ipRanges'   => array(
+                array(
+                    'cidrIp' => '192.0.2.0/24'
+                ),
+                array(
+                    'cidrIp' => '198.51.100.0/24'
+                )
+            )
+        ));
+        $ipperm3 = new IpPermissionList($ipperm3array);
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\IpPermissionData'), $ipperm3->get(0));
+        $this->assertInstanceOf($this->getEc2ClassName('DataType\\IpRangeList'), $ipperm3->get(0)->ipRanges);
+        $this->assertEquals(2, $ipperm3->get(0)->ipRanges->count());
+        $this->assertEquals('192.0.2.0/24', $ipperm3->get(0)->ipRanges->get(0)->cidrIp);
+        $this->assertEquals('198.51.100.0/24', $ipperm3->get(0)->ipRanges->get(1)->cidrIp);
+
+        //The same can be produced in the another way
+        $ipperm4 = new IpPermissionList(new IpPermissionData('tcp', 80, 80, array(
+            new IpRangeData('192.0.2.0/24'),
+            new IpRangeData('198.51.100.0/24'),
+        )));
+        //Checks the equality
+        $this->assertEquals($ipperm3->toArray(), $ipperm4->toArray());
+
+        //Authorizes IP Permission Egress
+        $ret = $sg->authorizeEgress($ipperm3);
+        $this->assertTrue($ret);
+        sleep(1);
+
+        //Checks if specified IP Permission is successfully set
+        $sg->refresh();
+        $this->assertContains('192.0.2.0/24', $sg->ipPermissionsEgress->getQueryArrayBare());
+
+        //Revokes IP Permission Egress
+        //You may pass an array directly to the method
+        $ret = $sg->revokeEgress($ipperm3array);
+        $this->assertTrue($ret);
+        sleep(1);
+
+        $sg->refresh();
+        //Checks if IP Permission is successfully revoked.
+        $this->assertNotContains('192.0.2.0/24', $sg->ipPermissionsEgress->getQueryArrayBare());
+        $this->assertNotContains('198.51.100.0/24', $sg->ipPermissionsEgress->getQueryArrayBare());
 
         //Creates subneet for the networkInterface
         $subnet = $aws->ec2->subnet->create($vpc->vpcId, '10.0.0.0/16');
@@ -1488,6 +1682,10 @@ class Ec2Test extends AwsTestCase
 
         //Removes Subnet
         $ret = $subnet->delete();
+        $this->assertTrue($ret);
+
+        //Removes securigy group
+        $ret = $sg->delete();
         $this->assertTrue($ret);
 
         //Removes VPC

@@ -1,226 +1,202 @@
-div.scalr-ui-farmselroles-blocks {
-	float: left;
-	position: absolute;
-	height: 130px;
+/*farm roles filter toolbar*/
+.scalr-ui-selroles-filter{
+    z-index:3;
+	background-color:#DFE4EA;
+	background:-webkit-gradient(linear, center bottom, center top, color-stop(0,rgba(223,228,234,0)), color-stop(14%,rgba(223,228,234,1)));
+	background:-moz-linear-gradient(center bottom, rgba(223,228,234,0), rgba(223,228,234,1) 14%);
+	background:linear-gradient(center bottom, rgba(223,228,234,0), rgba(223,228,234,1) 14%);
 }
 
-/* Add button */
-div.scalr-ui-farmselroles-add {
-	left: 0px;
-	width: 40px;
-	cursor: pointer;
-	border-width: 1px;
-	border-style: none solid none none;
-	border-color: #8DB2E3;
-	background-color: #D9EAFD;
-	background-image: url('/ui2/images/ui/farms/selroles/add.png');
-	background-position: center center;
-	background-repeat: no-repeat
+/*boxes dataview selroles*/
+.scalr-ui-dataview-selroles{
+    background: #DFE4EA;
 }
 
-div.scalr-ui-farmselroles-add:hover {
-	background-image: url('/ui2/images/ui/farms/selroles/add_hover.png');
+.scalr-ui-dataview-selroles .x-item{
+    margin-bottom:12px;
 }
 
-div.scalr-ui-farmselroles-pad {
-	left: 0px;
-	width: 100%;
-	top: 130px;
-	height: 19px;
-	border-width: 1px;
-	border-style: solid none solid none;
-	border-color: #8DB2E3;
-	background-color: #D9EAFD;
+.scalr-ui-dataview-selroles .x-item:last-child{
+	margin-bottom:154px;
 }
 
-/* Scroll & filter blocks */
-div.scalr-ui-farmselroles-scroll {
-	width: 40px;
+.scalr-ui-dataview-selroles .x-item-inner{
+    padding: 5px 3px 3px;
+    position:relative;
+    z-index:2;
 }
 
-div.scalr-ui-farmselroles-scroll img {
-	position: absolute;
-	cursor: pointer;
-	top: 38px;
-	left: 8px;
+.scalr-ui-dataview-selroles .x-item .name{
+    white-space:nowrap;
+    margin:0 auto 2px;
 }
 
-div.scalr-ui-farmselroles-scroll-disabled img {
-	cursor: default;
-}
-
-div.scalr-ui-farmselroles-left {
-	left: 4px;
-}
-
-div.scalr-ui-farmselroles-right {
-	right: 6px;
-	width: 40px;
-}
-
-div.scalr-ui-farmselroles-filter-button {
-	background-image: url('/ui2/images/ui/farms/selroles/filter.png');
-	height: 29px;
-	top: 15px;
-	right: 13px;
-	width: 27px;
-	cursor: pointer;
-	background-repeat: no-repeat
-}
-
-div.scalr-ui-farmselroles-filter-button:hover {
-	background-image: url('/ui2/images/ui/farms/selroles/filter_hover.png');
-}
-
-div.scalr-ui-farmselroles-filter-button-click {
-}
-
-div.scalr-ui-farmselroles-filter-button-click:hover {
-}
-
-div.scalr-ui-farmselroles-filter-input {
-	top: 16px;
-	right: 45px;
-	width: 121px;
-	height: 22px;
-}
-
-div.scalr-ui-farmselroles-filter-input input {
-	border-width: 0px;
-	padding-left: 6px;
-	padding-top: 1px;
-	width: 121px;
-	height: 22px;
-	border-radius: 3px;
-	box-shadow: 0 0 4px #556377;
-}
-
-/* View */
-div.scalr-ui-farmselroles-view {
-	left: 40px;
-	width: 0px;
-	overflow: hidden;
-}
-
-ul.scalr-ui-farmselroles {
-	background-color: #fff;
-}
-
-ul.scalr-ui-farmselroles {
-	position: relative;
-	display: block;
-}
-
-ul.scalr-ui-farmselroles li {
-	position: relative;
-	float: left;
-	background: #F0F1F4;
-	height: 120px;
-	width: 120px;
-	border-radius: 5px;
-	margin: 5px;
-	cursor: pointer;
-	text-align: center;
-}
-
-ul.scalr-ui-farmselroles li div {
-	position: absolute;
-	bottom: 20px;
-	width: 110px;
-	text-align: center;
-	padding-left: 5px;
-	overflow: hidden;
-	font-family: "Arial";
-	font-size: 12px;
-	color: #666;
-}
-
-ul.scalr-ui-farmselroles li div.full {
-	position: absolute;
-	left: 5px;
-	top: 50px;
-	height: 24px;
+.scalr-ui-dataview-selroles .platform, 
+.scalr-ui-dataview-selroles .location{
 	white-space: nowrap;
-	width: auto;
-	padding: 5px;
-	display: none;
-	background-color: #FFF;
-	border-color: #CBD6ED;
-	border-width: 1px;
-	border-style: solid;
-	color: #333;
-	z-index: 2;
-	-moz-border-radius: 4px;
-	-webkit-border-radius: 4px;
-	border-radius: 4px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+    font-size:90%;
 }
 
-ul.scalr-ui-farmselroles li div.full-show {
-	display: block;
+.scalr-ui-dataview-selroles .x-item-selected .platform, 
+.scalr-ui-dataview-selroles .x-item-selected .location{
+	color:#fff;
 }
 
-ul.scalr-ui-farmselroles li img.icon {
-	position: relative;
-	top: 12px;
+.scalr-ui-dataview-selroles .platform{
+	text-transform:uppercase;
+    line-height:14px;
 }
 
-ul.scalr-ui-farmselroles li img.platform {
+.scalr-ui-dataview-selroles .location{
+    font-style:italic;
+    color:#777;
+}
+
+/*launch index*/
+.scalr-ui-dataview-selroles .launchindex{
+	display:none;
+	position:absolute;
+    z-index: 1;
+	bottom:-11px;
+	left:-10px;
+	font-weight:bold;
+	width:27px;
+    height:28px;
+    line-height:27px;
+    text-align:center;
+    background: url('/ui2/images/ui/farms/selroles/role_number_sprite.png') 0 0 no-repeat;
+}
+
+.scalr-ui-dataview-selroles .x-item-over .launchindex{
+    background-position:0 -28px;
+}
+
+.scalr-ui-dataview-selroles .x-item-selected .launchindex{
+    background-position:0 -56px;
+}
+
+
+.scalr-ui-dataview-selroles-sortable .launchindex{
+	display:block;
+}
+
+/*delete role button*/
+.scalr-ui-dataview-selroles .delete-role-bg,
+.scalr-ui-dataview-selroles .delete-role{
 	position: absolute;
-	top: 6px;
-	left: 6px;
+    z-index: 1;
+	right: -10px;
+	top: -9px;
+	width: 27px;
+	height: 26px;
+    cursor:pointer;
+    background: url('/ui2/images/ui/farms/selroles/close_bg.png?1.1') 0 0 no-repeat;
+    visibility:hidden;
 }
 
-ul.scalr-ui-farmselroles li img.arch {
-	position: absolute;
-	top: 57px;
-	right: 6px;
+.scalr-ui-dataview-selroles .delete-role{
+    background: url('/ui2/images/ui/farms/selroles/close_small_sprite.png?1.1') 0 0 no-repeat;
+    z-index: 2;
 }
 
-ul.scalr-ui-farmselroles li:hover {
-	box-shadow: 0 1px 3px #9FAEC1;
+.scalr-ui-dataview-selroles .x-item-over .delete-role-bg,
+.scalr-ui-dataview-selroles .x-item-over .delete-role{
+	visibility:visible;
 }
 
-ul.scalr-ui-farmselroles li.scalr-ui-farmselroles-selected {
-	box-shadow: 0 1px 3px #556A84;
+
+.scalr-ui-dataview-selroles .delete-role:hover{
+    background-position: 0 -26px;
 }
 
-ul.scalr-ui-farmselroles li a {
-	display: none;
-	position: absolute;
-	right: 7px;
-	top: 7px;
-	width: 16px;
-	height: 16px;
-	background-repeat: no-repeat
+.scalr-ui-dataview-selroles .x-item-selected .delete-role-bg{
+	background-position: 0 -26px;
 }
 
-ul.scalr-ui-farmselroles li:hover a {
-	background-image: url('/ui2/images/ui/farms/selroles/close.png');
-	display: block;
+.scalr-ui-dataview-selroles .x-item-selected .delete-role{
+	background-position: -27px 0;
 }
 
-ul.scalr-ui-farmselroles li:hover a:hover {
-	background-image: url('/ui2/images/ui/farms/selroles/close_hover.png');
-	display: block;
+.scalr-ui-dataview-selroles .x-item-selected .delete-role:hover{
+    background-position: -27px -26px;
 }
 
-ul.scalr-ui-farmselroles div.location {
-	position: absolute;
-	bottom: 7px;
-	height: 14px;
+/*add role flying button*/
+.scalr-ui-dataview-selroles-add{
 	width: 110px;
+	height: 150px;
 	text-align: center;
-	font: bold 13px arial;
+	font: bold 13px/20px arial;
+	color: #4A5E82;
+	text-shadow: 0 1px #E9ECF0;
+	cursor:pointer;
+	position:absolute;
+	padding-left:10px;
+	bottom:0px;
+	background-color:#DFE4EA;
+	background:-webkit-gradient(linear, center top, center bottom, color-stop(0,rgba(223,228,234,0)), color-stop(2%,rgba(223,228,234,1)));
+	background:-moz-linear-gradient(center top, rgba(223,228,234,0), rgba(223,228,234,1) 2%);
+	background:linear-gradient(center top, rgba(223,228,234,0), rgba(223,228,234,1) 2%);
+    z-index:3;
+}
+
+.scalr-ui-dataview-selroles-add .x-item-inner{
+	height:100px;
+	margin:6px 0 10px;
+	border-radius: 4px;
+	border: 2px dashed #A9BCD8;
+}
+
+.scalr-ui-dataview-selroles-add span{
+	display:block;
+	margin-top:23px;
+}
+
+.scalr-ui-dataview-selroles-add .x-item-inner:hover{
+	background: #CED8E2;
+}
+
+/*farm settings button*/
+.scalr-ui-farm-settings-btn{
+	border-radius:0;
+	padding: 3px 0;
+    position:relative;
+    z-index:4;
+}
+
+.scalr-ui-farm-settings-btn .x-btn-inner{
+	font: bold 12px arial;
 	color: #333333;
+	text-shadow: 0 1px rgba(255, 255, 255, 0.3);
 }
 
-ul.scalr-ui-farmselroles li div.short {
-	font: bold 13px arial;
-	color: black;
+.scalr-ui-farm-settings-btn.x-btn-pressed .x-btn-inner{
+	color:#fff;
 }
 
-div.scalr-ui-farmselroles-empty-text {
-	text-align: center;
-	width: 100%;
-	margin-top: 50px;
+.scalr-ui-farm-settings-btn .x-btn-icon{
+	width:17px;
+	height:18px;
+	left:0;
+	top:5px;
+	background: url('/ui2/images/ui/farms/gear_sprite.png') 0 0 no-repeat;
+}
+
+.scalr-ui-farm-settings-btn.x-btn-pressed .x-btn-icon{
+	background-position: 0 -19px;
+}
+
+/*color corner*/
+.x-item-color-corner-role{
+    width:15px;
+    height:15px;
+    box-shadow:none;
+    opacity:.8;
+    visibility:hidden;
+}
+
+.scalr-ui-show-color-corners .x-item-color-corner-role{
+    visibility:visible;
 }

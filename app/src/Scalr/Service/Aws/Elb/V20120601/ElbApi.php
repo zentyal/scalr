@@ -34,7 +34,7 @@ use Scalr\Service\Aws\Elb\DataType\HealthCheckData;
  *
  * Implements ELB Low-Level API Actions.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     21.09.2012
  */
 class ElbApi extends AbstractApi
@@ -134,7 +134,9 @@ class ElbApi extends AbstractApi
             if (isset($sxml->CreateLoadBalancerResult->DNSName)) {
                 $result = (string) $sxml->CreateLoadBalancerResult->DNSName;
             } else {
-                throw new ElbException('Unexpected response from server ' . var_export($response->getRawContent(), true));
+                throw new ElbException(
+                    'Unexpected response from server ' . var_export($response->getRawContent(), true)
+                );
             }
         }
         return $result;

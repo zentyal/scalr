@@ -7,7 +7,7 @@ use Scalr\Tests\Service\AwsTestCase;
 /**
  * Amazon CloudWatch TestCase
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     24.10.2012
  */
 class CloudWatchTestCase extends AwsTestCase

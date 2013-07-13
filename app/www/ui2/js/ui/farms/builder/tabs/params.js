@@ -1,49 +1,37 @@
 Scalr.regPage('Scalr.ui.farms.builder.tabs.params', function (moduleTabParams) {
 	return Ext.create('Scalr.ui.FarmsBuilderTab', {
 		tabTitle: 'Parameters',
-		labelWidth: 200,
-		paramsCache: {},
-		cache: {},
-
+        deprecated: true,
+		tabData: null,
+        layout: 'anchor',
+        
 		isEnabled: function (record) {
-			//return !record.get('behaviors').match("cf_");
 			return true;
 		},
 
 		beforeShowTab: function (record, handler) {
-			
-			/*
-			if (! moduleParams.farmId) {
-				this.cacheSet([], record.get('role_id'));
-			}
-
-			if (this.cacheExist(record.get('role_id')))
-				handler();
-			else
-			*/
-				Scalr.Request({
-					processBox: {
-						type: 'action'
-					},
-					url: '/roles/xGetRoleParams',
-					params: {
-						roleId: record.get('role_id'),
-						farmId: moduleTabParams.farmId,
-						cloudLocation: record.get('cloud_location')
-					},
-					success: function(data) {
-						this.cacheSet(data.params, record.get('role_id'));
-						handler();
-					},
-					failure: function () {
-						this.deactivateTab();
-					},
-					scope: this
-				});
+            this.up('#farmbuilder').cache.load(
+                {
+                    url: '/roles/xGetRoleParams',
+                    params: {
+                        roleId: record.get('role_id'),
+                        farmId: moduleTabParams.farmId,
+                        cloudLocation: record.get('cloud_location')
+                    }
+                },
+                function(data, status) {
+                    this.tabData = data;
+                    status ? handler() : this.deactivateTab();
+                },
+                this,
+                0
+            );
 		},
 
 		showTab: function (record) {
-			var pars = this.cacheGet(record.get('role_id')), params = record.get('params'), comp = this.down('#params'), obj;
+			var pars = this.tabData || [], 
+                params = record.get('params'), 
+                comp = this.down('#params'), obj;
 			comp.removeAll();
 
 			// set loaded values
@@ -105,6 +93,19 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.params', function (moduleTabParams) {
 		},
 
 		items: [{
+			xtype: 'displayfield',
+            anchor: '100%',
+			fieldCls: 'x-form-field-warning',
+			value: 'This Parameters manager is deprecated. Please use <a href="#">GLOBAL VARIABLES</a> instead.',
+			listeners: {
+				afterrender: function() {
+					this.el.down('a').on('click', function(e) {
+                        this.up('farmroleedit').setActiveTab('variables');
+						e.preventDefault();
+					}, this);
+				}
+			}
+		}, {
 			xtype: 'fieldset',
 			itemId: 'params'
 		}]

@@ -1,248 +1,409 @@
 Ext.define('Scalr.ui.FarmBuilderSelRoles', {
-	extend: 'Ext.view.View',
+	extend: 'Ext.panel.Panel',
 	alias: 'widget.farmselroles',
-/*
-		this.el.setStyle('overflow', 'hidden');
-		this.el.setStyle('position', 'relative');
-		this.el.setStyle('background-color', '#FFF');
-		this.el.setHeight(this.height);
-*/
+    layout: 'fit',
+    
+    initComponent: function() {
+        var me = this;
+        me.callParent();
+        me.add({
+            xtype: 'dataview',
+            store: me.store,
+            preserveScrollOnRefresh: true,
+            cls: 'scalr-ui-dataview-boxes scalr-ui-dataview-selroles',
+            plugins: [{
+                ptype: 'flyingbutton',
+                cls: 'scalr-ui-dataview-selroles-add',
+                handler: function(){
+                    this.fireEvent('addrole');
+                }
+            },{
+                ptype: 'viewdragdrop',
+                pluginId: 'viewdragdrop',
+                offsetY: 50
+            }],
+            deferInitialRefresh: false,
+            tpl  : new Ext.XTemplate(
+                '<tpl for=".">',
+                    '<div class="x-item" title="{name}">',
+                        '<div class="x-item-color-corner-role x-item-color-corner x-item-color-corner-{[Scalr.utils.getColorById(values.farm_role_id || 0)]}"></div>',
+                        '<div class="x-item-inner">',
+                            '<div class="name">',
+                                '<tpl if="name.length &gt; 11">',
+                                    '{[this.getName(values.name)]}',
+                                '<tpl else>',
+                                    '{name}',
+                                '</tpl>',
+                            '</div>',
+                            '<div class="icon scalr-ui-icon-role-medium scalr-ui-icon-role-medium-{[this.getRoleCls(values)]}"></div>',
+                            '<div class="platform">{platform}</div>',
+                            '<div class="location" title="{cloud_location}">{cloud_location}</div>',
+                        '</div>',
+                        '<div class="delete-role-bg"></div>',
+                        '<div class="delete-role" title="Delete role from farm"></div>',
+                        '<div class="launchindex" title="Launch index">{[values.launch_index+1]}</div>',
+                    '</div>',
+                '</tpl>'			
+            ,{
+                getRoleCls: function (context) {
+                    var behaviors = [
+                            "cf_cchm", "cf_dea", "cf_router", "cf_service",
+                            "rabbitmq", "www", 
+                            "app", "tomcat", 'haproxy',
+                            "mysqlproxy", 
+                            "memcached", 
+                            "cassandra", "mysql", "mysql2", "percona", "postgresql", "redis", "mongodb", 'mariadb'
+                        ];
+                    
+                    if (context['behaviors']) {
+                        //Handle CF all-in-one role
+                        if (context['behaviors'].match("cf_router") && context['behaviors'].match("cf_cloud_controller") && context['behaviors'].match("cf_health_manager") && context['behaviors'].match("cf_dea")) {
+                            return 'cf-all-in-one';
+                        }
+                        //Handle CF CCHM role
+                        if (context['behaviors'].match("cf_cloud_controller") || context['behaviors'].match("cf_health_manager")) {
+                            return 'cf-cchm';
+                        }
 
-	initComponent: function () {
-		this.callParent();
+                        var b = (context['behaviors'] || '').split(',');
+                        for (var i=0, len=b.length; i < len; i++) {
+                            for (var k = 0; k < behaviors.length; k++ ) {
+                                if (behaviors[k] == b[i]) {
+                                    return b[i].replace('_', '-');
+                                }
+                            }
+                        }
+                    }
 
-		this.addEvents(
-			'addrole'
-		);
-	},
+                    return 'base';
+                    
+                },
+                getName: function (n) {
+                    return n.substr(0, 5) + '...' + n.substr(n.length - 5, 5);
+                }
+            }),
+            emptyText: 'No roles found',
+            loadingText: 'Loading roles ...',
+            deferEmptyText: false,
 
-	onRender: function () {
-		this.callParent(arguments);
+            itemSelector: '.x-item',
+            overItemCls : 'x-item-over',
+            padding: '48 10 0 10',
+            trackOver: true,
+            overflowY: 'scroll',
+            width: 120,
+            onUpdate: function () {
+                this.refresh();
+            },
+            listeners: {
+                itemadd: function(record, index, node) {
+                    this.scrollBy(0, 9000, true);
+                    if (node.length) {
+                        var box = Ext.fly(node[0]);
+                        box.animate({
+                            duration: 800,
+                            keyframes: {
+                                25: {opacity: .3},
+                                50: {opacity: 1},
+                                75: {opacity: .3},
+                                100: {opacity: 1}
+                            }
+                        });
+                    }
+                },
+                drop: function(node, data, record, position) {
+                    if (data.records[0]) {
+                        var newLaunchIndex = record.get('launch_index') + (position=='after' ? 1 : 0),
+                            scrollTop = this.el.getScroll().top;
+                        this.suspendLayouts();
+                        data.records[0].store.updateLaunchIndex(data.records[0], newLaunchIndex);
+                        this.resumeLayouts(true);
+                        this.el.scrollTo('top', scrollTop);
+                    }
+                },
+                beforecontainerclick: function(){//prevent deselect on container click
+                    return false;
+                },
+                beforeitemclick: function (view, record, item, index, e) {
+                    if (e.getTarget('.delete-role', 10, true)) {
 
-		this.viewEl = this.el.createChild({
-			tag: 'div', html: '', cls: 'scalr-ui-farmselroles-blocks scalr-ui-farmselroles-view'
-		});
+                        if (record.get('is_bundle_running') == true) {
+                            Scalr.message.Error('This role is locked by server snapshot creation process. Please wait till snapshot will be created.');
+                            return false;
+                        }
 
-		/*this.buttonAddEl = this.el.createChild({
-			tag: 'div', html: '&nbsp;', cls: 'scalr-ui-farmselroles-blocks scalr-ui-farmselroles-add'
-		});*/
-
-		this.buttonMoveLeftEl = this.el.createChild({
-			tag: 'div', html: '<img src="/ui2/images/ui/farms/selroles/previous.png">', cls: 'scalr-ui-farmselroles-blocks scalr-ui-farmselroles-left scalr-ui-farmselroles-scroll'
-		});
-
-		this.buttonMoveRightEl = this.el.createChild({
-			tag: 'div', html: '<img src="/ui2/images/ui/farms/selroles/next.png">', cls: 'scalr-ui-farmselroles-blocks scalr-ui-farmselroles-right scalr-ui-farmselroles-scroll'
-		});
-
-		this.filterInputEl = this.el.createChild({
-			tag: 'div', html: '<input type="text">', cls: 'scalr-ui-farmselroles-blocks scalr-ui-farmselroles-filter-input'
-		});
-		this.filterInputEl.hide();
-
-		this.filterButtonEl = this.el.createChild({
-			tag: 'div', html: '&nbsp;', cls: 'scalr-ui-farmselroles-blocks scalr-ui-farmselroles-filter-button'
-		});
-
-		/*this.el.createChild({
-			tag: 'div', html: '&nbsp;',cls: 'scalr-ui-farmselroles-blocks scalr-ui-farmselroles-pad'
-		});*/
-
-		/*this.buttonAddEl.on('click', function (e) {
-			this.fireEvent('addrole');
-			e.preventDefault();
-		}, this);*/
-
-		this.viewEl.unselectable();
-		this.buttonMoveLeftEl.unselectable();
-		this.buttonMoveRightEl.unselectable();
-
-
-		this.on('refresh', this.fixWidth);
-		this.on('resize', this.fixSize);
-
-		this.on('beforeitemclick', function (view, record, item, index, e) {
-			if (e.getTarget('a.delete', 10, true)) {
-				
-				if (record.get('is_bundle_running') == true) {
-					Scalr.message.Error('This role is locked by server snapshot creation process. Please wait till snapshot will be created.');
-					return false;
+                        Scalr.Confirm({
+                            type: 'delete',
+                            msg: 'Delete role "' + record.get('name') + '" from farm?',
+                            success: function () {
+                                view.store.remove(record);
+                                view.refresh();
+                            }
+                        });
+                        return false;
+                    }
+                }
+             }
+        });
+        me.addDocked([{
+            xtype: 'container',
+            dock: 'top',
+            layout: 'hbox',
+            padding: '11 0 9 10',
+            margin: '1 '+ Ext.getScrollbarSize().width +' 0 0',
+            cls: 'scalr-ui-selroles-filter',
+            overlay: true,
+            items: [{
+                xtype: 'filterfield',
+                itemId: 'livesearch',
+                width: 100,
+                hideFilterIcon: true,
+                store: me.store,
+                filterFields: ['name', 'platform', 'cloud_location'],
+                listeners: {
+                    afterfilter: function() {
+                        me.down('dataview').getStore().sort();//if launch order was updated on filtered store we must to re-apply sorting
+                    }
+                }
+            }]
+  		},{
+			itemId: 'farmbutton',
+			dock: 'bottom',
+			margin: '0 '+ Ext.getScrollbarSize().width +' 0 0',
+			xtype: 'button',
+			cls: 'scalr-ui-farm-settings-btn',
+			text: 'Farm settings',
+			overlay: true,
+			pressed: false,
+			enableToggle: true,
+			listeners: {
+				toggle: function(c, state) {
+                    this.up('panel').fireEvent('farmsettings', state);
 				}
-				
-				Scalr.Confirm({
-					type: 'delete',
-					msg: 'Delete role "' + record.get('name') + '" from farm?',
-					success: function () {
-						view.store.remove(record);
-					}
+			},
+			height: 33,
+			iconCls: 'icon'
+      }]);
+        
+    },
+    
+    onRender: function() {
+        var me = this;
+        me.callParent(arguments);
+        me.relayEvents(me.down('dataview'), ['viewready', 'addrole', 'selectionchange']);
+    },
+
+    deselectAll: function() {
+        this.down('dataview').getSelectionModel().deselectAll();
+    },
+    
+    select: function(record) {
+        this.down('dataview').getSelectionModel().select(record);
+    },
+    
+    clearFilter: function() {
+        this.down('#livesearch').clearFilter();
+    },
+    
+    toggleLaunchOrder: function(value) {//true - enable, false - disable
+        var dataview = this.down('dataview');
+        dataview.getPlugin('viewdragdrop').dragZone[!value?'lock':'unlock']();
+        dataview[value?'addCls':'removeCls']('scalr-ui-dataview-selroles-sortable');
+    },
+    
+    toggleFarmButton: function(pressed) {
+        var b = this.down('#farmbutton');
+        b.suspendEvents(false);
+        b.toggle(pressed);
+        b.resumeEvents();
+    }
+});
+
+//button Add role
+Ext.define('Scalr.ui.FarmRolesFlyingButton', {
+	extend: 'Ext.AbstractPlugin',
+	alias: 'plugin.flyingbutton',
+	handler: Ext.emptyFn,
+
+	init: function(client) {
+		var me = this;
+		me.client = client;
+		me.client.on({
+			beforerender: function(){
+				this.width += Ext.getScrollbarSize().width;
+			},
+			afterrender: function(){
+				me.button = Ext.DomHelper.append(this.up('panel').el.dom, '<div class="'+me.cls+'" title="Add role to farm"><div class="x-item-inner"><span>Add <br/>new role</span></div></div>', true);
+				me.button.on('click', function(){
+					me.handler.apply(me.client);
 				});
-				return false;
-			}
-		});
-
-		this.on('refresh', function () {
-			this.viewEl.select('ul li div.short').each(function (el) {
-				el.on('mouseover', function (e) {
-					var el = e.getTarget('div.short', 10, true).next('div.full');
-					if (el)
-						el.addCls('full-show');
-				});
-
-				el.on('mouseout', function (e) {
-					var el = e.getTarget('div.short', 10, true).next('div.full');
-					if (el)
-						el.removeCls('full-show');
-				});
-			});
-		});
-
-		// disallow to deselect role
-		this.on('beforecontainerclick', function () {
-			return false;
-		});
-
-		this.viewEl.on('click', function (e) {
-			if (e.getTarget('a[href="#addrole"]')) {
-				e.preventDefault();
-				this.fireEvent('addrole');
-			}
-		}, this);
-
-		this.viewEl.on('mousedown', function(e) {
-			this.mouseDrag = true; // drag element's list
-			this.mouseCancelClickAfterDrag = false; // cancel click when drag mouse
-			this.lastXY = e.getXY();
-		}, this);
-
-		this.viewEl.on('mouseup', function(e, t) {
-			this.mouseDrag = false;
-		}, this);
-
-		this.on('beforeclick', function(e) {
-			return !this.mouseCancelClickAfterDrag;
-		}, this.dataView);
-
-		this.viewEl.on('mousemove', function(e) {
-			var xy = e.getXY();
-			if (this.lastXY && (xy[0] != this.lastXY[0] || xy[1] != this.lastXY[1])) {
-				this.mouseCancelClickAfterDrag = true;
-			}
-
-			if (this.mouseDrag) {
-				var xy = e.getXY(), s = this.lastXY;
-				this.lastXY = xy;
-
-				var scrollOffset = parseInt(this.viewEl.dom.scrollLeft) || 0;
-				this.viewEl.scrollTo('left', scrollOffset + s[0] - xy[0]);
-			}
-		}, this);
-
-		this.viewEl.on('mousewheel', function(e) {
-			var scrollOffset = parseInt(this.viewEl.dom.scrollLeft) || 0;
-			this.viewEl.scrollTo('left', scrollOffset - e.getWheelDelta() * 130, true);
-			e.preventDefault();
-		}, this);
-
-		this.buttonMoveLeftEl.on('click', function() {
-			var scrollOffset = parseInt(this.viewEl.dom.scrollLeft) || 0;
-			this.viewEl.scrollTo('left', scrollOffset - 130, true);
-		}, this);
-
-		this.buttonMoveRightEl.on('click', function() {
-			var scrollOffset = parseInt(this.viewEl.dom.scrollLeft) || 0;
-			this.viewEl.scrollTo('left', scrollOffset + 130, true);
-		}, this);
-
-		this.filterButtonEl.on('click', function() {
-			if (this.filterButtonEl.is("div.scalr-ui-farmselroles-filter-button-click")) {
-				this.filterInputEl.hide();
-				this.filterButtonEl.removeCls("scalr-ui-farmselroles-filter-button-click");
-			} else {
-				this.filterInputEl.show();
-				this.filterButtonEl.addCls("scalr-ui-farmselroles-filter-button-click");
-			}
-		}, this);
-
-		this.filterInputEl.child("input").on('keyup', function (e, t) {
-			t = Ext.get(t);
-			var len = t.getValue().length;
-			if (!Ext.isDefined(this.prevLength) || len != this.prevLength) {
-				var value = t.getValue().toLowerCase();
-				this.store.filterBy(function (record) {
-					return (record.get('name').toLowerCase().search(value) != -1) ? true : false;
-				});
-			}
-			this.prevLength = len;
-		}, this);
-
-		this.fixSize();
+			},
+			resize: {
+                fn:me.updatePosition,
+                scope: me
+            },
+			itemremove: {
+                fn:me.updatePosition,
+                scope: me
+            },
+			itemadd: {
+                fn:me.updatePosition,
+                scope: me
+            },
+			refresh: {
+                fn:me.updatePosition,
+                scope: me
+            }
+		})
 	},
 
-	fixSize: function () {
-		// set width of View (indent from left and right)
-		this.viewEl.setWidth(this.el.getWidth() - 44 - 46); // 44 (left), 46 (right)
-		this.fixWidth();
-	},
-
-	onAdd: function () {
-		this.refresh();
-	},
-
-	onUpdate: function () {
-		this.refresh()
-	},
-
-	clearFilter: function () {
-		this.store.clearFilter();
-		if (this.rendered)
-			this.filterInputEl.child("input").dom.value = '';
-	},
-
-	fixWidth: function() {
-		if (this.rendered) {
-			var el = this.viewEl.child('ul');
-
-			if (this.store.getCount() && el)
-				el.setWidth(this.store.getCount() * 130); // width + margin (fix)
-
-			var scrollOffset = parseInt(this.viewEl.dom.scrollLeft) || 0;
-			//console.log(1);
-			this.viewEl.dom.scrollLeft = scrollOffset; // browser will clean scrollLeft if needed
-			//console.log(2);
-
-			if (el && el.getWidth() > this.viewEl.getWidth()) {
-				this.buttonMoveLeftEl.removeCls('scalr-ui-farmselroles-scroll-disabled');
-				this.buttonMoveRightEl.removeCls('scalr-ui-farmselroles-scroll-disabled');
-				this.buttonMoveLeftEl.child('img').dom.src = '/ui2/images/ui/farms/selroles/previous.png';
-				this.buttonMoveRightEl.child('img').dom.src = '/ui2/images/ui/farms/selroles/next.png';
-			} else {
-				this.buttonMoveLeftEl.addCls('scalr-ui-farmselroles-scroll-disabled');
-				this.buttonMoveRightEl.addCls('scalr-ui-farmselroles-scroll-disabled');
-				this.buttonMoveLeftEl.child('img').dom.src = '/ui2/images/ui/farms/selroles/previous_disable.png';
-				this.buttonMoveRightEl.child('img').dom.src = '/ui2/images/ui/farms/selroles/next_disable.png';
+	updatePosition: function() {
+		if (this.button) {
+            var buttonTop = '';
+			if (this.client.el.dom.scrollHeight <= this.client.el.getHeight()) {
+                buttonTop = (this.client.getStore().getCount()*112+42)+'px';
 			}
+            if (buttonTop !== this.buttonTop) {
+                this.button.setStyle('top', buttonTop);
+                this.buttonTop = buttonTop;
+            }
 		}
-	},
-
-	getTargetEl: function () {
-		return this.viewEl;
 	}
 
 });
 
-/*Ext.ns("Scalr.Viewers");
-	Ext.apply(this.dataView, { refresh: this.dataView.refresh.createSequence(function() {
-		this.dataView.fixWidth(this);
-	}, this) });
+/*roles drag and drop*/
+Ext.define('Scalr.ui.FarmRolesDragZone', {
+    extend: 'Ext.view.DragZone',
+    onInitDrag: function(x, y) {
+        var me = this,
+            data = me.dragData,
+            view = data.view,
+            selectionModel = view.getSelectionModel(),
+            record = view.getRecord(data.item),
+            e = data.event;
 
-	Ext.apply(this.dataView, { updateIndexes: this.dataView.updateIndexes.createSequence(function(startIndex, endIndex) {
-		this.dataView.createLinks(this, startIndex, endIndex);
-	}, this) });
+        // Update the selection to match what would have been selected if the user had
+        // done a full click on the target node rather than starting a drag from it
+		/* Changed */
+        /*if (!selectionModel.isSelected(record)) {
+            selectionModel.select(record, true);
+        }*/
+        data.records = [record];//selectionModel.getSelection();
+		/* End */
+        me.ddel.update(me.getDragText());
+        me.proxy.update(me.ddel.dom);
+        me.onStartDrag(x, y);
+        return true;
+    }
+});
 
-	Ext.apply(this.dataView, { onRemove: this.dataView.refresh });
+Ext.define('Scalr.ui.FarmRolesDropZone', {
+    extend: 'Ext.view.DropZone',
+	/* Changed */
+	offsetY: 0,
+	/* End */
+    positionIndicator: function(node, data, e) {
+        var me = this,
+            view = me.view,
+            pos = me.getPosition(e, node),
+            overRecord = view.getRecord(node),
+            draggingRecords = data.records,
+            indicatorY;
+        if (!Ext.Array.contains(draggingRecords, overRecord) && (
+            pos == 'before' && !me.containsRecordAtOffset(draggingRecords, overRecord, -1) ||
+            pos == 'after' && !me.containsRecordAtOffset(draggingRecords, overRecord, 1)
+        )) {
+            me.valid = true;
+            
+            if (me.overRecord != overRecord || me.currentPosition != pos || me.getIndicator().hidden) {
+				/* Changed */
+                indicatorY = Ext.fly(node).getY() - view.el.getY() - 1 - this.offsetY;
+                if (pos == 'after') {
+                    indicatorY += Ext.fly(node).getHeight() + 9;
+                } else {
+					indicatorY -= 3;
+				}
 
-	this.dataView.getStore().on('remove', this.dataView.refresh, this.dataView);
-	//this.dataView.getStore().on('save', this.dataView.createLinks.createCallback(this), this.dataView);
-	//this.dataView.getStore().un('remove', this.dataView.onRemove);
-	//this.dataView.getStore().on('remove', this.dataView.fixWidth, this);
-*/
+				me.getIndicator().setWidth(Ext.fly(node).getWidth()+5).showAt(0, indicatorY);
+				/* End */
+
+                // Cache the overRecord and the 'before' or 'after' indicator.
+                me.overRecord = overRecord;
+                me.currentPosition = pos;
+            }
+        } else {
+            me.invalidateDrop();
+        }
+    },
+	handleNodeDrop : Ext.emptyFn
+
+});
+
+Ext.define('Scalr.ui.FarmRolesDragDrop', {
+    extend: 'Ext.AbstractPlugin',
+    alias: 'plugin.viewdragdrop',
+
+    uses: [
+        'Ext.view.ViewDragZone',
+        'Ext.view.ViewDropZone'
+    ],
+
+    dragText : 'move role to the new launch position',
+    ddGroup : "ViewDD",
+    enableDrop: true,
+
+    enableDrag: true,
+	offsetY: 0,
+	handleNodeDrop: Ext.emptyFn,
+	
+    init : function(view) {
+        view.on('render', this.onViewRender, this, {single: true});
+    },
+
+    destroy: function() {
+        Ext.destroy(this.dragZone, this.dropZone);
+    },
+
+    enable: function() {
+        var me = this;
+        if (me.dragZone) {
+            me.dragZone.unlock();
+        }
+        if (me.dropZone) {
+            me.dropZone.unlock();
+        }
+        me.callParent();
+    },
+
+    disable: function() {
+        var me = this;
+        if (me.dragZone) {
+            me.dragZone.lock();
+        }
+        if (me.dropZone) {
+            me.dropZone.lock();
+        }
+        me.callParent();
+    },
+
+    onViewRender : function(view) {
+        var me = this;
+
+        if (me.enableDrag) {
+            me.dragZone = new Scalr.ui.FarmRolesDragZone({
+                view: view,
+                ddGroup: me.dragGroup || me.ddGroup,
+                dragText: me.dragText
+            });
+        }
+
+        if (me.enableDrop) {
+            me.dropZone = new Scalr.ui.FarmRolesDropZone({
+                view: view,
+                ddGroup: me.dropGroup || me.ddGroup,
+				offsetY: me.offsetY
+            });
+        }
+    }
+});

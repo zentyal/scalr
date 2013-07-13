@@ -12,7 +12,7 @@ use Scalr\Service\Aws\Elb\V20120601\Loader\DescribeLoadBalancersLoader;
 /**
  * DescribeLoadBalancersLoader Test
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     27.09.2012
  */
 class DescribeLoadBalancersLoaderTest extends ElbTestCase

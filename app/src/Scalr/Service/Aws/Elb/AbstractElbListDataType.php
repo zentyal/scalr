@@ -7,7 +7,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * AbstractElbListDataType
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     13.10.2012
  * @property  \Scalr\Service\Aws\Elb   $elb            An Amazon ELB instance
  * @method    \Scalr\Service\Aws\Elb   getElb()        getElb()                                   Gets an Amazon ELB instance.

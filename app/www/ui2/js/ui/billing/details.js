@@ -125,8 +125,7 @@ Scalr.regPage('Scalr.ui.billing.details', function (loadParams, moduleParams) {
 			value: couponString
 		}, {
 			xtype: 'fieldset',
-			title: 'Account usage',
-			hidden: !(moduleParams['billing']['scu']),
+			title: '"Pay As You Go" usage',
 			defaults: {
 				labelWidth: 120
 			},
@@ -134,6 +133,7 @@ Scalr.regPage('Scalr.ui.billing.details', function (loadParams, moduleParams) {
 				xtype: 'fieldcontainer',
 				fieldLabel: 'Pre-paid SCUs',
 				layout: 'hbox',
+				hidden: moduleParams['billing']['scu']['limit'] == -1,
 				items: [{
 					xtype: 'displayfield',
 					width: 145,
@@ -143,17 +143,28 @@ Scalr.regPage('Scalr.ui.billing.details', function (loadParams, moduleParams) {
 					}
 				}]
 			}, {
+                xtype: 'fieldcontainer',
+                fieldLabel: 'Current SCU usage',
+                layout: 'hbox',
+                items: [{
+                    xtype: 'displayfield',
+                    width: 345,
+                    value: moduleParams['billing']['scu']['current_usage'] + " / hour"
+                }]
+            }, {
 				xtype: 'fieldcontainer',
 				fieldLabel: 'Additional SCUs',
+				hidden: moduleParams['billing']['scu']['limit'] == -1,
 				layout: 'hbox',
 				items: [{
 					xtype: 'displayfield',
 					width: 345,
-					value: moduleParams['billing']['scu'] ? (moduleParams['billing']['scu']['paid'] + " (Current usage: " + moduleParams['billing']['scu']['current_usage'] + " / hour)") : ''
+					value: moduleParams['billing']['scu'] ? (moduleParams['billing']['scu']['paid'] + "") : ''
 				}]
 			}, {
 				xtype: 'fieldcontainer',
 				fieldLabel: 'Price per SCU',
+				hidden: moduleParams['billing']['scu']['limit'] == -1,
 				layout: 'hbox',
 				items: [{
 					xtype: 'displayfield',
@@ -163,6 +174,7 @@ Scalr.regPage('Scalr.ui.billing.details', function (loadParams, moduleParams) {
 			}, {
 				xtype: 'fieldcontainer',
 				fieldLabel: 'Usage',
+				hidden: moduleParams['billing']['scu']['limit'] == -1,
 				layout: 'hbox',
 				items: [{
 					xtype: 'displayfield',

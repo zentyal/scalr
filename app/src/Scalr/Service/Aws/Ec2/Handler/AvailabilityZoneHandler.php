@@ -22,6 +22,7 @@ class AvailabilityZoneHandler extends AbstractEc2Handler
 
     /**
      * Gets AvailabilityZoneData object from the EntityManager.
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param   string    $zoneName A zone Name.
      * @return  AvailabilityZoneData|null Returns AvailabilityZoneData if it does exist in the cache or NULL otherwise.

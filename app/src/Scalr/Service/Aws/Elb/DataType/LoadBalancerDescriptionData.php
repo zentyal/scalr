@@ -20,7 +20,7 @@ use Scalr\Service\Aws\Elb\DataType\SourceSecurityGroupData;
  *
  * Contains the result of a successful invocation of DescribeLoadBalancers
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    19.09.2012
  *
  * @property InstanceList                 $instances                 Provides a list of EC2 instance IDs for the LoadBalancer

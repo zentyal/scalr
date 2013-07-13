@@ -26,33 +26,36 @@ class Scalr_Cronjob_MetricCheck extends Scalr_System_Cronjob_MultiProcess_Defaul
      */
     private $logger;
 
+    /**
+     * @var \ADODB_mysqli
+     */
     private $db;
 
     public function __construct()
     {
         $this->logger = Logger::getLogger(__CLASS__);
         $this->timeLogger = Logger::getLogger('time');
-        $this->db = Core::GetDBInstance();
+        $this->db = $this->getContainer()->adodb;
     }
 
     /**
      * {@inheritdoc}
      * @see Scalr_System_Cronjob_MultiProcess_DefaultWorker::startForking()
      */
-    function startForking ($workQueue)
+    function startForking($workQueue)
     {
         // Reopen DB connection after daemonizing
-        $this->db = Core::GetDBInstance(null, true);
+        $this->db = $this->getContainer()->adodb;
     }
 
     /**
      * {@inheritdoc}
      * @see Scalr_System_Cronjob_MultiProcess_DefaultWorker::startChild()
      */
-    function startChild ()
+    function startChild()
     {
         // Reopen DB connection in child
-        $this->db = Core::GetDBInstance(null, true);
+        $this->db = $this->getContainer()->adodb;
         // Reconfigure observers;
         Scalr::ReconfigureObservers();
     }
@@ -125,8 +128,18 @@ class Scalr_Cronjob_MetricCheck extends Scalr_System_Cronjob_MultiProcess_Defaul
                 if ($dbServer->IsSupported("0.8") && !$dbServer->IsSupported("0.9"))
                     continue;
 
-                if ($dbServer->GetProperty(SERVER_PROPERTIES::SUB_STATUS) != '')
+                $subStatus = $dbServer->GetProperty(SERVER_PROPERTIES::SUB_STATUS);
+                if ($subStatus != '') {
+                    if ($subStatus == 'stopped') {
+                        //Need to solve ALL failed metrics
+                        $serverAlerts = new Alerts($dbServer);
+                        if ($serverAlerts->getActiveAlertsCount()) {
+                            $serverAlerts->solveAlert();
+                        }
+                    }
+
                     continue;
+                }
 
                 if ($dbServer->GetProperty(SERVER_PROPERTIES::REBOOTING))
                     continue;
@@ -197,6 +210,11 @@ class Scalr_Cronjob_MetricCheck extends Scalr_System_Cronjob_MultiProcess_Defaul
                     } catch (Exception $e) {
                     }
                 }
+
+
+                //Not supported by VPC yet.
+                if ($dbFarm->GetSetting(DBFarm::SETTING_EC2_VPC_ID))
+                    continue;
 
                 //Check scalr-upd-client status
                 $check = Alerts::METRIC_SCALARIZR_UPD_CLIENT_CONNECTIVITY;

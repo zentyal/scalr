@@ -8,7 +8,7 @@ use Scalr\Service\Aws\AbstractDataType;
 /**
  * AbstractS3DataType
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    06.11.2012
  * @method   \Scalr\Service\Aws\S3   getS3()  getS3() Gets an Amazon S3 instance.
  * @method   AbstractS3DataType      setS3()  setS3(\Scalr\Service\Aws\S3 $s3) Sets an Amazon S3 instance.

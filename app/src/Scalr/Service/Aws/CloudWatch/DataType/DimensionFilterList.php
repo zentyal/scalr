@@ -7,7 +7,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * DimensionList
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    25.10.2012
  * @method   DimensionFilterData get() get($position = null) Gets DimensionFilterData at specified position
  *                                                           in the list.

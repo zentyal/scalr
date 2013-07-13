@@ -90,6 +90,14 @@ Scalr.regPage('Scalr.ui.tools.aws.ec2.elb.view', function (loadParams, modulePar
 			xtype: 'scalrpagingtoolbar',
 			store: store,
 			dock: 'top',
+			beforeItems: [{
+				ui: 'paging',
+				iconCls: 'x-tbar-add',
+				hidden: !Scalr.flags['betaMode'],
+				handler: function() {
+					Scalr.event.fireEvent('redirect', '#/tools/aws/ec2/elb/create?cloudLocation=' + store.proxy.extraParams.cloudLocation);
+				}
+			}],
 			items: [{
 				xtype: 'filterfield',
 				store: store

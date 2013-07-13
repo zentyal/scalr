@@ -7,7 +7,7 @@ use Scalr\Service\Aws\S3\AbstractS3DataType;
 /**
  * OwnerData
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     20.11.2012
  */
 class OwnerData extends AbstractS3DataType

@@ -20,7 +20,7 @@ Scalr.regPage('Scalr.ui.dashboard.view', function (loadParams, moduleParams) {
 				desc: 'Integration with Cloudyn'
 			});
 
-		if(Scalr.user.type == 'AccountOwner')
+		if(Scalr.user.type == 'AccountOwner' && moduleParams.flags['billingEnabled'])
 			widgets.push({name: 'dashboard.billing', title: 'Billing', desc: 'Displays your current billing parameters'});
 
 		for (var i = 0; i < widgets.length; i++) {   //all default widgets
@@ -119,6 +119,9 @@ Scalr.regPage('Scalr.ui.dashboard.view', function (loadParams, moduleParams) {
 				panel.newCol(i);
 				if (configuration[i]) {
 					for (var j = 0; j < configuration[i].length; j++) { // all widgets in column
+					    if (configuration[i][j]['name'] == 'dashboard.billing' && !moduleParams.flags['billingEnabled'])
+                            continue;
+					
 						var widget = this.items.getAt(i).add(
 							panel.newWidget(
 								configuration[i][j]['name'],

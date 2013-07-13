@@ -4,8 +4,11 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.ebs', function (moduleTabParams) {
 	
 	return Ext.create('Scalr.ui.FarmsBuilderTab', {
 		tabTitle: 'EBS',
-		cache: {},
-
+        deprecated: true,
+        layout: 'anchor',
+        
+        tabData: null,
+        
 		isEnabled: function (record) {
 			return record.get('platform') == 'ec2';
 		},
@@ -17,35 +20,27 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.ebs', function (moduleTabParams) {
 		},
 
 		beforeShowTab: function (record, handler) {
-			var cloudLocation = record.get('cloud_location');
-
-			if (this.cacheExist(['snapshotsEC2', cloudLocation]))
-				handler();
-			else
-				Scalr.Request({
-					processBox: {
-						type: 'action'
-					},
-					url: '/platforms/ec2/xGetSnapshots',
-					params: {
-						cloudLocation: cloudLocation
-					},
-					scope: this,
-					success: function (response) {
-						this.cacheSet(response.data, ['snapshotsEC2', cloudLocation]);
-						handler();
-					},
-					failure: function () {
-						this.deactivateTab();
-					}
-				});
+            this.up('#farmbuilder').cache.load(
+                {
+                    url: '/platforms/ec2/xGetSnapshots',
+                    params: {
+                        cloudLocation: record.get('cloud_location')
+                    }
+                },
+                function(data, status) {
+                    this.tabData = data;
+                    status ? handler() : this.deactivateTab();
+                },
+                this,
+                0
+            );
 		},
 
 		showTab: function (record) {
 			var settings = record.get('settings');
 
 			this.down('[name="aws.ebs_snapid"]').reset();
-			this.down('[name="aws.ebs_snapid"]').store.load({ data: this.cacheGet(['snapshotsEC2', record.get('cloud_location')]) });
+			this.down('[name="aws.ebs_snapid"]').store.load({ data: this.tabData || [] });
 
 			this.down('[name="aws.ebs_size"]').setValue(settings['aws.ebs_size'] || '5');
 			this.down('[name="aws.ebs_snapid"]').setValue(settings['aws.ebs_snapid'] || '');
@@ -102,18 +97,12 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.ebs', function (moduleTabParams) {
 		items: [{
 			xtype: 'displayfield',
 			fieldCls: 'x-form-field-warning',
+            anchor: '100%',
 			value: 'This EBS manager is deprecated. Please use <a href="#">NEW STORAGE MANAGER</a> instead.',
 			listeners: {
 				afterrender: function() {
 					this.el.down('a').on('click', function(e) {
-						var ct = this.up('farmroleedit'), storage = ct.down('#storage');
-						ct.getDockedComponent('tabs').items.each(function(item) {
-							if (item.tabCmp == storage) {
-								item.toggle(true);
-								ct.layout.setActiveItem(storage);
-								return false;
-							}
-						});
+						this.up('farmroleedit').setActiveTab('storage');
 						e.preventDefault();
 					}, this);
 				}
