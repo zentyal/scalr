@@ -7,7 +7,7 @@ use Scalr\Service\Aws\AbstractHandler;
 /**
  * AbstractSqsHandler
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     06.11.2012
  * @property  \Scalr\Service\Aws\Sqs   $sqs      An Amazon SQS instance
  * @method    \Scalr\Service\Aws\Sqs   getSqs()  getSqs()                            Gets an Amazon SQS instance.

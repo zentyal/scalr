@@ -9,7 +9,7 @@ use Scalr\Service\Aws\CloudWatch\AbstractCloudWatchDataType;
  * The StatisticSet data type describes the StatisticValues component of MetricDatum,
  * and represents a set of statistics that describes a specific metric.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     25.10.2012
  */
 class StatisticSetData extends AbstractCloudWatchDataType

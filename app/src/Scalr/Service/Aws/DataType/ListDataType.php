@@ -6,7 +6,7 @@ use Scalr\Service\Aws\AbstractDataType;
 /**
  * List data type
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     23.09.2012
  */
 class ListDataType extends AbstractDataType implements \Iterator, \Countable, \ArrayAccess
@@ -232,9 +232,12 @@ class ListDataType extends AbstractDataType implements \Iterator, \Countable, \A
             $t = new $dataClass;
             foreach ((array)$this->propertyName as $prop) {
                 if (!array_key_exists($prop, $v)) {
-                    throw new \InvalidArgumentException(
-                        'Could not find index ' . $prop . ' in ' . var_export($v, true)
-                    );
+                    //If property value isn't found in the specified array
+                    //it will be omitted instead of the error generation.
+                    //This is necessary, for an instance, when we specify the list constructor
+                    //with the full bunch of the options from the data object which is going to be listed,
+                    //and when these properies can be optional at the same time.
+                    continue;
                 }
                 $setfn = 'set' . ucfirst($prop);
                 $t->$setfn($v[$prop]);

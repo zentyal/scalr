@@ -10,7 +10,7 @@ use Scalr\Service\Aws\Sqs;
 /**
  * Amazon Sqs Test
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     07.11.2012
  */
 class SqsTest extends SqsTestCase

@@ -9,6 +9,10 @@ use Scalr\Service\Aws\Ec2Exception;
  *
  * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    17.01.2013
+ *
+ * @method   \Scalr\Service\Aws\Ec2\DataType\BlockDeviceMappingData get()
+ *           get(int $index)
+ *           Gets BlockDeviceMappingData from the specified position in the list.
  */
 class BlockDeviceMappingList extends Ec2ListDataType
 {

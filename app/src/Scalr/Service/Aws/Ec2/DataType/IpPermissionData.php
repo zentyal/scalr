@@ -58,14 +58,13 @@ class IpPermissionData extends AbstractEc2DataType
     /**
      * Convenient constructor
      *
-     * @param   string|number       $ipProtocol optional
-     * @param   int                 $fromPort   optional
-     * @param   int                 $toPort     optional
-     * @param   IpRangeList         $ipRanges   optional
-     * @param   UserIdGroupPairList $groups     optional
+     * @param   string|number                                 $ipProtocol optional The protocol
+     * @param   int                                           $fromPort   optional From port
+     * @param   int                                           $toPort     optional To port
+     * @param   IpRangeList|IpRangeData|array                 $ipRanges   optional The list of IP Ranges
+     * @param   UserIdGroupPairList|UserIdGroupPairData|array $groups     optional The list of the User ID groups
      */
-    public function __construct($ipProtocol = null, $fromPort = null, $toPort = null,
-                                IpRangeList $ipRanges = null, UserIdGroupPairList $groups = null)
+    public function __construct($ipProtocol = null, $fromPort = null, $toPort = null, $ipRanges = null, $groups = null)
     {
         parent::__construct();
         $this->ipProtocol = $ipProtocol;
@@ -73,5 +72,33 @@ class IpPermissionData extends AbstractEc2DataType
         $this->toPort = $toPort;
         $this->setIpRanges($ipRanges);
         $this->setGroups($groups);
+    }
+
+    /**
+     * Sets the list of IP ranges.
+     *
+     * @param   UserIdGroupPairList|UserIdGroupPairData|array $groups A list of security group and AWS account ID pairs.
+     * @return  IpPermissionData
+     */
+    public function setGroups($groups = null)
+    {
+        if ($groups !== null && !($groups instanceof UserIdGroupPairList)) {
+            $groups = new UserIdGroupPairList($groups);
+        }
+        return $this->__call(__FUNCTION__, array($groups));
+    }
+
+    /**
+     * Sets the list of IP ranges.
+     *
+     * @param   IpRangeList|IpRangeData|array $ipRanges A list of IP ranges.
+     * @return  IpPermissionData
+     */
+    public function setIpRanges($ipRanges = null)
+    {
+        if ($ipRanges !== null && !($ipRanges instanceof IpRangeList)) {
+            $ipRanges = new IpRangeList($ipRanges);
+        }
+        return $this->__call(__FUNCTION__, array($ipRanges));
     }
 }

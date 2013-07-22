@@ -7,7 +7,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * InstanceStateList
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    11.10.2012
  *
  * @method   \Scalr\Service\Aws\Elb\DataType\InstanceStateData get() get($position = null) Gets InstanceStateData at specified position

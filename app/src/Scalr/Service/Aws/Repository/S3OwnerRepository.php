@@ -7,7 +7,7 @@ use Scalr\Service\Aws\AbstractRepository;
 /**
  * S3OwnerRepository
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     20.11.2012
  */
 class S3OwnerRepository extends AbstractRepository

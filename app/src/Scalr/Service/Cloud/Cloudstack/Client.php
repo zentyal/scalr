@@ -1,11 +1,11 @@
 <?php
 
 class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudstack_Connection {
-    
+
     /**
     * Creates and automatically starts a virtual machine based on a service offering, disk offering, and template.
     *
-    * @param string $serviceOfferingId the ID of the service offering for the virtual 
+    * @param string $serviceOfferingId the ID of the service offering for the virtual
     *        machine
     * @param string $templateId the ID of the template for the virtual machine
     * @param string $zoneId availability zone for the virtual machine
@@ -30,22 +30,22 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        hine
     * @param string $name host name for the virtual machine
     * @param string $networkIds list of network ids used by virtual machine
-    * @param string $securityGroupIds comma separated list of security groups id that 
+    * @param string $securityGroupIds comma separated list of security groups id that
     *        going to be applied to the virtual machine. Should be passed only when vm is cre
     *        ated from a zone with Basic Network support. Mutually exclusive with securitygro
     *        upnames parameter
-    * @param string $securityGroupNames comma separated list of security groups names 
+    * @param string $securityGroupNames comma separated list of security groups names
     *        that going to be applied to the virtual machine. Should be passed only when vm i
     *        s created from a zone with Basic Network support. Mutually exclusive with securi
     *        tygroupids parameter
     * @param string $size the arbitrary size for the DATADISK volume. Mutually exclusi
     *        ve with diskOfferingId
-    * @param string $userData an optional binary data that can be sent to the virtual 
+    * @param string $userData an optional binary data that can be sent to the virtual
     *        machine upon a successful deployment. This binary data must be base64 encoded be
-    *        fore adding it to the request. Currently only HTTP GET is supported. Using HTTP 
+    *        fore adding it to the request. Currently only HTTP GET is supported. Using HTTP
     *        GET (via querystring), you can send up to 2KB of data after base64 encoding.
     */
-    
+
     public function deployVirtualMachine($serviceOfferingId, $templateId, $zoneId, $account = "", $diskOfferingId = "", $displayName = "", $domainId = "", $group = "", $hostId = "", $hypervisor = "", $keyPair = "", $name = "", $networkIds = "", $securityGroupIds = "", $securityGroupNames = "", $size = "", $userData = "") {
 
         if (empty($serviceOfferingId)) {
@@ -59,7 +59,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
         if (empty($zoneId)) {
             throw new Scalr_Service_Cloud_Cloudstack_Exception(sprintf(MISSING_ARGUMENT_MSG, "zoneId"), MISSING_ARGUMENT);
         }
-        
+
         $args = array(
             'serviceofferingid' => $serviceOfferingId,
             'templateid' => $templateId,
@@ -79,21 +79,21 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'size' => $size,
             'userdata' => $userData,
         );
-        
+
         return $this->request("deployVirtualMachine", $args);
     }
-    
+
     public function listAvailableProductTypes()
     {
-    	return $this->request("listAvailableProductTypes", array());
+        return $this->request("listAvailableProductTypes", array());
     }
-    
+
     /**
     * Destroys a virtual machine. Once destroyed, only the administrator can recover it.
     *
     * @param string $id The ID of the virtual machine
     */
-    
+
     public function destroyVirtualMachine($id) {
 
         if (empty($id)) {
@@ -104,13 +104,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'id' => $id,
         ));
     }
-    
+
     /**
     * Reboots a virtual machine.
     *
     * @param string $id The ID of the virtual machine
     */
-    
+
     public function rebootVirtualMachine($id) {
 
         if (empty($id)) {
@@ -121,13 +121,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'id' => $id,
         ));
     }
-    
+
     /**
     * Starts a virtual machine.
     *
     * @param string $id The ID of the virtual machine
     */
-    
+
     public function startVirtualMachine($id) {
 
         if (empty($id)) {
@@ -138,14 +138,14 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'id' => $id,
         ));
     }
-    
+
     /**
     * Stops a virtual machine.
     *
     * @param string $id The ID of the virtual machine
     * @param string $forced Force stop the VM.  The caller knows the VM is stopped.
     */
-    
+
     public function stopVirtualMachine($id, $forced = "") {
 
         if (empty($id)) {
@@ -157,13 +157,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'forced' => $forced,
         ));
     }
-    
+
     /**
     * Resets the password for virtual machine. The virtual machine must be in a "Stopped" state and the template must already support this feature for this command to take effect. [async]
     *
     * @param string $id The ID of the virtual machine
     */
-    
+
     public function resetPasswordForVirtualMachine($id) {
 
         if (empty($id)) {
@@ -174,7 +174,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'id' => $id,
         ));
     }
-    
+
     /**
     * Changes the service offering for a virtual machine. The virtual machine must be in a "Stopped" state for this command to take effect.
     *
@@ -182,7 +182,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $serviceOfferingId the service offering ID to apply to the virtual
     *         machine
     */
-    
+
     public function changeServiceForVirtualMachine($id, $serviceOfferingId) {
 
         if (empty($id)) {
@@ -198,7 +198,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'serviceofferingid' => $serviceOfferingId,
         ));
     }
-    
+
     /**
     * Updates parameters of a virtual machine.
     *
@@ -209,7 +209,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        hine, false otherwise
     * @param string $osTypeId the ID of the OS type that best represents this VM.
     */
-    
+
     public function updateVirtualMachine($id, $displayName = "", $group = "", $haEnable = "", $osTypeId = "") {
 
         if (empty($id)) {
@@ -224,14 +224,14 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'ostypeid' => $osTypeId,
         ));
     }
-    
+
     /**
     * List the virtual machines owned by the account.
     *
     * @param string $account account. Must be used with the domainId parameter.
     * @param string $domainId the domain ID. If used with the account parameter, lists
     *         virtual machines for the specified account in this domain.
-    * @param string $forVirtualNetwork list by network type; true if need to list vms 
+    * @param string $forVirtualNetwork list by network type; true if need to list vms
     *        using Virtual Network, false otherwise
     * @param string $groupId the group ID
     * @param string $hostId the host ID
@@ -243,15 +243,15 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $keyword List by keyword
     * @param string $name name of the virtual machine
     * @param string $networkId list by network id
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $podId the pod ID
     * @param string $state state of the virtual machine
     * @param string $storageId the storage ID where vm&#039;s volumes belong to
     * @param string $zoneId the availability zone ID
     * @param string $page Pagination
     */
-    
+
     public function listVirtualMachines($id = "", $zoneId = "", $account = "", $domainId = "", $forVirtualNetwork = "", $groupId = "", $hostId = "", $hypervisor = "", $isRecursive = "", $keyword = "", $name = "", $networkId = "", $page = "", $pageSize = "", $podId = "", $state = "", $storageId = "", $page = "") {
 
         return $this->request("listVirtualMachines", array(
@@ -275,13 +275,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Returns an encrypted password for the VM
     *
     * @param string $id The ID of the virtual machine
     */
-    
+
     public function getVMPassword($id) {
 
         if (empty($id)) {
@@ -292,7 +292,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'id' => $id,
         ));
     }
-    
+
     /**
     * Creates a template of a virtual machine. The virtual machine must be in a STOPPED state. A template created from this command is automatically designated as a private template visible to the account that created it.
     *
@@ -306,15 +306,15 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        herwise
     * @param string $isPublic true if this template is a public template, false otherw
     *        ise
-    * @param string $passwordEnabled true if the template supports the password reset 
+    * @param string $passwordEnabled true if the template supports the password reset
     *        feature; default is false
     * @param string $requireShvm true if the template requres HVM, false otherwise
     * @param string $snapshotId the ID of the snapshot the template is being created f
     *        rom
-    * @param string $volumeId the ID of the disk volume the template is being created 
+    * @param string $volumeId the ID of the disk volume the template is being created
     *        from
     */
-    
+
     public function createTemplate($displayText, $name, $osTypeId, $bits = "", $isFeatured = "", $isPublic = "", $passwordEnabled = "", $requireShvm = "", $snapshotId = "", $volumeId = "") {
 
         if (empty($displayText)) {
@@ -342,7 +342,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'volumeid' => $volumeId,
         ));
     }
-    
+
     /**
     * Registers an existing template into the Cloud.com cloud.
     *
@@ -360,7 +360,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $account an optional accountName. Must be used with domainId.
     * @param string $bits 32 or 64 bits support. 64 by default
     * @param string $checksum the MD5 checksum value of this template
-    * @param string $domainId an optional domainId. If the account parameter is used, 
+    * @param string $domainId an optional domainId. If the account parameter is used,
     *        domainId must also be used.
     * @param string $isExtractable true if the template or its derivatives are extract
     *        able; default is false
@@ -368,11 +368,11 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        herwise
     * @param string $isPublic true if the template is available to all accounts; defau
     *        lt is true
-    * @param string $passwordEnabled true if the template supports the password reset 
+    * @param string $passwordEnabled true if the template supports the password reset
     *        feature; default is false
     * @param string $requireShvm true if this template requires HVM
     */
-    
+
     public function registerTemplate($displayText, $format, $hypervisor, $name, $osTypeId, $url, $zoneId, $account = "", $bits = "", $checksum = "", $domainId = "", $isExtractable = "", $isFeatured = "", $isPublic = "", $passwordEnabled = "", $requireShvm = "") {
 
         if (empty($displayText)) {
@@ -422,7 +422,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'requireshvm' => $requireShvm,
         ));
     }
-    
+
     /**
     * Updates attributes of a template.
     *
@@ -436,7 +436,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $passwordEnabled true if the image supports the password reset fea
     *        ture; default is false
     */
-    
+
     public function updateTemplate($id, $bootable = "", $displayText = "", $format = "", $name = "", $osTypeId = "", $passwordEnabled = "") {
 
         if (empty($id)) {
@@ -453,7 +453,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'passwordenabled' => $passwordEnabled,
         ));
     }
-    
+
     /**
     * Copies a template from one zone to another.
     *
@@ -461,7 +461,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $destzoneId ID of the zone the template is being copied to.
     * @param string $sourceZoneId ID of the zone the template is currently hosted on.
     */
-    
+
     public function copyTemplate($id, $destzoneId, $sourceZoneId) {
 
         if (empty($id)) {
@@ -482,14 +482,14 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'sourcezoneid' => $sourceZoneId,
         ));
     }
-    
+
     /**
     * Deletes a template from the system. All virtual machines using the deleted template will not be affected.
     *
     * @param string $id the ID of the template
     * @param string $zoneId the ID of zone of the template
     */
-    
+
     public function deleteTemplate($id, $zoneId = "") {
 
         if (empty($id)) {
@@ -501,7 +501,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'zoneid' => $zoneId,
         ));
     }
-    
+
     /**
     * List all public, private, and privileged templates.
     *
@@ -512,7 +512,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        e been registered/created by the owner that can be used to deploy a new VM* exec
     *        utable-all templates that can be used to deploy a new VM* community-templates th
     *        at are public.
-    * @param string $account list template by account. Must be used with the domainId 
+    * @param string $account list template by account. Must be used with the domainId
     *        parameter.
     * @param string $domainId list all templates in specified domain. If used with the
     *         account parameter, lists all templates for an account in the specified domain.
@@ -520,12 +520,12 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $id the template ID
     * @param string $keyword List by keyword
     * @param string $name the template name
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $zoneId list templates by zoneId
     * @param string $page Pagination
     */
-    
+
     public function listTemplates($templateFilter, $account = "", $domainId = "", $hypervisor = "", $id = "", $keyword = "", $name = "", $page = "", $pageSize = "", $zoneId = "", $page = "") {
 
         if (empty($templateFilter)) {
@@ -546,7 +546,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Updates a template visibility permissions. A public template is visible to all accounts within the same domain. A private template is visible only to the owner of the template. A priviledged template is a private template with account permissions added. Only accounts specified under the template permissions are visible to them.
     *
@@ -557,7 +557,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        tes/isos
     * @param string $op permission operator (add, remove, reset)
     */
-    
+
     public function updateTemplatePermissions($id, $accounts = "", $isFeatured = "", $isPublic = "", $op = "") {
 
         if (empty($id)) {
@@ -572,7 +572,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'op' => $op,
         ));
     }
-    
+
     /**
     * List template visibility and all accounts that have permissions to view this template.
     *
@@ -580,11 +580,11 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $account List template visibility and permissions for the specifie
     *        d account. Must be used with the domainId parameter.
     * @param string $domainId List template visibility and permissions by domain. If u
-    *        sed with the account parameter, specifies in which domain the specified account 
+    *        sed with the account parameter, specifies in which domain the specified account
     *        exists.
     * @param string $page Pagination
     */
-    
+
     public function listTemplatePermissions($id, $account = "", $domainId = "", $page = "") {
 
         if (empty($id)) {
@@ -598,7 +598,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Extracts a template
     *
@@ -607,7 +607,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $zoneId the ID of the zone where the ISO is originally located
     * @param string $url the url to which the ISO would be extracted
     */
-    
+
     public function extractTemplate($id, $mode, $zoneId, $url = "") {
 
         if (empty($id)) {
@@ -629,14 +629,14 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'url' => $url,
         ));
     }
-    
+
     /**
     * Attaches an ISO to a virtual machine.
     *
     * @param string $id the ID of the ISO file
     * @param string $virtualMachineId the ID of the virtual machine
     */
-    
+
     public function attachIso($id, $virtualMachineId) {
 
         if (empty($id)) {
@@ -652,13 +652,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'virtualmachineid' => $virtualMachineId,
         ));
     }
-    
+
     /**
     * Detaches any ISO file (if any) currently attached to a virtual machine.
     *
     * @param string $virtualMachineId The ID of the virtual machine
     */
-    
+
     public function detachIso($virtualMachineId) {
 
         if (empty($virtualMachineId)) {
@@ -669,7 +669,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'virtualmachineid' => $virtualMachineId,
         ));
     }
-    
+
     /**
     * Lists all available ISO files.
     *
@@ -692,12 +692,12 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $isReady true if this ISO is ready to be deployed
     * @param string $keyword List by keyword
     * @param string $name list all isos by name
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $zoneId the ID of the zone
     * @param string $page Pagination
     */
-    
+
     public function listIsos($account = "", $bootable = "", $domainId = "", $hypervisor = "", $id = "", $isoFilter = "", $isPublic = "", $isReady = "", $keyword = "", $name = "", $page = "", $pageSize = "", $zoneId = "", $page = "") {
 
         return $this->request("listIsos", array(
@@ -717,7 +717,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Registers an existing ISO into the Cloud.com Cloud.
     *
@@ -728,7 +728,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $zoneId the ID of the zone you wish to register the ISO to.
     * @param string $account an optional account name. Must be used with domainId.
     * @param string $bootable true if this ISO is bootable
-    * @param string $domainId an optional domainId. If the account parameter is used, 
+    * @param string $domainId an optional domainId. If the account parameter is used,
     *        domainId must also be used.
     * @param string $isFeatured true if you want this ISO to be featured
     * @param string $isPublic true if you want to register the ISO to be publicly avai
@@ -736,7 +736,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $osTypeId the ID of the OS Type that best represents the OS of thi
     *        s ISO
     */
-    
+
     public function registerIso($displayText, $name, $url, $zoneId, $account = "", $bootable = "", $domainId = "", $isFeatured = "", $isPublic = "", $osTypeId = "") {
 
         if (empty($displayText)) {
@@ -768,7 +768,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'ostypeid' => $osTypeId,
         ));
     }
-    
+
     /**
     * Updates an ISO file.
     *
@@ -782,7 +782,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $passwordEnabled true if the image supports the password reset fea
     *        ture; default is false
     */
-    
+
     public function updateIso($id, $bootable = "", $displayText = "", $format = "", $name = "", $osTypeId = "", $passwordEnabled = "") {
 
         if (empty($id)) {
@@ -799,15 +799,15 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'passwordenabled' => $passwordEnabled,
         ));
     }
-    
+
     /**
     * Deletes an ISO file.
     *
     * @param string $id the ID of the ISO file
-    * @param string $zoneId the ID of the zone of the ISO file. If not specified, the 
+    * @param string $zoneId the ID of the zone of the ISO file. If not specified, the
     *        ISO will be deleted from all the zones
     */
-    
+
     public function deleteIso($id, $zoneId = "") {
 
         if (empty($id)) {
@@ -819,7 +819,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'zoneid' => $zoneId,
         ));
     }
-    
+
     /**
     * Copies an ISO file.
     *
@@ -829,7 +829,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $sourceZoneId the ID of the source zone from which the ISO file wi
     *        ll be copied
     */
-    
+
     public function copyIso($id, $destzoneId, $sourceZoneId) {
 
         if (empty($id)) {
@@ -850,7 +850,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'sourcezoneid' => $sourceZoneId,
         ));
     }
-    
+
     /**
     * Updates iso permissions
     *
@@ -861,7 +861,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        tes/isos
     * @param string $op permission operator (add, remove, reset)
     */
-    
+
     public function updateIsoPermissions($id, $accounts = "", $isFeatured = "", $isPublic = "", $op = "") {
 
         if (empty($id)) {
@@ -876,7 +876,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'op' => $op,
         ));
     }
-    
+
     /**
     * List template visibility and all accounts that have permissions to view this template.
     *
@@ -884,11 +884,11 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $account List template visibility and permissions for the specifie
     *        d account. Must be used with the domainId parameter.
     * @param string $domainId List template visibility and permissions by domain. If u
-    *        sed with the account parameter, specifies in which domain the specified account 
+    *        sed with the account parameter, specifies in which domain the specified account
     *        exists.
     * @param string $page Pagination
     */
-    
+
     public function listIsoPermissions($id, $account = "", $domainId = "", $page = "") {
 
         if (empty($id)) {
@@ -902,7 +902,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Extracts an ISO
     *
@@ -911,7 +911,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $zoneId the ID of the zone where the ISO is originally located
     * @param string $url the url to which the ISO would be extracted
     */
-    
+
     public function extractIso($id, $mode, $zoneId, $url = "") {
 
         if (empty($id)) {
@@ -933,18 +933,18 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'url' => $url,
         ));
     }
-    
+
     /**
     * Attaches a disk volume to a virtual machine.
     *
     * @param string $id the ID of the disk volume
     * @param string $virtualMachineId the ID of the virtual machine
     * @param string $deviceId the ID of the device to map the volume to within the gue
-    *        st OS. If no deviceId is passed in, the next available deviceId will be chosen. 
+    *        st OS. If no deviceId is passed in, the next available deviceId will be chosen.
     *        Possible values for a Linux OS are:* 1 - /dev/xvdb* 2 - /dev/xvdc* 4 - /dev/xvde
     *        * 5 - /dev/xvdf* 6 - /dev/xvdg* 7 - /dev/xvdh* 8 - /dev/xvdi* 9 - /dev/xvdj
     */
-    
+
     public function attachVolume($id, $virtualMachineId, $deviceId = "") {
 
         if (empty($id)) {
@@ -961,7 +961,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'deviceid' => $deviceId,
         ));
     }
-    
+
     /**
     * Detaches a disk volume from a virtual machine.
     *
@@ -971,7 +971,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $virtualMachineId the ID of the virtual machine where the volume i
     *        s detached from
     */
-    
+
     public function detachVolume($deviceId = "", $id = "", $virtualMachineId = "") {
 
         return $this->request("detachVolume", array(
@@ -980,7 +980,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'virtualmachineid' => $virtualMachineId,
         ));
     }
-    
+
     /**
     * Creates a disk volume from a disk offering. This disk volume must still be attached to a virtual machine to make use of it.
     *
@@ -990,7 +990,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $diskOfferingId the ID of the disk offering. Either diskOfferingId
     *         or snapshotId must be passed in.
     * @param string $domainId the domain ID associated with the disk offering. If used
-    *         with the account parameter returns the disk volume associated with the account 
+    *         with the account parameter returns the disk volume associated with the account
     *        for the specified domain.
     * @param string $size Arbitrary volume size. Mutually exclusive with diskOfferingI
     *        d
@@ -998,7 +998,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        ngId or snapshotId must be passed in.
     * @param string $zoneId the ID of the availability zone
     */
-    
+
     public function createVolume($name, $account = "", $diskOfferingId = "", $domainId = "", $size = "", $snapshotId = "", $zoneId = "") {
 
         if (empty($name)) {
@@ -1015,13 +1015,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'zoneid' => $zoneId,
         ));
     }
-    
+
     /**
     * Deletes a detached disk volume.
     *
     * @param string $id The ID of the disk volume
     */
-    
+
     public function deleteVolume($id) {
 
         if (empty($id)) {
@@ -1032,7 +1032,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'id' => $id,
         ));
     }
-    
+
     /**
     * Lists all volumes.
     *
@@ -1047,15 +1047,15 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        m the parent specified by the domain id till leaves.
     * @param string $keyword List by keyword
     * @param string $name the name of the disk volume
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $podId the pod id the disk volume belongs to
     * @param string $type the type of disk volume
     * @param string $virtualMachineId the ID of the virtual machine
     * @param string $zoneId the ID of the availability zone
     * @param string $page Pagination
     */
-    
+
     public function listVolumes($zoneId = "", $virtualMachineId = "", $account = "", $domainId = "", $hostId = "", $id = "", $isRecursive = "", $keyword = "", $name = "", $page = "", $pageSize = "", $podId = "", $type = "", $page = "") {
 
         return $this->request("listVolumes", array(
@@ -1075,7 +1075,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Extracts volume
     *
@@ -1084,7 +1084,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $zoneId the ID of the zone where the volume is located
     * @param string $url the url to which the volume would be extracted
     */
-    
+
     public function extractVolume($id, $mode, $zoneId, $url = "") {
 
         if (empty($id)) {
@@ -1106,18 +1106,18 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'url' => $url,
         ));
     }
-    
+
     /**
     * Creates a security group
     *
     * @param string $name name of the security group
-    * @param string $account an optional account for the security group. Must be used 
+    * @param string $account an optional account for the security group. Must be used
     *        with domainId.
     * @param string $description the description of the security group
     * @param string $domainId an optional domainId for the security group. If the acco
     *        unt parameter is used, domainId must also be used.
     */
-    
+
     public function createSecurityGroup($name, $account = "", $description = "", $domainId = "") {
 
         if (empty($name)) {
@@ -1131,7 +1131,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'domainid' => $domainId,
         ));
     }
-    
+
     /**
     * Deletes security group
     *
@@ -1143,7 +1143,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $name The ID of the security group. Mutually exclusive with id par
     *        ameter
     */
-    
+
     public function deleteSecurityGroup($account = "", $domainId = "", $id = "", $name = "") {
 
         return $this->request("deleteSecurityGroup", array(
@@ -1153,11 +1153,11 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'name' => $name,
         ));
     }
-    
+
     /**
     * Authorizes a particular ingress rule for this security group
     *
-    * @param string $account an optional account for the security group. Must be used 
+    * @param string $account an optional account for the security group. Must be used
     *        with domainId.
     * @param string $cidrList the cidr list associated
     * @param string $domainId an optional domainId for the security group. If the acco
@@ -1166,14 +1166,14 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $icmpCode error code for this icmp message
     * @param string $icmpType type of the icmp message being sent
     * @param string $protocol TCP is default. UDP is the other supported protocol
-    * @param string $securityGroupId The ID of the security group. Mutually exclusive 
+    * @param string $securityGroupId The ID of the security group. Mutually exclusive
     *        with securityGroupName parameter
     * @param string $securityGroupName The name of the security group. Mutually exclus
     *        ive with securityGroupName parameter
     * @param string $startPort start port for this ingress rule
     * @param string $userSecurityGroupList user to security group mapping
     */
-    
+
     public function authorizeSecurityGroupIngress($account = "", $cidrList = "", $domainId = "", $endPort = "", $icmpCode = "", $icmpType = "", $protocol = "", $securityGroupId = "", $securityGroupName = "", $startPort = "", $userSecurityGroupList = "") {
 
         return $this->request("authorizeSecurityGroupIngress", array(
@@ -1190,17 +1190,17 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'usersecuritygrouplist' => $userSecurityGroupList,
         ));
     }
-    
+
     /**
     * Deletes a particular ingress rule from this security group
     *
     * @param string $id The ID of the ingress rule
-    * @param string $account an optional account for the security group. Must be used 
+    * @param string $account an optional account for the security group. Must be used
     *        with domainId.
     * @param string $domainId an optional domainId for the security group. If the acco
     *        unt parameter is used, domainId must also be used.
     */
-    
+
     public function revokeSecurityGroupIngress($id, $account = "", $domainId = "") {
 
         if (empty($id)) {
@@ -1213,7 +1213,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'domainid' => $domainId,
         ));
     }
-    
+
     /**
     * Lists security groups
     *
@@ -1224,13 +1224,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        ccount in the specified domain ID.
     * @param string $id list the security group by the id provided
     * @param string $keyword List by keyword
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $securityGroupName lists security groups by name
     * @param string $virtualMachineId lists security groups by virtual machine id
     * @param string $page Pagination
     */
-    
+
     public function listSecurityGroups($account = "", $domainId = "", $id = "", $keyword = "", $page = "", $pageSize = "", $securityGroupName = "", $virtualMachineId = "", $page = "") {
 
         return $this->request("listSecurityGroups", array(
@@ -1245,13 +1245,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Lists accounts and provides detailed account information for listed accounts
     *
     * @param string $accountType list accounts by account type. Valid account types ar
     *        e 1 (admin), 2 (domain-admin), and 0 (user).
-    * @param string $domainId list all accounts in specified domain. If used with the 
+    * @param string $domainId list all accounts in specified domain. If used with the
     *        name parameter, retrieves account information for the account with specified nam
     *        e in specified domain.
     * @param string $id list account by account ID
@@ -1261,13 +1261,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        om the parent specified by the domain id till leaves.
     * @param string $keyword List by keyword
     * @param string $name list account by account name
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $state list accounts by state. Valid states are enabled, disabled,
     *         and locked.
     * @param string $page Pagination
     */
-    
+
     public function listAccounts($accountType = "", $domainId = "", $id = "", $isCleanUpRequired = "", $isRecursive = "", $keyword = "", $name = "", $page = "", $pageSize = "", $state = "", $page = "") {
 
         return $this->request("listAccounts", array(
@@ -1284,19 +1284,19 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Creates an instant snapshot of a volume.
     *
     * @param string $volumeId The ID of the disk volume
     * @param string $account The account of the snapshot. The account parameter must b
     *        e used with the domainId parameter.
-    * @param string $domainId The domain ID of the snapshot. If used with the account 
+    * @param string $domainId The domain ID of the snapshot. If used with the account
     *        parameter, specifies a domain for the account associated with the disk volume.
     * @param string $policyId policy id of the snapshot, if this is null, then use MAN
     *        UAL_POLICY.
     */
-    
+
     public function createSnapshot($volumeId, $account = "", $domainId = "", $policyId = "") {
 
         if (empty($volumeId)) {
@@ -1310,7 +1310,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'policyid' => $policyId,
         ));
     }
-    
+
     /**
     * Lists all available snapshots for the account.
     *
@@ -1320,18 +1320,18 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *         snapshots for the specified account in this domain.
     * @param string $id lists snapshot by snapshot ID
     * @param string $intervalType valid values are HOURLY, DAILY, WEEKLY, and MONTHLY.
-    *        
+    *
     * @param string $isRecursive defaults to false, but if true, lists all snapshots f
     *        rom the parent specified by the domain id till leaves.
     * @param string $keyword List by keyword
     * @param string $name lists snapshot by snapshot name
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $snapshotType valid values are MANUAL or RECURRING.
     * @param string $volumeId the ID of the disk volume
     * @param string $page Pagination
     */
-    
+
     public function listSnapshots($account = "", $domainId = "", $id = "", $intervalType = "", $isRecursive = "", $keyword = "", $name = "", $page = "", $pageSize = "", $snapshotType = "", $volumeId = "", $page = "") {
 
         return $this->request("listSnapshots", array(
@@ -1349,13 +1349,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Deletes a snapshot of a disk volume.
     *
     * @param string $id The ID of the snapshot
     */
-    
+
     public function deleteSnapshot($id) {
 
         if (empty($id)) {
@@ -1366,20 +1366,20 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'id' => $id,
         ));
     }
-    
+
     /**
     * Creates a snapshot policy for the account.
     *
     * @param string $intervalType valid values are HOURLY, DAILY, WEEKLY, and MONTHLY
     * @param string $maxSnaps maximum number of snapshots to retain
-    * @param string $schedule time the snapshot is scheduled to be taken. Format is:* 
-    *        if HOURLY, MM* if DAILY, MM:HH* if WEEKLY, MM:HH:DD (1-7)* if MONTHLY, MM:HH:DD 
+    * @param string $schedule time the snapshot is scheduled to be taken. Format is:*
+    *        if HOURLY, MM* if DAILY, MM:HH* if WEEKLY, MM:HH:DD (1-7)* if MONTHLY, MM:HH:DD
     *        (1-28)
     * @param string $timezone Specifies a timezone for this command. For more informat
     *        ion on the timezone parameter, see Time Zone Format.
     * @param string $volumeId the ID of the disk volume
     */
-    
+
     public function createSnapshotPolicy($intervalType, $maxSnaps, $schedule, $timezone, $volumeId) {
 
         if (empty($intervalType)) {
@@ -1410,14 +1410,14 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'volumeid' => $volumeId,
         ));
     }
-    
+
     /**
     * Deletes snapshot policies for the account.
     *
     * @param string $id the Id of the snapshot
     * @param string $ids list of snapshots IDs separated by comma
     */
-    
+
     public function deleteSnapshotPolicies($id = "", $ids = "") {
 
         return $this->request("deleteSnapshotPolicies", array(
@@ -1425,7 +1425,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'ids' => $ids,
         ));
     }
-    
+
     /**
     * Lists snapshot policies.
     *
@@ -1435,11 +1435,11 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $domainId the domain ID. If used with the account parameter, lists
     *         snapshot policies for the specified account in this domain.
     * @param string $keyword List by keyword
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $page Pagination
     */
-    
+
     public function listSnapshotPolicies($volumeId, $account = "", $domainId = "", $keyword = "", $page = "", $pageSize = "", $page = "") {
 
         if (empty($volumeId)) {
@@ -1456,13 +1456,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Retrieves the current status of asynchronous job.
     *
     * @param string $jobId the ID of the asychronous job
     */
-    
+
     public function queryAsyncJobResult($jobId) {
 
         if (empty($jobId)) {
@@ -1473,7 +1473,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'jobid' => $jobId,
         ));
     }
-    
+
     /**
     * Lists all pending asynchronous jobs for the account.
     *
@@ -1483,12 +1483,12 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        th the account parameter, returns async jobs for the account in the specified do
     *        main.
     * @param string $keyword List by keyword
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $startDate the start date of the async job
     * @param string $page Pagination
     */
-    
+
     public function listAsyncJobs($account = "", $domainId = "", $keyword = "", $page = "", $pageSize = "", $startDate = "", $page = "") {
 
         return $this->request("listAsyncJobs", array(
@@ -1501,7 +1501,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * A command to list events.
     *
@@ -1510,20 +1510,20 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $domainId the domain ID for the event. If used with the account pa
     *        rameter, returns all events for an account in the specified domain ID.
     * @param string $duration the duration of the event
-    * @param string $endDate the end date range of the list you want to retrieve (use 
+    * @param string $endDate the end date range of the list you want to retrieve (use
     *        format &quot;yyyy-MM-dd&quot;)
     * @param string $entryTime the time the event was entered
     * @param string $id the ID of the event
     * @param string $keyword List by keyword
     * @param string $level the event level (INFO, WARN, ERROR)
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $startDate the start date range of the list you want to retrieve (
     *        use format &quot;yyyy-MM-dd&quot;)
     * @param string $type the event type (see event types)
     * @param string $page Pagination
     */
-    
+
     public function listEvents($account = "", $domainId = "", $duration = "", $endDate = "", $entryTime = "", $id = "", $keyword = "", $level = "", $page = "", $pageSize = "", $startDate = "", $type = "", $page = "") {
 
         return $this->request("listEvents", array(
@@ -1542,18 +1542,18 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Lists all supported OS types for this cloud.
     *
     * @param string $id list by Os type Id
     * @param string $keyword List by keyword
     * @param string $osCategoryId list by Os Category id
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $page Pagination
     */
-    
+
     public function listOsTypes($id = "", $keyword = "", $osCategoryId = "", $page = "", $pageSize = "", $page = "") {
 
         return $this->request("listOsTypes", array(
@@ -1565,17 +1565,17 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Lists all supported OS categories for this cloud.
     *
     * @param string $id list Os category by id
     * @param string $keyword List by keyword
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $page Pagination
     */
-    
+
     public function listOsCategories($id = "", $keyword = "", $page = "", $pageSize = "", $page = "") {
 
         return $this->request("listOsCategories", array(
@@ -1586,7 +1586,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Lists all available service offerings.
     *
@@ -1595,14 +1595,14 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $id ID of the service offering
     * @param string $keyword List by keyword
     * @param string $name name of the service offering
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $virtualMachineId the ID of the virtual machine. Pass this in if y
     *        ou want to see the available service offering that a virtual machine can be chan
     *        ged to.
     * @param string $page Pagination
     */
-    
+
     public function listServiceOfferings($domainId = "", $id = "", $keyword = "", $name = "", $page = "", $pageSize = "", $virtualMachineId = "", $page = "") {
 
         return $this->request("listServiceOfferings", array(
@@ -1616,7 +1616,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Lists all available disk offerings.
     *
@@ -1624,11 +1624,11 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $id ID of the disk offering
     * @param string $keyword List by keyword
     * @param string $name name of the disk offering
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $page Pagination
     */
-    
+
     public function listDiskOfferings($domainId = "", $id = "", $keyword = "", $name = "", $page = "", $pageSize = "", $page = "") {
 
         return $this->request("listDiskOfferings", array(
@@ -1641,7 +1641,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Creates a l2tp/ipsec remote access vpn
     *
@@ -1653,7 +1653,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $ipRange the range of ip addresses to allocate to vpn clients. The
     *         first ip in the range will be taken by the vpn server
     */
-    
+
     public function createRemoteAccessVpn($publicIpId, $account = "", $domainId = "", $ipRange = "") {
 
         if (empty($publicIpId)) {
@@ -1667,13 +1667,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'iprange' => $ipRange,
         ));
     }
-    
+
     /**
     * Destroys a l2tp/ipsec remote access vpn
     *
     * @param string $publicIpId public ip address id of the vpn server
     */
-    
+
     public function deleteRemoteAccessVpn($publicIpId) {
 
         if (empty($publicIpId)) {
@@ -1684,7 +1684,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'publicipid' => $publicIpId,
         ));
     }
-    
+
     /**
     * Lists remote access vpns
     *
@@ -1695,11 +1695,11 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        h the account parameter, lists remote access vpns for the account in the specifi
     *        ed domain.
     * @param string $keyword List by keyword
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $page Pagination
     */
-    
+
     public function listRemoteAccessVpns($publicIpId, $account = "", $domainId = "", $keyword = "", $page = "", $pageSize = "", $page = "") {
 
         if (empty($publicIpId)) {
@@ -1716,7 +1716,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Adds vpn users
     *
@@ -1727,7 +1727,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $domainId an optional domainId for the vpn user. If the account pa
     *        rameter is used, domainId must also be used.
     */
-    
+
     public function addVpnUser($password, $userName, $account = "", $domainId = "") {
 
         if (empty($password)) {
@@ -1745,7 +1745,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'domainid' => $domainId,
         ));
     }
-    
+
     /**
     * Removes vpn user
     *
@@ -1755,7 +1755,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $domainId an optional domainId for the vpn user. If the account pa
     *        rameter is used, domainId must also be used.
     */
-    
+
     public function removeVpnUser($userName, $account = "", $domainId = "") {
 
         if (empty($userName)) {
@@ -1768,7 +1768,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'domainid' => $domainId,
         ));
     }
-    
+
     /**
     * Lists vpn users
     *
@@ -1779,12 +1779,12 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        main.
     * @param string $id the ID of the vpn user
     * @param string $keyword List by keyword
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $userName the username of the vpn user.
     * @param string $page Pagination
     */
-    
+
     public function listVpnUsers($account = "", $domainId = "", $id = "", $keyword = "", $page = "", $pageSize = "", $userName = "", $page = "") {
 
         return $this->request("listVpnUsers", array(
@@ -1798,7 +1798,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Acquires and associates a public IP to an account.
     *
@@ -1808,7 +1808,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $domainId the ID of the domain to associate with this IP address
     * @param string $networkId The network this ip address should be associated to.
     */
-    
+
     public function associateIpAddress($zoneId, $account = "", $domainId = "", $networkId = "") {
 
         if (empty($zoneId)) {
@@ -1822,13 +1822,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'networkid' => $networkId,
         ));
     }
-    
+
     /**
     * Disassociates an ip address from the account.
     *
     * @param string $id the id of the public ip address to disassociate
     */
-    
+
     public function disassociateIpAddress($id) {
 
         if (empty($id)) {
@@ -1839,7 +1839,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'id' => $id,
         ));
     }
-    
+
     /**
     * Lists all public ip addresses
     *
@@ -1854,13 +1854,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $id lists ip address by id
     * @param string $ipAddress lists the specified IP address
     * @param string $keyword List by keyword
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $vlanId lists all public IP addresses by VLAN ID
     * @param string $zoneId lists all public IP addresses by Zone ID
     * @param string $page Pagination
     */
-    
+
     public function listPublicIpAddresses($id = "", $account = "", $allocatedOnly = "", $domainId = "", $forVirtualNetwork = "", $ipAddress = "", $keyword = "", $page = "", $pageSize = "", $vlanId = "", $zoneId = "", $page = "") {
 
         return $this->request("listPublicIpAddresses", array(
@@ -1878,7 +1878,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Lists all port forwarding rules for an IP address.
     *
@@ -1888,11 +1888,11 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $id Lists rule with the specified ID.
     * @param string $ipAddressId the id of IP address of the port forwarding services
     * @param string $keyword List by keyword
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $page Pagination
     */
-    
+
     public function listPortForwardingRules($account = "", $domainId = "", $id = "", $ipAddressId = "", $keyword = "", $page = "", $pageSize = "", $page = "") {
 
         return $this->request("listPortForwardingRules", array(
@@ -1906,7 +1906,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Creates a port forwarding rule
     *
@@ -1918,7 +1918,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $virtualMachineId the ID of the virtual machine for the port forwa
     *        rding rule
     */
-    
+
     public function createPortForwardingRule($ipAddressId, $privatePort, $protocol, $publicPort, $virtualMachineId) {
 
         if (empty($ipAddressId)) {
@@ -1949,13 +1949,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'virtualmachineid' => $virtualMachineId,
         ));
     }
-    
+
     /**
     * Deletes a port forwarding rule
     *
     * @param string $id the ID of the port forwarding rule
     */
-    
+
     public function deletePortForwardingRule($id) {
 
         if (empty($id)) {
@@ -1966,7 +1966,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'id' => $id,
         ));
     }
-    
+
     /**
     * Enables static nat for given ip address
     *
@@ -1975,7 +1975,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $virtualMachineId the ID of the virtual machine for enabling stati
     *        c nat feature
     */
-    
+
     public function enableStaticNat($ipAddressId, $virtualMachineId) {
 
         if (empty($ipAddressId)) {
@@ -1991,7 +1991,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'virtualmachineid' => $virtualMachineId,
         ));
     }
-    
+
     /**
     * Creates an ip forwarding rule
     *
@@ -2001,7 +2001,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $startPort the start port for the rule
     * @param string $endPort the end port for the rule
     */
-    
+
     public function createIpForwardingRule($ipAddressId, $protocol, $startPort, $endPort = "") {
 
         if (empty($ipAddressId)) {
@@ -2023,13 +2023,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'endport' => $endPort,
         ));
     }
-    
+
     /**
     * Deletes an ip forwarding rule
     *
     * @param string $id the id of the forwarding rule
     */
-    
+
     public function deleteIpForwardingRule($id) {
 
         if (empty($id)) {
@@ -2040,23 +2040,23 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'id' => $id,
         ));
     }
-    
+
     /**
     * List the ip forwarding rules
     *
-    * @param string $account the account associated with the ip forwarding rule. Must 
+    * @param string $account the account associated with the ip forwarding rule. Must
     *        be used with the domainId parameter.
     * @param string $domainId Lists all rules for this id. If used with the account pa
     *        rameter, returns all rules for an account in the specified domain ID.
     * @param string $id Lists rule with the specified ID.
     * @param string $ipAddressId list the rule belonging to this public ip address
     * @param string $keyword List by keyword
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $virtualMachineId Lists all rules applied to the specified Vm.
     * @param string $page Pagination
     */
-    
+
     public function listIpForwardingRules($account = "", $domainId = "", $id = "", $ipAddressId = "", $keyword = "", $page = "", $pageSize = "", $virtualMachineId = "", $page = "") {
 
         return $this->request("listIpForwardingRules", array(
@@ -2071,14 +2071,14 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Disables static rule for given ip address
     *
     * @param string $ipAddressId the public IP address id for which static nat feature
     *         is being disableed
     */
-    
+
     public function disableStaticNat($ipAddressId) {
 
         if (empty($ipAddressId)) {
@@ -2089,12 +2089,12 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'ipaddressid' => $ipAddressId,
         ));
     }
-    
+
     /**
     * Creates a load balancer rule
     *
     * @param string $algorithm load balancer algorithm (source, roundrobin, leastconn)
-    *        
+    *
     * @param string $name name of the load balancer rule
     * @param string $privatePort the private port of the private ip address/virtual ma
     *        chine where the network traffic will be load balanced to
@@ -2104,7 +2104,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *         load balanced from
     * @param string $description the description of the load balancer rule
     */
-    
+
     public function createLoadBalancerRule($algorithm, $name, $privatePort, $publicIpId, $publicPort, $description = "") {
 
         if (empty($algorithm)) {
@@ -2136,13 +2136,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'description' => $description,
         ));
     }
-    
+
     /**
     * Deletes a load balancer rule.
     *
     * @param string $id the ID of the load balancer rule
     */
-    
+
     public function deleteLoadBalancerRule($id) {
 
         if (empty($id)) {
@@ -2153,7 +2153,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'id' => $id,
         ));
     }
-    
+
     /**
     * Removes a virtual machine or a list of virtual machines from a load balancer rule.
     *
@@ -2161,7 +2161,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $virtualMachineIds the list of IDs of the virtual machines that ar
     *        e being removed from the load balancer rule (i.e. virtualMachineIds=1,2,3)
     */
-    
+
     public function removeFromLoadBalancerRule($id, $virtualMachineIds) {
 
         if (empty($id)) {
@@ -2177,7 +2177,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'virtualmachineids' => $virtualMachineIds,
         ));
     }
-    
+
     /**
     * Assigns virtual machine or a list of virtual machines to a load balancer rule.
     *
@@ -2185,7 +2185,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $virtualMachineIds the list of IDs of the virtual machine that are
     *         being assigned to the load balancer rule(i.e. virtualMachineIds=1,2,3)
     */
-    
+
     public function assignToLoadBalancerRule($id, $virtualMachineIds) {
 
         if (empty($id)) {
@@ -2201,26 +2201,26 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'virtualmachineids' => $virtualMachineIds,
         ));
     }
-    
+
     /**
     * Lists load balancer rules.
     *
-    * @param string $account the account of the load balancer rule. Must be used with 
+    * @param string $account the account of the load balancer rule. Must be used with
     *        the domainId parameter.
     * @param string $domainId the domain ID of the load balancer rule. If used with th
-    *        e account parameter, lists load balancer rules for the account in the specified 
+    *        e account parameter, lists load balancer rules for the account in the specified
     *        domain.
     * @param string $id the ID of the load balancer rule
     * @param string $keyword List by keyword
     * @param string $name the name of the load balancer rule
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $publicIpId the public IP address id of the load balancer rule
     * @param string $virtualMachineId the ID of the virtual machine of the load balanc
     *        er rule
     * @param string $page Pagination
     */
-    
+
     public function listLoadBalancerRules($account = "", $domainId = "", $id = "", $keyword = "", $name = "", $page = "", $pageSize = "", $publicIpId = "", $virtualMachineId = "", $page = "") {
 
         return $this->request("listLoadBalancerRules", array(
@@ -2236,7 +2236,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * List all virtual machine instances that are assigned to a load balancer rule.
     *
@@ -2244,11 +2244,11 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $applied true if listing all virtual machines currently applied to
     *         the load balancer rule; default is true
     * @param string $keyword List by keyword
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $page Pagination
     */
-    
+
     public function listLoadBalancerRuleInstances($id, $applied = "", $keyword = "", $page = "", $pageSize = "", $page = "") {
 
         if (empty($id)) {
@@ -2264,17 +2264,17 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Updates load balancer
     *
     * @param string $id the id of the load balancer rule to update
     * @param string $algorithm load balancer algorithm (source, roundrobin, leastconn)
-    *        
+    *
     * @param string $description the description of the load balancer rule
     * @param string $name the name of the load balancer rule
     */
-    
+
     public function updateLoadBalancerRule($id, $algorithm = "", $description = "", $name = "") {
 
         if (empty($id)) {
@@ -2288,14 +2288,14 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'name' => $name,
         ));
     }
-    
+
     /**
     * Register a public key in a keypair under a certain name
     *
     * @param string $name Name of the keypair
     * @param string $publicKey Public key material of the keypair
     */
-    
+
     public function registerSSHKeyPair($name, $publicKey) {
 
         if (empty($name)) {
@@ -2311,7 +2311,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'publickey' => $publicKey,
         ));
     }
-    
+
     /**
     * Create a new keypair and returns the private key
     *
@@ -2333,7 +2333,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'domainid' => $domainId,
         ));
     }
-    
+
     /**
     * Deletes a keypair by name
     *
@@ -2342,7 +2342,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        h the domainId parameter.
     * @param string $domainId the domain ID associated with the keypair
     */
-    
+
     public function deleteSSHKeyPair($name, $account = "", $domainId = "") {
 
         if (empty($name)) {
@@ -2355,18 +2355,18 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'domainid' => $domainId,
         ));
     }
-    
+
     /**
     * List registered keypairs
     *
     * @param string $fingerprint A public key fingerprint to look for
     * @param string $keyword List by keyword
     * @param string $name A key pair name to look for
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $page Pagination
     */
-    
+
     public function listSSHKeyPairs($fingerprint = "", $keyword = "", $name = "", $page = "", $pageSize = "", $page = "") {
 
         return $this->request("listSSHKeyPairs", array(
@@ -2378,16 +2378,16 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Creates a vm group
     *
     * @param string $name the name of the instance group
-    * @param string $account the account of the instance group. The account parameter 
+    * @param string $account the account of the instance group. The account parameter
     *        must be used with the domainId parameter.
     * @param string $domainId the domain ID of account owning the instance group
     */
-    
+
     public function createInstanceGroup($name, $account = "", $domainId = "") {
 
         if (empty($name)) {
@@ -2400,13 +2400,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'domainid' => $domainId,
         ));
     }
-    
+
     /**
     * Deletes a vm group
     *
     * @param string $id the ID of the instance group
     */
-    
+
     public function deleteInstanceGroup($id) {
 
         if (empty($id)) {
@@ -2417,14 +2417,14 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'id' => $id,
         ));
     }
-    
+
     /**
     * Updates a vm group
     *
     * @param string $id Instance group ID
     * @param string $name new instance group name
     */
-    
+
     public function updateInstanceGroup($id, $name = "") {
 
         if (empty($id)) {
@@ -2436,7 +2436,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'name' => $name,
         ));
     }
-    
+
     /**
     * Lists vm groups
     *
@@ -2447,11 +2447,11 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $id list instance groups by ID
     * @param string $keyword List by keyword
     * @param string $name list instance groups by name
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $page Pagination
     */
-    
+
     public function listInstanceGroups($account = "", $domainId = "", $id = "", $keyword = "", $name = "", $page = "", $pageSize = "", $page = "") {
 
         return $this->request("listInstanceGroups", array(
@@ -2465,7 +2465,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Creates a network
     *
@@ -2485,7 +2485,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $startIp the beginning IP address in the network IP range
     * @param string $vlan the ID or VID of the network
     */
-    
+
     public function createNetwork($displayText, $name, $networkOfferingId, $zoneId, $account = "", $domainId = "", $endIp = "", $gateway = "", $isDefault = "", $isShared = "", $netmask = "", $networkDomain = "", $startIp = "", $vlan = "") {
 
         if (empty($displayText)) {
@@ -2521,13 +2521,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'vlan' => $vlan,
         ));
     }
-    
+
     /**
     * Deletes a network
     *
     * @param string $id the ID of the network
     */
-    
+
     public function deleteNetwork($id) {
 
         if (empty($id)) {
@@ -2538,7 +2538,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'id' => $id,
         ));
     }
-    
+
     /**
     * Lists all available networks.
     *
@@ -2551,14 +2551,14 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        alse otherwise
     * @param string $isSystem true if network is system, false otherwise
     * @param string $keyword List by keyword
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $trafficType type of the traffic
     * @param string $type the type of the network
     * @param string $zoneId the Zone ID of the network
     * @param string $page Pagination
     */
-    
+
     public function listNetworks($zoneId = "", $account = "", $domainId = "", $id = "", $isDefault = "", $isShared = "", $isSystem = "", $keyword = "", $page = "", $pageSize = "", $trafficType = "", $type = "", $page = "") {
 
         return $this->request("listNetworks", array(
@@ -2577,13 +2577,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Reapplies all ip addresses for the particular network
     *
     * @param string $id The network this ip address should be associated to.
     */
-    
+
     public function restartNetwork($id) {
 
         if (empty($id)) {
@@ -2594,7 +2594,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'id' => $id,
         ));
     }
-    
+
     /**
     * Updates a network
     *
@@ -2602,7 +2602,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $displayText the new display text for the network
     * @param string $name the new name for the network
     */
-    
+
     public function updateNetwork($id, $displayText = "", $name = "") {
 
         if (empty($id)) {
@@ -2615,14 +2615,14 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'name' => $name,
         ));
     }
-    
+
     /**
     * List hypervisors
     *
     * @param string $zoneId the zone id for listing hypervisors.
     * @param string $page Pagination
     */
-    
+
     public function listHypervisors($zoneId = "", $page = "") {
 
         return $this->request("listHypervisors", array(
@@ -2630,7 +2630,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Lists zones
     *
@@ -2640,11 +2640,11 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $domainId the ID of the domain associated with the zone
     * @param string $id the ID of the zone
     * @param string $keyword List by keyword
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $page Pagination
     */
-    
+
     public function listZones($available = "", $domainId = "", $id = "", $keyword = "", $page = "", $pageSize = "", $page = "") {
 
         return $this->request("listZones", array(
@@ -2657,11 +2657,11 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Lists all available network offerings.
     *
-    * @param string $availability the availability of network offering. Default value 
+    * @param string $availability the availability of network offering. Default value
     *        is Required
     * @param string $displayText list network offerings by display text
     * @param string $guestIpType the guest ip type for the network offering, supported
@@ -2672,15 +2672,15 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $isShared true is network offering supports vlans
     * @param string $keyword List by keyword
     * @param string $name list network offerings by name
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $specifyVlan the tags for the network offering.
     * @param string $trafficType list by traffic type
     * @param string $zoneId list netowrk offerings available for network creation in s
     *        pecific zone
     * @param string $page Pagination
     */
-    
+
     public function listNetworkOfferings($availability = "", $displayText = "", $guestIpType = "", $id = "", $isDefault = "", $isShared = "", $keyword = "", $name = "", $page = "", $pageSize = "", $specifyVlan = "", $trafficType = "", $zoneId = "", $page = "") {
 
         return $this->request("listNetworkOfferings", array(
@@ -2700,20 +2700,20 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Lists capabilities
     *
     * @param string $page Pagination
     */
-    
+
     public function listCapabilities($page = "") {
 
         return $this->request("listCapabilities", array(
             'page' => $page,
         ));
     }
-    
+
     /**
     * Lists resource limits.
     *
@@ -2724,8 +2724,8 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        ain.
     * @param string $id Lists resource limits by ID.
     * @param string $keyword List by keyword
-    * @param string $page 
-    * @param string $pageSize 
+    * @param string $page
+    * @param string $pageSize
     * @param string $resourceType Type of resource to update. Values are 0, 1, 2, 3, a
     *        nd 4. 0 - Instance. Number of instances a user can create. 1 - IP. Number of pub
     *        lic IP addresses a user can own. 2 - Volume. Number of disk volumes a user can c
@@ -2733,7 +2733,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     *        f templates that a user can register/create.
     * @param string $page Pagination
     */
-    
+
     public function listResourceLimits($account = "", $domainId = "", $id = "", $keyword = "", $page = "", $pageSize = "", $resourceType = "", $page = "") {
 
         return $this->request("listResourceLimits", array(
@@ -2747,13 +2747,13 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'page' => $page,
         ));
     }
-    
+
     /**
     * Retrieves a cloud identifier.
     *
     * @param string $userId the user ID for the cloud identifier
     */
-    
+
     public function getCloudIdentifier($userId) {
 
         if (empty($userId)) {
@@ -2764,7 +2764,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'userid' => $userId,
         ));
     }
-    
+
     /**
     * Logs a user into the CloudStack. A successful login attempt will generate a JSESSIONID cookie value that can be passed in subsequent Query command calls until the "logout" command has been issued or the session has expired.
     *
@@ -2773,7 +2773,7 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
     * @param string $domain path of the domain that the user belongs to. Example: doma
     *        in=/com/cloud/internal.  If no domain is passed in, the ROOT domain is assumed.
     */
-    
+
     public function login($userName, $password, $domain = "") {
 
         if (empty($userName)) {
@@ -2790,16 +2790,16 @@ class Scalr_Service_Cloud_Cloudstack_Client extends Scalr_Service_Cloud_Cloudsta
             'domain' => $domain,
         ));
     }
-    
+
     /**
     * Logs out the user
     *
     */
-    
+
     public function logout() {
 
         return $this->request("logout", array(
         ));
     }
-    
+
 }

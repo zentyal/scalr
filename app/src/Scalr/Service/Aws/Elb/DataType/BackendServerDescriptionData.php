@@ -10,7 +10,7 @@ use Scalr\Service\Aws\Elb\AbstractElbDataType;
  * This data type is used as a response element in the DescribeLoadBalancers action
  * to describe the configuration of the back-end server.
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    19.09.2012
  */
 class BackendServerDescriptionData extends AbstractElbDataType

@@ -221,8 +221,8 @@ Scalr.regPage('Scalr.ui.account2.users.view', function (loadParams, moduleParams
 
 		columns: [
 			{text: 'Name', flex: 1, dataIndex: 'fullname', sortable: true},
-			{text: 'Email', flex: 1, dataIndex: 'email', sortable: true},
-			{text: 'Teams', flex: 1, dataIndex: 'id', sortable: false, xtype: 'templatecolumn', tpl: 
+			{text: Scalr.flags['authMode'] == 'ldap' ? 'LDAP login' : 'Email', flex: 1, dataIndex: 'email', sortable: true},
+			{text: 'Teams', flex: 1, dataIndex: 'id', sortable: false, xtype: 'templatecolumn', hidden: (Scalr.flags['authMode'] == 'ldap'), tpl:
 				new Ext.XTemplate(
 				'{[this.getUserTeamsList(values.id)]}',
 				{
@@ -449,13 +449,14 @@ Scalr.regPage('Scalr.ui.account2.users.view', function (loadParams, moduleParams
 			},{
 				xtype: 'textfield',
 				name: 'email',
-				fieldLabel: 'Email',
+				fieldLabel: Scalr.flags['authMode'] == 'ldap' ? 'LDAP login' : 'Email',
 				allowBlank: false,
-				vtype: 'email'
+				vtype: Scalr.flags['authMode'] == 'ldap' ? '' : 'email'
 			}, {
 				xtype: 'passwordfield',
 				name: 'password',
 				fieldLabel: 'Password',
+                hidden: Scalr.flags['authMode'] == 'ldap',
 				emptyText: 'Leave blank to let user specify password',
 				allowBlank: true
 			},{
@@ -463,6 +464,7 @@ Scalr.regPage('Scalr.ui.account2.users.view', function (loadParams, moduleParams
 				itemId: 'userTeams',
 				fieldLabel: 'Teams',
 				cls: 'scalr-ui-account-user-teams-list',
+                hidden: Scalr.flags['authMode'] == 'ldap',
 				listeners: {
 					afterrender: {
 						fn: function(){

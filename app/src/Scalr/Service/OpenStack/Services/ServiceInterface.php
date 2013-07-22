@@ -30,7 +30,7 @@ interface ServiceInterface
     /**
      * Gets andpoint url
      *
-     * @return  string Returns endpoint url for that service interface.
+     * @return  string Returns endpoint url without trailing slash
      * @throws  OpenStackException
      */
     public function getEndpointUrl();

@@ -11,7 +11,7 @@ use Scalr\Service\Aws\Iam\AbstractIamHandler;
 /**
  * UserHandler
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     13.11.2012
  */
 class UserHandler extends AbstractIamHandler
@@ -30,7 +30,7 @@ class UserHandler extends AbstractIamHandler
      * @throws  IamException
      * @throws  ClientException
      */
-    public function create ($userName, $path = null)
+    public function create($userName, $path = null)
     {
         return $this->getIam()->getApiHandler()->createUser($userName, $path);
     }
@@ -47,7 +47,7 @@ class UserHandler extends AbstractIamHandler
      * @throws  IamException
      * @throws  ClientException
      */
-    public function fetch ($userName = null)
+    public function fetch($userName = null)
     {
         return $this->getIam()->getApiHandler()->getUser($userName);
     }
@@ -64,7 +64,7 @@ class UserHandler extends AbstractIamHandler
      * @throws  IamException
      * @throws  ClientException
      */
-    public function delete ($userName)
+    public function delete($userName)
     {
         return $this->getIam()->getApiHandler()->deleteUser($userName);
     }
@@ -90,7 +90,7 @@ class UserHandler extends AbstractIamHandler
      * @throws  IamException
      * @throws  ClientException
      */
-    public function createAccessKey ($userName = null)
+    public function createAccessKey($userName = null)
     {
         return $this->getIam()->getApiHandler()->createAccessKey($userName);
     }
@@ -111,7 +111,7 @@ class UserHandler extends AbstractIamHandler
      * @throws  IamException
      * @throws  ClientException
      */
-    public function deleteAccessKey ($accessKeyId, $userName = null)
+    public function deleteAccessKey($accessKeyId, $userName = null)
     {
         return $this->getIam()->getApiHandler()->deleteAccessKey($accessKeyId, $userName);
     }
@@ -131,7 +131,7 @@ class UserHandler extends AbstractIamHandler
      * @throws  IamException
      * @throws  ClientException
      */
-    public function putUserPolicy ($userName, $policyName, $policyDocument)
+    public function putUserPolicy($userName, $policyName, $policyDocument)
     {
         return $this->getIam()->getApiHandler()->putUserPolicy($userName, $policyName, $policyDocument);
     }
@@ -147,7 +147,7 @@ class UserHandler extends AbstractIamHandler
      * @throws  IamException
      * @throws  ClientException
      */
-    public function deleteUserPolicy ($userName, $policyName)
+    public function deleteUserPolicy($userName, $policyName)
     {
         return $this->getIam()->getApiHandler()->deleteUserPolicy($userName, $policyName);
     }
@@ -165,7 +165,7 @@ class UserHandler extends AbstractIamHandler
      * @throws  IamException
      * @throws  ClientException
      */
-    public function getUserPolicy ($userName, $policyName)
+    public function getUserPolicy($userName, $policyName)
     {
         return $this->getIam()->getApiHandler()->getUserPolicy($userName, $policyName);
     }
@@ -191,7 +191,7 @@ class UserHandler extends AbstractIamHandler
      * @throws  IamException
      * @throws  ClientException
      */
-    public function listAccessKeys ($userName = null, $marker = null, $maxItems = null)
+    public function listAccessKeys($userName = null, $marker = null, $maxItems = null)
     {
         return $this->getIam()->getApiHandler()->listAccessKeys($userName, $marker, $maxItems);
     }
@@ -199,13 +199,14 @@ class UserHandler extends AbstractIamHandler
     /**
      * Gets UserData object from the Entity Storage.
      *
+     * You should be aware of the fact that the entity manager is turned off by default.
      * IMPORTANT! If you want to retrive user info from the Amazon service
      * please use fetch() method of current class.
      *
      * @param   string $userName An user name to find in storage
      * @return  UserData Returns found UserData object for the given user name or NULL if it doesn't exist.
      */
-    public function get ($userName)
+    public function get($userName)
     {
         return $this->getIam()->getEntityManager()->getRepository('Iam:User')->find($userName);
     }

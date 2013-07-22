@@ -12,7 +12,7 @@ use Scalr\Service\Aws\Sqs\AbstractSqsHandler;
 /**
  * QueueHandler for the Simple Queue Service
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     06.11.2012
  */
 class QueueHandler extends AbstractSqsHandler
@@ -116,6 +116,7 @@ class QueueHandler extends AbstractSqsHandler
      * Gets Queue from storage.
      *
      * It supposes that Queue has been previously created or retrieved.
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param    string    $queueName   A Queue name
      * @return   QueueData Returns QueueData object if it has been created or described

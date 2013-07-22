@@ -1,7 +1,8 @@
 Scalr.regPage('Scalr.ui.farms.builder.tabs.nimbula', function () {
 	return Ext.create('Scalr.ui.FarmsBuilderTab', {
 		tabTitle: 'Nimbula settings',
-		cache: {},
+        itemId: 'numbula',
+		tabData: null,
 
 		isEnabled: function (record) {
 			return record.get('platform') == 'nimbula';
@@ -14,32 +15,27 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.nimbula', function () {
 		},
 
 		beforeShowTab: function (record, handler) {
-			var cloudLocation = record.get('cloud_location');
-
-			if (this.cacheExist('shapes'))
-				handler();
-			else
-				Scalr.Request({
-					processBox: {
-						type: 'action'
-					},
-					url: '/platforms/nimbula/xGetShapes/',
-					scope: this,
-					success: function (response) {
-						this.cacheSet(response.data, 'shapes');
-						handler();
-					},
-					failure: function () {
-						this.deactivateTab();
-					}
-				});
+            this.up('#farmbuilder').cache.load(
+                {
+                    url: '/platforms/nimbula/xGetShapes/',
+                    params: {
+                        cloudLocation: record.get('cloud_location')
+                    }
+                },
+                function(data, status) {
+                    this.tabData = data;
+                    status ? handler() : this.deactivateTab();
+                },
+                this,
+                0
+            );
 		},
 
 
 		showTab: function (record) {
 			var settings = record.get('settings');
 
-			this.down('[name="nimbula.shape"]').store.load({ data: this.cacheGet('shapes') });
+			this.down('[name="nimbula.shape"]').store.load({ data: this.tabData });
 			this.down('[name="nimbula.shape"]').setValue(settings['nimbula.shape'] || 'small');
 		},
 

@@ -12,10 +12,6 @@ try:
     import json
 except ImportError:
     import simplejson as json 
-import urllib2
-import urlparse
-import struct
-import socket
 from threading import local
 import logging
 
@@ -25,7 +21,7 @@ from scalrpy import util
 
 LOG = logging.getLogger(__file__)
 LOG.setLevel(logging.DEBUG)
-hndlr = logging.StreamHandler(stream=sys.stderr)
+hndlr = logging.StreamHandler()
 frmtr= logging.Formatter('%(asctime)s-%(name)s-%(levelname)s# %(message)s')
 hndlr.setFormatter(frmtr)
 hndlr.setLevel(logging.DEBUG)
@@ -97,8 +93,10 @@ class RequestHandler(object):
         else:
             self.services = services
         
+
     def handle_error(self):
         LOG.exception('Caught exception')
+
         
     def handle_request(self, data, namespace=None):
         id, result, error = '', None, None
@@ -134,6 +132,7 @@ class RequestHandler(object):
             return json.loads(data)
         except:
             raise ParseError()
+
     
     def _translate_request(self, req):
         try:
@@ -141,6 +140,7 @@ class RequestHandler(object):
             return req['id'], req['method'], req['params']
         except:
             raise InvalidRequestError()
+
 
     def _find_service(self, namespace):
         try:
@@ -151,6 +151,7 @@ class RequestHandler(object):
             if isinstance(svs, basestring):
                 svs = self.services[namespace] = util.import_object(svs)
             return svs
+
 
     def _find_method(self, service, name):
         meth = getattr(service, name, None)
@@ -175,6 +176,7 @@ class ServiceProxy(object):
     def __init__(self):
         self.local = local()
 
+
     def __getattr__(self, name):
         try:
             self.__dict__['local'].method.append(name)
@@ -182,6 +184,7 @@ class ServiceProxy(object):
             self.__dict__['local'].method = [name]
         return self
     
+
     def __call__(self, timeout=None, **kwds):
         try:
             req = json.dumps({'method': self.local.method[-1], 'params': kwds, 'id': time.time()})
@@ -193,6 +196,7 @@ class ServiceProxy(object):
         finally:
             self.local.method = []
         
+
     def exchange(self, request):
         raise NotImplementedError()
     
@@ -202,8 +206,11 @@ class Server(object):
     def __init__(self, endpoint, handler):
         raise NotImplementedError()
 
+
     def serve_forever(self):
         raise NotImplementedError()
     
+
     def stop(self):
         raise NotImplementedError()
+

@@ -9,6 +9,10 @@ use Scalr\Service\Aws\Ec2Exception;
  *
  * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    28.12.2012
+ *
+ * @method   \Scalr\Service\Aws\Ec2\DataType\IpPermissionData get()
+ *           get(int $index)
+ *           Gets IpPermissionData object for the specified position in the list.
  */
 class IpPermissionList extends Ec2ListDataType
 {

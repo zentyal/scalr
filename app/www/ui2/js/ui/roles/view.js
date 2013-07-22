@@ -3,7 +3,7 @@ Scalr.regPage('Scalr.ui.roles.view', function (loadParams, moduleParams) {
 		fields: [
 			{name: 'id', type: 'int'},
 			{name: 'client_id', type: 'int'},
-			'name', 'tags', 'origin', 'architecture', 'client_name', 'behaviors', 'os', 'platforms','generation','used_servers','status','behaviors_name'
+			'name', 'tags', 'origin', 'client_name', 'behaviors', 'os', 'platforms','generation','used_servers','status','behaviors_name'
 		],
 		proxy: {
 			type: 'scalr.paging',
@@ -21,7 +21,7 @@ Scalr.regPage('Scalr.ui.roles.view', function (loadParams, moduleParams) {
 			xtype: 'checkbox',
 			boxLabel: 'Remove image from cloud',
 			inputValue: 1,
-			checked:!moduleParams['isScalrAdmin'],
+			checked: false,
 			name: 'removeFromCloud'
 		}]
 	};
@@ -72,7 +72,6 @@ Scalr.regPage('Scalr.ui.roles.view', function (loadParams, moduleParams) {
 			{ header: "Behaviors", flex: 1, dataIndex: 'behaviors_name', sortable: false },
 			{ header: "Available on", flex: 1, dataIndex: 'platforms', sortable: false },
 			{ header: "Tags", width: 130, dataIndex: 'tags', sortable: false },
-			{ header: "Arch", width: 65, dataIndex: 'architecture', sortable: true },
 			{ header: "Status", width: 100, dataIndex: 'status', sortable: false, xtype: 'templatecolumn', tpl:
 				'{status} ({used_servers})'
 			},
@@ -88,7 +87,7 @@ Scalr.regPage('Scalr.ui.roles.view', function (loadParams, moduleParams) {
 							msg: 'Clone "{name}" role" ?'
 						},
 						processBox: {
-							type: 'reboot',
+							type: 'action',
 							msg: 'Cloning role. Please wait ...'
 						},
 						url: '/roles/xClone/',
@@ -178,11 +177,11 @@ Scalr.regPage('Scalr.ui.roles.view', function (loadParams, moduleParams) {
 				],
 
 				getOptionVisibility: function (item, record) {
-					if (item.itemId == 'option.view')
+					if (item.itemId == 'option.view' || item.itemId == 'option.clone')
 						return true;
 
 					if (item.itemId == 'option.migrate')
-						return (record.get('platforms').indexOf('EC2') != -1);
+						return (record.get('platforms').indexOf('EC2') != -1 && record.get('origin') == 'CUSTOM');
 
 					if (record.get('origin') == 'CUSTOM') {
 						if (item.itemId == 'option.edit') {
@@ -221,7 +220,7 @@ Scalr.regPage('Scalr.ui.roles.view', function (loadParams, moduleParams) {
 				ui: 'paging',
 				iconCls: 'x-tbar-add',
 				handler: function() {
-					Scalr.event.fireEvent('redirect', '#/roles/builder2');
+					Scalr.event.fireEvent('redirect', '#/roles/builder');
 				}
 			}],
 			afterItems: [{

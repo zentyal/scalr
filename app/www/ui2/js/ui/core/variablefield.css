@@ -36,11 +36,11 @@
 }
 
 .scalr-ui-variablefield-flag-required .x-form-display-field .x-btn-inner {
-	background-position: -5px -3px;
+	background-position: -29px -3px;
 }
 
 .scalr-ui-variablefield-flag-final .x-form-display-field .x-btn-inner {
-	background-position: -29px -3px;
+	background-position: -5px -3px;
 }
 
 .scalr-ui-variablefield-scope-env, .scalr-ui-variablefield-scope-role, .scalr-ui-variablefield-scope-farm {

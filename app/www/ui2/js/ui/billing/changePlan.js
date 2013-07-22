@@ -62,6 +62,7 @@ Scalr.regPage('Scalr.ui.billing.changePlan', function (loadParams, moduleParams)
 	form.add({
 		xtype: 'fieldset',
 		title: 'Choose your plan',
+		align: 'center',
 		layout: {
 			type: 'hbox'
 		},
@@ -83,75 +84,26 @@ Scalr.regPage('Scalr.ui.billing.changePlan', function (loadParams, moduleParams)
 				'</div>'
 		},
 		items: [{
-			cls: moduleParams['currentPackage'] == 'up-to-80-servers' ? 'scalr-ui-billing-changePlan-current': '',
-			pressed: moduleParams['currentPackage'] == 'up-to-80-servers' ? true : false,
-			hidden: moduleParams['currentPackage'] == 'pay-as-you-go' ? true : false,
-			//disabled: moduleParams['availablePackages']['up-to-80-servers'] == 0 ? true : false,
-			package: 'up-to-80-servers',
+			cls: moduleParams['currentPackage'] == 'pay-as-you-go' ? 'scalr-ui-billing-changePlan-current': '',
+			pressed: moduleParams['currentPackage'] == 'pay-as-you-go' ? true : false,
+			hidden: false,
+			package: 'pay-as-you-go',
 			renderData: {
 				icon: 'monopoly',
-				name: 'Monopoly',
-				price: '$2,399',
+				name: 'Pay As You Go',
+				price: 'From $99',
 				prefix: 'scalr-ui-billing-changePlan'
 			}
 		}, {
-			cls: moduleParams['currentPackage'] == 'up-to-40-servers' ? 'scalr-ui-billing-changePlan-current': '',
-			pressed: moduleParams['currentPackage'] == 'up-to-40-servers' ? true : false,
-			disabled: moduleParams['availablePackages']['up-to-40-servers'] == 0 ? true : false,
-			hidden: moduleParams['currentPackage'] == 'pay-as-you-go' ? true : false,
-			package: 'up-to-40-servers',
-			renderData: {
-				icon: 'ipo',
-				name: 'IPO',
-				price: '$999',
-				prefix: 'scalr-ui-billing-changePlan'
-			}
-		}, {
-			cls: moduleParams['currentPackage'] == 'up-to-20-servers' ? 'scalr-ui-billing-changePlan-current': '',
-			pressed: moduleParams['currentPackage'] == 'up-to-20-servers' ? true : false,
-			disabled: moduleParams['availablePackages']['up-to-20-servers'] == 0 ? true : false,
-			hidden: moduleParams['currentPackage'] == 'pay-as-you-go' ? true : false,
-			package: 'up-to-20-servers',
-			renderData: {
-				icon: 'vc',
-				name: 'VC',
-				price: '$399',
-				prefix: 'scalr-ui-billing-changePlan'
-			}
-		}, {
-			cls: moduleParams['currentPackage'] == 'up-to-10-servers' ? 'scalr-ui-billing-changePlan-current': '',
-			pressed: moduleParams['currentPackage'] == 'up-to-10-servers' ? true : false,
-			disabled: moduleParams['availablePackages']['up-to-10-servers'] == 0 ? true : false,
-			hidden: moduleParams['currentPackage'] == 'pay-as-you-go' ? true : false,
-			package: 'up-to-10-servers',
-			renderData: {
-				icon: 'angel',
-				name: 'Angel',
-				price: '$199',
-				prefix: 'scalr-ui-billing-changePlan'
-			}
-		}, {
-			cls: moduleParams['currentPackage'] == 'up-to-5-servers' ? 'scalr-ui-billing-changePlan-current': '',
-			pressed: moduleParams['currentPackage'] == 'up-to-5-servers' ? true : false,
-			disabled: moduleParams['availablePackages']['up-to-5-servers'] == 0 ? true : false,
-			hidden: moduleParams['currentPackage'] == 'pay-as-you-go' ? true : false,
-			package: 'up-to-5-servers',
-			renderData: {
-				icon: 'seed',
-				name: 'Seed',
-				price: '$99',
-				prefix: 'scalr-ui-billing-changePlan'
-			}
-		}, {
-			package: 'cancel',
-			pressed: moduleParams['currentPackage'] == 'cancel' ? true : false,
-			hidden: !moduleParams['subscriptionId'] ? true : false,
-			renderData: {
-				icon: 'stop_sign',
-				name: 'Unsubscribe',
-				prefix: 'scalr-ui-billing-changePlan'
-			}
-		}]
+            package: 'cancel',
+            pressed: moduleParams['currentPackage'] == 'cancel' ? true : false,
+            hidden: !moduleParams['subscriptionId'] ? true : false,
+            renderData: {
+                icon: 'stop_sign',
+                name: 'Unsubscribe',
+                prefix: 'scalr-ui-billing-changePlan'
+            }
+        }]
 	});
 
 	form.add({

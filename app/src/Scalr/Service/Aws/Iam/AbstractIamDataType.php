@@ -8,7 +8,7 @@ use Scalr\Service\Aws\AbstractDataType;
 /**
  * AbstractIamDataType
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    13.11.2012
  * @method   \Scalr\Service\Aws\Iam   getIam()  getIam() Gets an Amazon Iam instance.
  * @method   AbstractIamDataType      setIam()  setIam(\Scalr\Service\Aws\Iam $iam) Sets an Amazon Iam instance.

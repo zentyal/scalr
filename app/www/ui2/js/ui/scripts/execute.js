@@ -145,16 +145,17 @@ Scalr.regPage('Scalr.ui.scripts.execute', function (loadParams, moduleParams) {
 				text: 'Save',
 				hidden: !loadParams['isShortcut'],
 				handler: function () {
-					Scalr.Request({
-						processBox: {
-							type: 'action'
-						},
-						url: '/scripts/xExecute/',
-						form: form.getForm(),
-						success: function () {
-							Scalr.event.fireEvent('close');
-						}
-					});
+                    if (form.getForm().isValid())
+                        Scalr.Request({
+                            processBox: {
+                                type: 'action'
+                            },
+                            url: '/scripts/xExecute/',
+                            form: form.getForm(),
+                            success: function () {
+                                Scalr.event.fireEvent('close');
+                            }
+                        });
 				}
 			}, {
 				xtype: 'splitbutton',
@@ -162,30 +163,32 @@ Scalr.regPage('Scalr.ui.scripts.execute', function (loadParams, moduleParams) {
 				hidden: !!loadParams['isShortcut'],
 				handler: function () {
 					Scalr.message.Flush(true);
-					Scalr.Request({
-						processBox: {
-							type: 'action'
-						},
-						url: '/scripts/xExecute/',
-						form: form.getForm(),
-						success: function () {
-							Scalr.event.fireEvent('close');
-						}
-					});
+                    if (form.getForm().isValid())
+                        Scalr.Request({
+                            processBox: {
+                                type: 'action'
+                            },
+                            url: '/scripts/xExecute/',
+                            form: form.getForm(),
+                            success: function () {
+                                Scalr.event.fireEvent('close');
+                            }
+                        });
 				},
 				menu: [{
 					text: 'Execute script and stay on this page',
 					handler: function () {
-						Scalr.Request({
-							processBox: {
-								type: 'action'
-							},
-							url: '/scripts/xExecute/',
-							form: form.getForm(),
-							success: function () {
+                        if (form.getForm().isValid())
+                            Scalr.Request({
+                                processBox: {
+                                    type: 'action'
+                                },
+                                url: '/scripts/xExecute/',
+                                form: form.getForm(),
+                                success: function () {
 
-							}
-						});
+                                }
+                            });
 					}
 				}],
 				listeners: {

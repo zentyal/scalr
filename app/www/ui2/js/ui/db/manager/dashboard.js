@@ -274,16 +274,24 @@ Scalr.regPage('Scalr.ui.db.manager.dashboard', function (loadParams, moduleParam
 				flex: 1,
 				title: 'Database dumps <img data-qtip="Database dumps description" class="tipHelp" src="/ui2/images/icons/info_icon_16x16.png" style="cursor: help; height: 16px;">',
 				items: [{
+                    xtype: 'displayfield',
+                    showOn: 'backupsDisabled',
+                    hidden: true,
+                    value: 'Database dumps disabled.'
+                },{
 					xtype: 'displayfield',
 					name: 'backup_schedule',
-					fieldLabel: 'Schedule'
+					fieldLabel: 'Schedule',
+                    hideOn: 'backupsDisabled'
 				},{
 					xtype: 'displayfield',
 					name: 'backup_next',
-					fieldLabel: 'Next backup'
+					fieldLabel: 'Next backup',
+                    hideOn: 'backupsDisabled'
 				},{
 					xtype: 'fieldcontainer',
 					fieldLabel: 'Last backup',
+                    hideOn: 'backupsDisabled',
 					layout: 'column',
 					items: [{
 						xtype: 'displayfield',
@@ -315,9 +323,11 @@ Scalr.regPage('Scalr.ui.db.manager.dashboard', function (loadParams, moduleParam
 				},{
 					xtype: 'dbmshistoryfield',
 					name: 'backup_history',
-					fieldLabel: 'History'
+					fieldLabel: 'History',
+                    hideOn: 'backupsDisabled'
 				},{
 					xtype: 'container',
+                    hideOn: 'backupsDisabled',
 					layout: {
 						type: 'hbox'						
 					},
@@ -377,6 +387,7 @@ Scalr.regPage('Scalr.ui.db.manager.dashboard', function (loadParams, moduleParam
 							html: 'In progress...'
 						},{
 							xtype: 'btnfield',
+							itemId: 'cancelDataBackupBtn',
 							cls: 'scalr-ui-dbmsr-status-stop',
 							baseCls: 'x-btn-base-image-background',
 							margin: '0 0 0 6',
@@ -407,18 +418,26 @@ Scalr.regPage('Scalr.ui.db.manager.dashboard', function (loadParams, moduleParam
 			},{
 				xtype: 'fieldset',
 				flex: 1,
-				title: 'Binary storage snapshots <img data-qtip="Binary storage snapshots" class="tipHelp" src="/ui2/images/icons/info_icon_16x16.png" style="cursor: help; height: 16px;position:relative;top:2px">',
+				title: 'Binary storage snapshots <img data-qtip="Binary storage snapshots" class="tipHelp" src="/ui2/images/icons/info_icon_16x16.png" style="cursor: help; height: 16px;">',
 				items: [{
 					xtype: 'displayfield',
+                    showOn: 'bundleDisabled',
+                    hidden: true,
+                    value: 'Binary storage snapshots disabled.'
+                },{
+					xtype: 'displayfield',
 					name: 'bundles_schedule',
-					fieldLabel: 'Schedule'
+					fieldLabel: 'Schedule',
+					hideOn: 'bundleDisabled'
 				},{
 					xtype: 'displayfield',
 					name: 'bundles_next',
-					fieldLabel: 'Next data bundle'
+					fieldLabel: 'Next data bundle',
+					hideOn: 'bundleDisabled'
 				},{
 					xtype: 'fieldcontainer',
 					fieldLabel: 'Last data bundle',
+					hideOn: 'bundleDisabled',
 					layout: 'column',
 					items: [{
 						xtype: 'displayfield',
@@ -450,9 +469,11 @@ Scalr.regPage('Scalr.ui.db.manager.dashboard', function (loadParams, moduleParam
 				},{
 					xtype: 'dbmshistoryfield',
 					name: 'bundles_history',
-					fieldLabel: 'History'
+					fieldLabel: 'History',
+					hideOn: 'bundleDisabled'
 				},{
 					xtype: 'container',
+					hideOn: 'bundleDisabled',
 					layout: {
 						type: 'hbox'
 					},
@@ -547,7 +568,7 @@ Scalr.regPage('Scalr.ui.db.manager.dashboard', function (loadParams, moduleParam
 			}]
 		}],
 		listeners: {
-			activate: function() {//todo: replace with something better
+			afterrender: function() {//todo: replace with something better
 				this.loadData(moduleParams);
 			}
 		},
@@ -582,13 +603,14 @@ Scalr.regPage('Scalr.ui.db.manager.dashboard', function (loadParams, moduleParam
 				return values;
 			};
 			
+            data['storage'] = data['storage'] || {};
 			var formValues = {
 				general_dbname: data['name'],
 				
-				storage_id: data['storage']['id'],
-				storage_engine_name: data['storage']['engineName'],
+				storage_id: data['storage']['id'] || '',
+				storage_engine_name: data['storage']['engineName'] || '',
 				storage_fs: data['storage']['fs'] || '',
-				storage_size: data['storage']['size']
+				storage_size: data['storage']['size'] || 'not available'
 			};
 			
 			//general extras
@@ -604,12 +626,15 @@ Scalr.regPage('Scalr.ui.db.manager.dashboard', function (loadParams, moduleParam
 				});
 			}
 			
+			if (data['backups']) {
+                if (data['backups']['supported']) {
+                    Ext.apply(formValues, formatBackupValues(data['backups']));
+                }
+            }
 			
-			if (data['backups']['supported']) {
-				Ext.apply(formValues, formatBackupValues(data['backups']));
-			}
-			
-			Ext.apply(formValues, formatBackupValues(data['bundles'], 'bundles'));
+            if (data['bundles']) {
+                Ext.apply(formValues, formatBackupValues(data['bundles'], 'bundles'));
+            }
 			
 			formValues.clustermap = data['servers'];
 			
@@ -620,15 +645,23 @@ Scalr.regPage('Scalr.ui.db.manager.dashboard', function (loadParams, moduleParam
 		refreshElements: function() {
 			var data = this.moduleParams;
 
-			this.toggleElementsByFeature('backupsNotSupported', !data['backups']['supported']);
+            this.toggleElementsByFeature('bundleDisabled', !data['bundles']);
+			if (data['bundles']) {
 			this.toggleElementsByFeature('bundleInProgress', data['bundles']['inProgress']['status'] != '0');
-			if (data['backups']['supported']) {
-				this.toggleElementsByFeature('backupInProgress', data['backups']['inProgress']['status'] != '0');
-			}
-			
+            }
+            
+            this.toggleElementsByFeature('backupsDisabled', !data['backups']);
+            if (data['backups']) {
+                this.toggleElementsByFeature('backupsNotSupported', !data['backups']['supported']);
+                if (data['backups']['supported']) {
+                    this.toggleElementsByFeature('backupInProgress', data['backups']['inProgress']['status'] != '0');
+                }
+            }
 			this.down('#manageConfigurationBtn').setVisible(data['dbType'] != 'mysql');
 			this.down('#increaseStorageSizeBtn').setVisible(data['storage'] && (data['storage']['growSupported']));
 			this.down('#cancelDataBundleBtn').setVisible(data['storage'] && data['storage']['engine'] == 'lvm');
+			
+			this.down('#cancelDataBackupBtn').setVisible(data['dbType'] == 'mysql2' || data['dbType'] == 'percona');
 			
 			if (data['pma']) {
 				this.down('#phpMyAdminAccess').setVisible(true);
@@ -827,7 +860,7 @@ if (!Ext.ClassManager.isCreated('Scalr.ui.FormFieldDbmsClusterMap')) {
 			overCls: 'x-dbmsclustermapfield-btn-over',
 			pressedCls: 'x-dbmsclustermapfield-btn-pressed',
 			enableToggle: true,
-			width: 197,
+			width: 192,
 			height: 90,
 			margin: 0,
 			allowDepress: true,
@@ -884,9 +917,8 @@ if (!Ext.ClassManager.isCreated('Scalr.ui.FormFieldDbmsClusterMap')) {
 		},
 		
 		valueToRaw: function(data) {
-			var rawValue = {};
+			var rawValue = {master: {}, slaves: []};
 			if (data) {
-				rawValue = {master: {}, slaves: []};
 				for (var i=0, len=data.length; i<len; i++) {
 					if (data[i].serverRole == 'master') {
 						rawValue.master = data[i];
@@ -897,254 +929,303 @@ if (!Ext.ClassManager.isCreated('Scalr.ui.FormFieldDbmsClusterMap')) {
 			}
 			return rawValue;
 		},
-
+        
+        getServerStatus: function(status){
+            var result;
+            switch (status) {
+                case 'Pending':
+                case 'Initializing':
+                    result = '<span style="color:#f79501">' + status.toLowerCase() + '</span>';
+                break;
+                case 'Running':
+                    result = '<span style="color:#008000">' + status.toLowerCase() + '</span>';
+                break;
+                default:
+                    result = '<span style="color:#EA5535">down</span>';
+                break;
+            }
+            return result;
+        },
+        
+        getReplicationStatus: function(status) {
+            var result;
+            switch (status) {
+                case 'up':
+                    result = 'ok';
+                break;
+                case 'down':
+                    result = 'broken';
+                break;
+                default:
+                    result = status || 'error'
+                break;
+            }
+            return result;
+        },
+        
 		renderButtons: function(data) {
 			this.suspendLayouts();
 			this.removeAll();
-			if (data.master) {
-				var master = {
-					height: 85,
-					serverInfo: Ext.clone(data.master),
-					renderData: {
-						type: 'master',
-						title: 'Master',
-						location: data.master.cloudLocation,
-						ip: data.master.remoteIp,
-						serverid: data.master.serverId,
-						status_title: 'Server is ' + (data.master.status == 'Running' ? '<span style="color:#008000">running</span>' : '<span style="color:#EA5535">down</span>')
-					}
-				};
-				master.serverInfo.title = master.renderData.title;
-				this.add({
-					xtype: 'container',
-					cls: 'x-dbmsclustermapfield-container',
-					padding: 12,
-					items: Ext.applyIf(master, this.buttonConfig)
-				});
-				
-				var slaves = this.add({
-					xtype: 'container',
-					cls: 'x-dbmsclustermapfield-container',
-					width: '100%',
-					layout: {
-						type: 'hbox',
-						pack: 'center'
-					},
-					padding: 12,
-					margin: '2 0 0 0'
-				});
+            
+            //render master button
+            var master = {
+                height: 85,
+                serverInfo: Ext.clone(data.master),
+                disabled: data.master.status !== 'Running',
+                renderData: {
+                    type: 'master',
+                    title: 'Master',
+                    location: data.master.cloudLocation || '',
+                    ip: data.master.remoteIp || '',
+                    serverid: data.master.serverId || '',
+                    status_title: 'Server is ' + this.getServerStatus(data.master.status)
+                }
+            };
+            master.serverInfo.title = master.renderData.title;
+            this.add({
+                xtype: 'container',
+                cls: 'x-dbmsclustermapfield-container',
+                padding: 12,
+                items: Ext.applyIf(master, this.buttonConfig)
+            });
+            
+            //render slaves buttons
+            var slavesRowsCount = Math.ceil((data.slaves.length + 1)/5);//
+            for (var row=0; row<slavesRowsCount; row++) {
+                var slave, status, replication, statusTitle, slaves, limit; 
 
-				if (data.slaves && data.slaves.length) {
-					var slave, status;
-					for (var i=0, len=data.slaves.length; i<len; i++) {
-						status = data.slaves[i].replication.status == 'up' ? 'ok' : ( data.slaves[i].replication.status == 'down' ? 'broken' : data.slaves[i].replication.status);
-						status = status || 'error';
-						slave = {
-							serverInfo: Ext.clone(data.slaves[i]),
-							renderData: {
-								type: 'slave',
-								title: 'Slave #' + (i+1),
-								location: data.slaves[i].cloudLocation,
-								ip: data.slaves[i].remoteIp,
-								serverid: data.slaves[i].serverId,
-								status: status,
-								status_title: status == 'error' ? 'Can\'t get replication status' : 'Replication is ' + status
-							},
-							margin: '0 5'
-							
-						};
-						slave.serverInfo.title = slave.renderData.title;
-						slaves.add(Ext.applyIf(slave, this.buttonConfig));
-					}
-				}
-				var addBtn = {
-					cls: 'x-dbmsclustermapfield-add',
-					overCls: 'x-dbmsclustermapfield-btn-over',
-					pressedCls: 'x-dbmsclustermapfield-add-pressed',
-					toggleGroup: null,
-					renderTpl:
-						'<div class="x-btn-el x-dbmsclustermapfield-inner" id="{id}-btnEl">'+
-							'Launch new slave'+
-						'</div>',
-					margin: '0 5',
-					handler: function(){
-						var data = this.up('form').moduleParams,
-							r = {
-								confirmBox: {
-									msg: 'Launch new slave?',
-									type: 'launch'
-								},
-								processBox: {
-									type: 'launch'
-								},
-								url: '/farms/' + data['farmId'] + '/roles/' + data['farmRoleId'] + '/xLaunchNewServer',
-								success: function (data) {
-									Scalr.event.fireEvent('refresh');
-								}
-							};
-						Scalr.Request(r);
-					}
-				};
-				slaves.add(Ext.applyIf(addBtn, this.buttonConfig));
-				
-				this.detailsForm = this.add({
-					xtype: 'form',
-					cls: 'x-dbmsclustermapfield-container',
-					width: '100%',
-					padding: 0,
-					margin: '2 0 0 0',
-					hidden: true,
-					items: [{
-						xtype: 'container',
-						layout: {
-							type: 'column'
-						},
-						defaults: {
-							width: 516,
-							margin:0
-						},
-						items: [{
-							xtype: 'fieldset',
-							title: 'Basic info',
-							style: 'border-right: 1px solid #CCD1D9;box-shadow: 1px 0 #F5F6F7;',
-							defaults: {
-								labelWidth: 180
-							},
-							items: [{
-								xtype: 'displayfield',
-								fieldLabel: 'ID',
-								name: 'server_id'
-							},{
-								xtype: 'displayfield',
-								fieldLabel: 'Remote IP',
-								name: 'server_remote_ip'
-							},{
-								xtype: 'displayfield',
-								fieldLabel: 'Local IP',
-								name: 'server_local_ip'
-							}]
-						},{
-							xtype: 'toolfieldset',
-							title: 'General metrics',
-							margin: '0 0 0 1',
-							items: [{
-								xtype: 'progressfield',
-								fieldLabel: 'Memory usage',
-								name: 'server_metrics_memory',
-								width: 360,
-								units: 'Gb',
-								emptyText: 'Loading...',
-								fieldCls: 'x-form-progress-field x-form-progress-field-small'
-							},{
-								xtype: 'progressfield',
-								fieldLabel: 'CPU load',
-								name: 'server_metrics_cpu',
-								width: 360,
-								emptyText: 'Loading...',
-								fieldCls: 'x-form-progress-field x-form-progress-field-small'
-							},{
-								xtype: 'displayfield',
-								fieldLabel: 'Load averages',
-								name: 'server_load_average'
-							}],
-							tools: [{
-								type: 'refresh',
-								//tooltip: 'Refresh general metrics',
-								handler: function () {
-									this.up('dbmsclustermapfield').loadGeneralMetrics();
-								}			
-							}]
-						}]
-					}, {
-						xtype: 'component',
-						cls: 'x-fieldset-delimiter',
-						margin: '0 0 1 0'
-					},{
-						xtype: 'container',
-						layout: {
-							type: 'column',
-							align: 'stretch'
-						},
-						defaults: {
-							width: 516,
-							margin:0
-						},
-						items: [{
-							xtype: 'fieldset',
-							title: 'Database metrics',
-							itemId: 'serverMetrics',
-							style: 'border-right: 1px solid #CCD1D9;box-shadow: 1px 0 #F5F6F7;',
-							defaults: {
-								labelWidth: 180
-							}
-						},{
-							xtype: 'toolfieldset',
-							title: 'Statistics',
-							style: 'border-left: 1px solid #F5F6F7;box-shadow: -1px 0 #CCD1D9;',
-							items: [{
-								xtype: 'container',
-								layout: 'column',
-								defaults: {
-									width: 220
-								},
-								items: [{
-									xtype: 'label',
-									text: 'Memory:'
-								},{
-									xtype: 'label',
-									text: 'CPU:'
-								}]
-							},{
-								xtype: 'container',
-								layout: 'column',
-								defaults: {
-									margin: '0 20 10 0'
-								},
-								items: [{
-									xtype: 'dbmschart',
-									itemId: 'memoryChart'
-								},{
-									xtype: 'dbmschart',
-									itemId: 'cpuChart'
-								}]
-							},{
-								xtype: 'container',
-								layout: 'column',
-								defaults: {
-									width: 220
-								},
-								items: [{
-									xtype: 'label',
-									text: 'Load averages:'
-								},{
-									xtype: 'label',
-									text: 'Network:'
-								}]
-							},{
-								xtype: 'container',
-								layout: 'column',
-								defaults: {
-									margin: '0 20 0 0'
-								},
-								items: [{
-									xtype: 'dbmschart',
-									itemId: 'laChart'
-								},{
-									xtype: 'dbmschart',
-									itemId: 'netChart'
-								}]
-							}],
-							tools: [{
-								type: 'refresh',
-								//tooltip: 'Refresh general metrics',
-								handler: function () {
-									this.up('dbmsclustermapfield').loadChartsData();
-								}			
-							}]
-						}]
-					}]
-				});
-			}
+                slaves = this.add({
+                    xtype: 'container',
+                    cls: 'x-dbmsclustermapfield-container',
+                    width: '100%',
+                    layout: {
+                        type: 'hbox',
+                        pack: 'center'
+                    },
+                    padding: 12,
+                    margin: '2 0 0 0'
+                });
+                
+                limit = row*5 + 5 > data.slaves.length ? data.slaves.length : row*5 + 5;
+                for (var i=row*5; i<limit; i++) {
+                    replication = data.slaves[i].replication || {};
+
+                    if (data.slaves[i].status == 'Running') {
+                        status = this.getReplicationStatus(replication.status);
+                        statusTitle = status == 'error' ? 'Can\'t get replication status' : 'Replication is ' + status;
+                    } else {
+                        status = 'down';
+                        statusTitle = 'Server is ' + this.getServerStatus(data.slaves[i].status);
+                    }
+
+                    slave = {
+                        serverInfo: Ext.clone(data.slaves[i]),
+                        renderData: {
+                            type: 'slave',
+                            title: 'Slave #' + (i+1),
+                            location: data.slaves[i].cloudLocation || '',
+                            ip: data.slaves[i].remoteIp || 'Not available',
+                            serverid: data.slaves[i].serverId || '',
+                            status: status,
+                            status_title: statusTitle
+                        },
+                        margin: '0 5'
+
+                    };
+                    slave.serverInfo.title = slave.renderData.title;
+                    slaves.add(Ext.applyIf(slave, this.buttonConfig));
+                }
+            }
+            
+            //render launch new slave button
+            var addBtn = {
+                cls: 'x-dbmsclustermapfield-add',
+                overCls: 'x-dbmsclustermapfield-btn-over',
+                pressedCls: 'x-dbmsclustermapfield-add-pressed',
+                toggleGroup: null,
+                renderTpl:
+                    '<div class="x-btn-el x-dbmsclustermapfield-inner" id="{id}-btnEl">'+
+                        'Launch new slave'+
+                    '</div>',
+                margin: '0 5',
+                handler: function(){
+                    var data = this.up('form').moduleParams,
+                        r = {
+                            confirmBox: {
+                                msg: 'Launch new slave?',
+                                type: 'launch'
+                            },
+                            processBox: {
+                                type: 'launch'
+                            },
+                            url: '/farms/' + data['farmId'] + '/roles/' + data['farmRoleId'] + '/xLaunchNewServer',
+                            success: function (data) {
+                                Scalr.event.fireEvent('refresh');
+                            }
+                        };
+                    Scalr.Request(r);
+                }
+            };
+            slaves.add(Ext.applyIf(addBtn, this.buttonConfig));
+            
+            //server details form
+            this.detailsForm = this.add({
+                xtype: 'form',
+                cls: 'x-dbmsclustermapfield-container',
+                width: '100%',
+                padding: 0,
+                margin: '2 0 0 0',
+                hidden: true,
+                items: [{
+                    xtype: 'container',
+                    layout: {
+                        type: 'column'
+                    },
+                    defaults: {
+                        width: 516,
+                        margin:0
+                    },
+                    items: [{
+                        xtype: 'fieldset',
+                        title: 'Basic info',
+                        style: 'border-right: 1px solid #CCD1D9;box-shadow: 1px 0 #F5F6F7;',
+                        defaults: {
+                            labelWidth: 180
+                        },
+                        items: [{
+                            xtype: 'displayfield',
+                            fieldLabel: 'ID',
+                            name: 'server_id'
+                        },{
+                            xtype: 'displayfield',
+                            fieldLabel: 'Remote IP',
+                            name: 'server_remote_ip'
+                        },{
+                            xtype: 'displayfield',
+                            fieldLabel: 'Local IP',
+                            name: 'server_local_ip'
+                        }]
+                    },{
+                        xtype: 'toolfieldset',
+                        title: 'General metrics',
+                        margin: '0 0 0 1',
+                        items: [{
+                            xtype: 'progressfield',
+                            fieldLabel: 'Memory usage',
+                            name: 'server_metrics_memory',
+                            width: 360,
+                            units: 'Gb',
+                            emptyText: 'Loading...',
+                            fieldCls: 'x-form-progress-field x-form-progress-field-small'
+                        },{
+                            xtype: 'progressfield',
+                            fieldLabel: 'CPU load',
+                            name: 'server_metrics_cpu',
+                            width: 360,
+                            emptyText: 'Loading...',
+                            fieldCls: 'x-form-progress-field x-form-progress-field-small'
+                        },{
+                            xtype: 'displayfield',
+                            fieldLabel: 'Load averages',
+                            name: 'server_load_average'
+                        }],
+                        tools: [{
+                            type: 'refresh',
+                            //tooltip: 'Refresh general metrics',
+                            handler: function () {
+                                this.up('dbmsclustermapfield').loadGeneralMetrics();
+                            }			
+                        }]
+                    }]
+                }, {
+                    xtype: 'component',
+                    cls: 'x-fieldset-delimiter',
+                    margin: '0 0 1 0'
+                },{
+                    xtype: 'container',
+                    layout: {
+                        type: 'column',
+                        align: 'stretch'
+                    },
+                    defaults: {
+                        width: 516,
+                        margin:0
+                    },
+                    items: [{
+                        xtype: 'fieldset',
+                        title: 'Database metrics',
+                        itemId: 'serverMetrics',
+                        style: 'border-right: 1px solid #CCD1D9;box-shadow: 1px 0 #F5F6F7;',
+                        defaults: {
+                            labelWidth: 180
+                        }
+                    },{
+                        xtype: 'toolfieldset',
+                        title: 'Statistics',
+                        style: 'border-left: 1px solid #F5F6F7;box-shadow: -1px 0 #CCD1D9;',
+                        items: [{
+                            xtype: 'container',
+                            layout: 'column',
+                            defaults: {
+                                width: 220
+                            },
+                            items: [{
+                                xtype: 'label',
+                                text: 'Memory:'
+                            },{
+                                xtype: 'label',
+                                text: 'CPU:'
+                            }]
+                        },{
+                            xtype: 'container',
+                            layout: 'column',
+                            defaults: {
+                                margin: '0 20 10 0'
+                            },
+                            items: [{
+                                xtype: 'dbmschart',
+                                itemId: 'memoryChart'
+                            },{
+                                xtype: 'dbmschart',
+                                itemId: 'cpuChart'
+                            }]
+                        },{
+                            xtype: 'container',
+                            layout: 'column',
+                            defaults: {
+                                width: 220
+                            },
+                            items: [{
+                                xtype: 'label',
+                                text: 'Load averages:'
+                            },{
+                                xtype: 'label',
+                                text: 'Network:'
+                            }]
+                        },{
+                            xtype: 'container',
+                            layout: 'column',
+                            defaults: {
+                                margin: '0 20 0 0'
+                            },
+                            items: [{
+                                xtype: 'dbmschart',
+                                itemId: 'laChart'
+                            },{
+                                xtype: 'dbmschart',
+                                itemId: 'netChart'
+                            }]
+                        }],
+                        tools: [{
+                            type: 'refresh',
+                            //tooltip: 'Refresh general metrics',
+                            handler: function () {
+                                this.up('dbmsclustermapfield').loadChartsData();
+                            }			
+                        }]
+                    }]
+                }]
+            });
 			this.resumeLayouts(true);
 			
 		},
@@ -1165,36 +1246,58 @@ if (!Ext.ClassManager.isCreated('Scalr.ui.FormFieldDbmsClusterMap')) {
 			if (this.detailsForm) {
 				var form = this.up('form'),
 					scrollTop = form.body.getScroll().top,
-					metricsPanel = this.detailsForm.down('#serverMetrics');
+					metricsPanel = this.detailsForm.down('#serverMetrics'),
+                    replication = data['replication'] || {};
 				form.suspendLayouts();
 				this.detailsForm.getForm().setValues({
-					server_id: '<a href="#/servers/' + data.serverId + '/extendedInfo">' + data.serverId + '</a>',
-					server_remote_ip: data.remoteIp,
-					server_local_ip: data.localIp,
+					server_id: '<a href="#/servers/' + data.serverId + '/extendedInfo">' + (data.serverId || '') + '</a>',
+					server_remote_ip: data.remoteIp || '',
+					server_local_ip: data.localIp || '',
 					server_metrics_memory: null,
 					server_metrics_cpu: null,
 					server_load_average: ''
 				});
 
-					metricsPanel.removeAll();
-				if (data['replication']['status'] == 'error' || !data['replication']['status']) {
-					var message = data['replication']['message'] ? data['replication']['message'] : 'Can\'t get replication status'
+				metricsPanel.removeAll();
+                
+				if (replication['status'] == 'error' || !replication['status']) {
+					var message = replication['message'] ? replication['message'] : 'Can\'t get replication status'
 					metricsPanel.add({
 						xtype: 'displayfield',
 						value: '<span style="color:#C00000">' + message + '</span>'
 					});
-				} else if (data['replication'][form.moduleParams['dbType']]) {
-						Ext.Object.each(data['replication'][form.moduleParams['dbType']], function(name, value){
-							if (!Ext.isEmpty(value)) {
-								metricsPanel.add({
-									xtype: 'displayfield',
-									fieldLabel: Ext.String.capitalize(name),
-									value: value
-								});
-							}
-						});
-					}
-					metricsPanel.show();
+				} else if (replication[form.moduleParams['dbType']]) {
+                    Ext.Object.each(replication[form.moduleParams['dbType']], function(name, value){
+                        if (form.moduleParams['dbType'] === 'redis' && Ext.isObject(value)) {
+                            metricsPanel.add({
+                                xtype: 'label',
+                                html: '<b>' + name + ':</b>'
+                            });
+                            var c = metricsPanel.add({
+                                xtype: 'container', 
+                                margin: '12 0 20 0',
+                                defaults: {
+                                    labelWidth: 180
+                                }
+                            });
+                            Ext.Object.each(value, function(key, val) {
+                                c.add({
+                                    xtype: 'displayfield',
+                                    fieldLabel: Ext.String.capitalize(key),
+                                    value: val,
+                                    margin: '0 0 6 0'
+                                });
+                            });
+                        } else if (!Ext.isEmpty(value)) {
+                            metricsPanel.add({
+                                xtype: 'displayfield',
+                                fieldLabel: Ext.String.capitalize(name),
+                                value: value
+                            });
+                        }
+                    });
+                }
+				metricsPanel.show();
 
 				this.detailsForm.show();
 				form.resumeLayouts(true);
@@ -1234,7 +1337,10 @@ if (!Ext.ClassManager.isCreated('Scalr.ui.FormFieldDbmsClusterMap')) {
 						serverId: serverId
 					},
 					success: function (res) {
-						if (!form.destroyed && !me.destroyed && serverId == me.currentServerInfo.serverId) {
+						if (
+                            !form.destroyed && !me.destroyed && serverId == me.currentServerInfo.serverId &&
+                            res.data['memory'] && res.data['cpu']
+                        ) {
 							form.suspendLayouts();
 							me.detailsForm.getForm().setValues({
 								server_load_average: res.data['la'],
@@ -1245,9 +1351,17 @@ if (!Ext.ClassManager.isCreated('Scalr.ui.FormFieldDbmsClusterMap')) {
 								server_metrics_cpu: (100 - res.data['cpu']['idle'])/100
 							});
 							form.resumeLayouts(false);
-							//form.body.scrollTo('top', scrollTop);
 						}
-					}
+					},
+                    failure: function() {
+                        form.suspendLayouts();
+                        me.detailsForm.getForm().setValues({
+                            server_load_average: 'not available',
+                            server_metrics_memory: 'not available',
+                            server_metrics_cpu: 'not available'
+                        });
+                        form.resumeLayouts(false);
+                    }
 				});
 			}
 		},

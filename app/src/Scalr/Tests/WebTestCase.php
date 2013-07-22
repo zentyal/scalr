@@ -46,14 +46,14 @@ abstract class WebTestCase extends TestCase
     {
         parent::setUp();
         $this->errorLevel = error_reporting();
-        if (!empty(CONFIG::$PHPUNIT_SKIP_FUNCTIONAL_TESTS)) {
+        if (\Scalr::config('scalr.phpunit.skip_functional_tests')) {
             self::markTestSkipped();
         }
-        if (!empty(CONFIG::$PHPUNIT_TEST_USERID)) {
-            $this->_testUserId = CONFIG::$PHPUNIT_TEST_USERID;
+        if (\Scalr::config('scalr.phpunit.userid')) {
+            $this->_testUserId = \Scalr::config('scalr.phpunit.userid');
         }
-        if (!empty(CONFIG::$PHPUNIT_TEST_ENVID)) {
-            $this->_testEnvId = CONFIG::$PHPUNIT_TEST_ENVID;
+        if (\Scalr::config('scalr.phpunit.envid')) {
+            $this->_testEnvId = \Scalr::config('scalr.phpunit.envid');
             $this->env = \Scalr_Environment::init()->loadById($this->_testEnvId);
         }
     }

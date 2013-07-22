@@ -8,7 +8,7 @@ use Scalr\Service\Aws\Elb\AbstractElbDataType;
  *
  * The PolicyDescription data type.
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    19.09.2012
  * @property PolicyAttributeDescriptionList $policyAttributeDescriptions A list of policy attribute description structures.
  * @method   PolicyAttributeDescriptionList getPolicyAttributeDescriptions() getPolicyAttributeDescriptions()

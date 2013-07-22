@@ -27,6 +27,7 @@ Scalr.regPage('Scalr.ui.admin.users.create', function (loadParams, moduleParams)
 				fieldLabel: 'Status',
 				allowBlank: false,
 				columns: 7,
+				itemId: 'status',
 				items: [{
 					name: 'status',
 					inputValue: 'Active',
@@ -87,8 +88,15 @@ Scalr.regPage('Scalr.ui.admin.users.create', function (loadParams, moduleParams)
 		}]
 	});
 	
-	if (moduleParams['user'])
+	if (moduleParams['user']) {
 		form.getForm().setValues(moduleParams['user']);
+		if (moduleParams['user']['email'] == 'admin') {
+			form.down('[name="email"]').setReadOnly(true);
+			form.down('#status').setReadOnly(true);
+			form.down('[name="fullname"]').setReadOnly(true);
+			form.down('[name="comments"]').setReadOnly(true);
+		}
+	}
 
 	return form;
 });

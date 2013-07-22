@@ -21,6 +21,8 @@ class DbSnapshotHandler extends AbstractRdsHandler
     /**
      * Gets DBSnapshotData object from the EntityManager.
      *
+     * You should be aware of the fact that the entity manager is turned off by default.
+     *
      * @param   string              $dBInstanceIdentifier.
      * @return  DBSnapshotData|null Returns DBSnapshotData if it does exist in the cache or NULL otherwise.
      */

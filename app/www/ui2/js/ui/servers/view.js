@@ -320,6 +320,14 @@ Scalr.regPage('Scalr.ui.servers.view', function (loadParams, moduleParams) {
 				xtype: 'optionscolumn',
 				getOptionVisibility: function (item, record) {
 					var data = record.data;
+					
+					if (data.status == 'Troubleshooting') {
+						if (item.itemId != 'option.info' && item.itemId != 'option.term')
+						  return false;
+						else
+						  return true;
+					}
+					
                     if (item.itemId == 'option.logs' || item.itemId == 'option.scripting_logs') {
                         return true;
                     }

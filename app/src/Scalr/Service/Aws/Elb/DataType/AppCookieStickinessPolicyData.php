@@ -10,7 +10,7 @@ use Scalr\Service\Aws\Elb\AbstractElbDataType;
  *
  * The AppCookieStickinessPolicy data type.
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    18.09.2012
  */
 class AppCookieStickinessPolicyData extends AbstractElbDataType

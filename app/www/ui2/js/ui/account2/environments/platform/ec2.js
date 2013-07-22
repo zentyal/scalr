@@ -97,11 +97,13 @@ Scalr.regPage('Scalr.ui.account2.environments.platform.ec2', function (loadParam
 			xtype: 'filefield',
 			fieldLabel: 'X.509 Certificate file',
 			name: 'ec2.certificate',
+            hidden: Ext.isEmpty(params['ec2.certificate']),
 			value: params['ec2.certificate']
 		}, {
 			xtype: 'filefield',
 			fieldLabel: 'X.509 Private Key file',
 			name: 'ec2.private_key',
+            hidden: Ext.isEmpty(params['ec2.private_key']),
 			value: params['ec2.private_key']
 		}],
 

@@ -13,7 +13,7 @@ Scalr.regPage('Scalr.ui.admin.accounts.view', function (loadParams, moduleParams
 	});
 
 	return Ext.create('Ext.grid.Panel', {
-		title: 'Accounts &raquo; View',
+		title: 'Admin &raquo; Accounts &raquo; View',
 		scalrOptions: {
 			'reload': false,
 			'maximize': 'all'

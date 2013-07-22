@@ -7,7 +7,7 @@ use \SimpleXMLElement;
 /**
  * AbstractApi
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     20.12.2012
  */
 abstract class AbstractApi

@@ -12,7 +12,7 @@ use Scalr\Service\Aws;
 /**
  * Amazon CloudWatch web service interface
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     24.10.2012
  * @property-read  \Scalr\Service\Aws\CloudWatch\Handler\MetricHandler $metric A Metric handler that is the layer for the related api calls.
  * @method \Scalr\Service\Aws\CloudWatch\V20100801\CloudWatchApi getApiHandler() getApiHandler()

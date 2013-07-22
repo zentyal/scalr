@@ -356,7 +356,7 @@ Ext.define('Scalr.ui.dashboard.Farm', {
 			'<ul class="scalr-ui-dashboard-farms" align="center">' +
 				'<tpl for=".">' +
 				'<li>' +
-				'<a href="#/farms/{farmId}/roles/{farmRoleId}/view"><div class="icon" ><img src="/ui2/images/ui/dashboard/{[this.getLocationIcon(values)]}.png" title="{behaviors}"/></div></a>' +
+				'<a href="#/farms/{farmId}/roles/{farmRoleId}/view"><div class="icon" ><img src="/ui2/images/ui/dashboard/behaviors/{[this.getLocationIcon(values)]}.png" title="{behaviors}"/></div></a>' +
 				'<a href="#/servers/view?farmId={farmId}&farmRoleId={farmRoleId}"><div class="count">{servCount}</div></a>' +
 				'<p class="scalr-ui-dashboard-farms-text" style="margin-top: 11px;">{[this.getBehaviorName(values)]}</p>' +
 				'</li>' +
@@ -371,49 +371,38 @@ Ext.define('Scalr.ui.dashboard.Farm', {
 					}
 
 				},
-				getLocationIcon: function (values) {
-					var groups = [ "base", "database", "app", "lb", "cache", "mixed", "utils", "cloudfoundry"];
-					var behaviors = [
-						"cf_cchm",
-						"cf_dea",
-						"cf_router",
-						"cf_service",
-						"mq_rabbitmq",
-						"lb_www",
-						"app_app",
-						"app_tomcat",
-						"utils_mysqlproxy",
-						"cache_memcached",
-						"database_cassandra",
-						"database_mysql",
-						"database_postgresql",
-						"database_redis",
-						"database_mongodb"
-					];
+				getLocationIcon: function (context) {
+                    // TODO: rewrite to plugin (use the same code as in farm builder)
+                    var behaviors = [
+                        "cf_cchm", "cf_dea", "cf_router", "cf_service",
+                        "rabbitmq", "www",
+                        "app", "tomcat", 'haproxy',
+                        "mysqlproxy",
+                        "memcached",
+                        "cassandra", "mysql", "mysql2", "percona", "postgresql", "redis", "mongodb"
+                    ];
 
-					//Handle CF all-in-one role
-					if (values['behaviors'].match("cf_router") && values['behaviors'].match("cf_cloud_controller") && values['behaviors'].match("cf_health_manager") && values['behaviors'].match("cf_dea"))
-						return "behaviors/cloudfoundry_cf_all-in-one";
+                    if (context['behaviors']) {
+                        //Handle CF all-in-one role
+                        if (context['behaviors'].match("cf_router") && context['behaviors'].match("cf_cloud_controller") && context['behaviors'].match("cf_health_manager") && context['behaviors'].match("cf_dea")) {
+                            return 'cf_all_in_one';
+                        }
+                        //Handle CF CCHM role
+                        if (context['behaviors'].match("cf_cloud_controller") || context['behaviors'].match("cf_health_manager")) {
+                            return 'cf_cchm';
+                        }
 
-					//Handle CF CCHM role
-					if (values['behaviors'].match("cf_cloud_controller") || values['behaviors'].match("cf_health_manager"))
-						return "behaviors/cloudfoundry_cf_cchm";
+                        var b = (context['behaviors'] || '').split(',');
+                        for (var i=0, len=b.length; i < len; i++) {
+                            for (var k = 0; k < behaviors.length; k++ ) {
+                                if (behaviors[k] == b[i]) {
+                                    return b[i].replace('-', '_');
+                                }
+                            }
+                        }
+                    }
 
-					var b = (values['behaviors'] || '').split(','), key;
-					for (var i = 0, len = b.length; i < len; i++) {
-						key = values['group'] + '_' + b[i];
-						key2 = b[i];
-
-						for (var k = 0; k < behaviors.length; k++ ) {
-							if (behaviors[k] == key || behaviors[k] == key2)
-								return 'behaviors/' + key;
-						}
-					}
-
-					for (var i = 0; i < groups.length; i++ ) {
-						if (groups[i] == values['group'])
-							return 'groups/' + groups[i];
-					}
+                    return 'base';
 				}
 			})
 	}],

@@ -44,15 +44,28 @@ Scalr.regPage('Scalr.ui.scripts.viewcontent', function (loadParams, moduleParams
                 editable: false,
                 queryMode: 'local',
                 displayField: 'revision',
-                store: moduleParams['revision'],
+                listConfig: {
+                    cls: 'x-boundlist-alt',
+                    tpl:
+                        '<tpl for="."><div class="x-boundlist-item" style="height: auto; width: auto">' +
+                            '{revision} [{dtCreated}]' +
+                        '</div></tpl>'
+                },
+                store: {
+                    fields: [ 'revision', 'dtCreated' ],
+                    data: moduleParams['revision'],
+                    proxy: 'object'
+                },
+
                 listeners: {
-                    change: function (field, newValue, oldValue) {
+                    change: function (field, newValue) {
 	                    form.down('#scriptContents').setValue(moduleParams['content'][newValue]);
                     }
                 }
             }
         });
-        form.down('#comboVers').setValue(moduleParams['latest']);
+        // -1 == latest
+        form.down('#comboVers').setValue(loadParams['version'] == -1 ? moduleParams['latest'] : (loadParams['version'] || moduleParams['latest']));
     }
     return form;
 });

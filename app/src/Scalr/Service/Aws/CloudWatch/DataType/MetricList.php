@@ -7,7 +7,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * MetricList
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    25.10.2012
  * @method   MetricData get() get($position = null) Gets MetricData at specified position
  *                                                  in the list.

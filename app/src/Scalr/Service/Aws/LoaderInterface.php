@@ -6,7 +6,7 @@ namespace Scalr\Service\Aws;
  *
  * Descrbies interface for loading data into objects from xml
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     01.10.2012
  */
 interface LoaderInterface

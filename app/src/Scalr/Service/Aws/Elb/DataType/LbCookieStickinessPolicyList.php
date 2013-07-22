@@ -7,7 +7,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * LbCookieStickinessPolicyList
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    01.10.2012
  *
  * @method   LbCookieStickinessPolicyData get() get($position = null) Gets LbCookieStickinessPolicyData at specified position

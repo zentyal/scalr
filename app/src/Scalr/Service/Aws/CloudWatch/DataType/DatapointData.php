@@ -9,7 +9,7 @@ use Scalr\Service\Aws\CloudWatch\AbstractCloudWatchDataType;
  * The Datapoint data type encapsulates the statistical data that Amazon CloudWatch computes from
  * metric data.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     24.10.2012
  */
 class DatapointData extends AbstractCloudWatchDataType

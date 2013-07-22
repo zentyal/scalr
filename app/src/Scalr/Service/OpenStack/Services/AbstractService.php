@@ -35,6 +35,13 @@ abstract class AbstractService
     private $availableHandlers;
 
     /**
+     * Misc. cache
+     *
+     * @var array
+     */
+    private $cache;
+
+    /**
      * Constructor
      *
      * @param OpenStack $openstack
@@ -96,7 +103,7 @@ abstract class AbstractService
     /**
      * Gets endpoint url.
      *
-     * @return string Returns Endpoint url
+     * @return string Returns Endpoint url without trailing slash
      */
     public function getEndpointUrl()
     {
@@ -106,8 +113,11 @@ abstract class AbstractService
         if ($cfg->getAuthToken() === null) {
             $url = $cfg->getIdentityEndpoint();
         } else {
-            $version = substr($this->getVersion(), 1);
-            $url = $cfg->getAuthToken()->getEndpointUrl($type, $region, $version);
+            if (!isset($this->cache['endpoint'])) {
+                $version = substr($this->getVersion(), 1);
+                $this->cache['endpoint'] = $cfg->getAuthToken()->getEndpointUrl($type, $region, $version);
+            }
+            $url = $this->cache['endpoint'];
         }
         return $url;
     }

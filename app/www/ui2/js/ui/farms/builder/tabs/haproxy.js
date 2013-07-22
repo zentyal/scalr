@@ -1,9 +1,7 @@
 Scalr.regPage('Scalr.ui.farms.builder.tabs.haproxy', function (moduleTabParams) {
 	return Ext.create('Scalr.ui.FarmsBuilderTab', {
-		tabTitle: 'HAProxy options',
-		layout: 'anchor',
+		tabTitle: 'HAProxy settings',
 		itemId: 'haproxy',
-		cache: {},
 
 		isEnabled: function (record) {
 			return record.get('behaviors').match("haproxy");
@@ -11,295 +9,323 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.haproxy', function (moduleTabParams) 
 
 		getDefaultValues: function (record) {
 			return {
-				'haproxy.healthcheck.unhealthyth': 5,
-				'haproxy.healthcheck.timeout': 5,
+				'haproxy.port': 80,
 				'haproxy.healthcheck.interval': 30,
-				'haproxy.healthcheck.healthyth': 3
+				'haproxy.healthcheck.fallthreshold': 5,
+                'haproxy.healthcheck.risethreshold': 3
 			};
 		},
 
 		showTab: function (record) {
-			var settings = record.get('settings');
+			var me = this,
+                settings = record.get('settings'),
+                hp = me.down('haproxysettings');
 
-			this.down('[name="haproxy.healthcheck.healthyth"]').setValue(settings['haproxy.healthcheck.healthyth']);
-			this.down('[name="haproxy.healthcheck.interval"]').setValue(settings['haproxy.healthcheck.interval']);
-			this.down('[name="haproxy.healthcheck.target"]').setValue(settings['haproxy.healthcheck.target']);
-			this.down('[name="haproxy.healthcheck.timeout"]').setValue(settings['haproxy.healthcheck.timeout']);
-			this.down('[name="haproxy.healthcheck.unhealthyth"]').setValue(settings['haproxy.healthcheck.unhealthyth']);
-			
-			//this.down('[name="haproxy.backend.farm_roleid"]').setValue(settings['haproxy.backend.farm_roleid']);
-
-			var rolesData = [];
+            hp.roles = [];
 			moduleTabParams.farmRolesStore.each(function(r){
-				if (!r.get('new') && r != record)
-					rolesData.push({id: r.get('farm_role_id'), name: r.get('name')});
+				if (r != record) {
+					hp.roles.push({id: r.get('farm_role_id'), name: r.get('name')});
+                }
 			});
 
-			var data = [];
-			for (var i in settings) {
-				if (i.indexOf('haproxy.listener.') != -1) {
-					var lst = settings[i].split('#'), r = moduleTabParams.farmRolesStore.findRecord('farm_role_id', lst[3])
-					data[data.length] = {
-						protocol: lst[0],
-						lb_port: lst[1],
-						instance_port: lst[2],
-						backend: lst[3],
-						backend_name: r ? r.get('name') : ''
-					};
-				}
-			}
-
-			this.down('#listeners').store.load({ data: data });
-
-			if (record.get('new'))
-				this.down('#listeners').enable();
-			else
-				this.down('#listeners').disable();
-
-			this.rolesData = rolesData;
+            hp.setValue({
+                'haproxy.port': settings['haproxy.port'] || 80,
+                'haproxy.healthcheck.interval': settings['haproxy.healthcheck.interval'] || 5,
+                'haproxy.healthcheck.fallthreshold': settings['haproxy.healthcheck.fallthreshold'] || 5,
+                'haproxy.healthcheck.risethreshold': settings['haproxy.healthcheck.risethreshold'] || 3,
+                backends: Ext.decode(settings['haproxy.backends']) || []
+            });
 		},
 
 		hideTab: function (record) {
 			var settings = record.get('settings');
 
-			settings['haproxy.healthcheck.healthyth'] = this.down('[name="haproxy.healthcheck.healthyth"]').getValue();
-			settings['haproxy.healthcheck.interval'] = this.down('[name="haproxy.healthcheck.interval"]').getValue();
-			settings['haproxy.healthcheck.target'] = this.down('[name="haproxy.healthcheck.target"]').getValue();
-			settings['haproxy.healthcheck.timeout'] = this.down('[name="haproxy.healthcheck.timeout"]').getValue();
-			settings['haproxy.healthcheck.unhealthyth'] = this.down('[name="haproxy.healthcheck.unhealthyth"]').getValue();
-			//settings['haproxy.backend.farm_roleid'] = this.down('[name="haproxy.backend.farm_roleid"]').getValue();
-
-			for (var i in settings) {
-				if (i.indexOf('haproxy.listener.') != -1)
-					delete settings[i];
-			}
-
-			var i = 0;
-			this.down('#listeners').store.each(function (rec) {
-				settings['haproxy.listener.' + i++] = [ rec.get('protocol'), rec.get('lb_port'), rec.get('instance_port'), rec.get('backend') ].join("#");
-			});
-
+            Ext.apply(settings, this.down('haproxysettings').getValue());
+            settings['haproxy.backends'] = Ext.encode(settings['haproxy.backends']);
 			record.set('settings', settings);
 		},
 
 		items: [{
-			xtype: 'fieldset',
-			title: 'Healthcheck',
-			defaults: {
-				labelWidth: 130
-			},
-			items: [{
-				xtype: 'fieldcontainer',
-				layout: 'hbox',
-				fieldLabel: 'Healthy Threshold',
-				items: [{
-					xtype: 'textfield',
-					name: 'haproxy.healthcheck.healthyth',
-					width: 40
-				}, {
-					xtype: 'displayinfofield',
-					margin: '0 0 0 5',
-					info: 'The number of consecutive health probe successes required before moving the instance to the Healthy state.<br />The default is 3 and a valid value lies between 2 and 10.'
-				}]
-			}, {
-				xtype: 'fieldcontainer',
-				layout: 'hbox',
-				fieldLabel: 'Interval',
-				items: [{
-					xtype: 'textfield',
-					name: 'haproxy.healthcheck.interval',
-					width: 40
-				}, {
-					xtype: 'displayfield',
-					margin: '0 0 0 3',
-					value: 'seconds'
-				}, {
-					xtype: 'displayinfofield',
-					margin: '0 0 0 5',
-					info:   'The approximate interval (in seconds) between health checks of an individual instance.<br />The default is 30 seconds and a valid interval must be between 5 seconds and 600 seconds.' +
-							'Also, the interval value must be greater than the Timeout value'
-				}]
-			}, {
-				xtype: 'fieldcontainer',
-				layout: 'hbox',
-				fieldLabel: 'Target',
-				items: [{
-					xtype: 'textfield',
-					name: 'haproxy.healthcheck.target',
-					width: 200
-				}, {
-					xtype: 'displayinfofield',
-					margin: '0 0 0 5',
-					info:   'The instance being checked. The protocol is either TCP or HTTP. The range of valid ports is one (1) through 65535.<br />' +
-							'Notes: TCP is the default, specified as a TCP: port pair, for example "TCP:5000".' +
-							'In this case a healthcheck simply attempts to open a TCP connection to the instance on the specified port.' +
-							'Failure to connect within the configured timeout is considered unhealthy.<br />' +
-							'For HTTP, the situation is different. HTTP is specified as a "HTTP:port/PathToPing" grouping, for example "HTTP:80/weather/us/wa/seattle". In this case, a HTTP GET request is issued to the instance on the given port and path. Any answer other than "200 OK" within the timeout period is considered unhealthy.<br />' +
-							'The total length of the HTTP ping target needs to be 1024 16-bit Unicode characters or less.'
-				}]
-			}, {
-				xtype: 'fieldcontainer',
-				layout: 'hbox',
-				fieldLabel: 'Timeout',
-				items: [{
-					xtype: 'textfield',
-					name: 'haproxy.healthcheck.timeout',
-					width: 40
-				}, {
-					xtype: 'displayfield',
-					margin: '0 0 0 3',
-					value: 'seconds'
-				}, {
-					xtype: 'displayinfofield',
-					margin: '0 0 0 5',
-					info:   'Amount of time (in seconds) during which no response means a failed health probe. <br />The default is 5 seconds and a valid value must be between 2 seconds and 60 seconds.' +
-							'Also, the timeout value must be less than the Interval value.'
-				}]
-			}, {
-				xtype: 'fieldcontainer',
-				layout: 'hbox',
-				fieldLabel: 'Unhealthy Threshold',
-				items: [{
-					xtype: 'textfield',
-					name: 'haproxy.healthcheck.unhealthyth',
-					width: 40
-				}, {
-					xtype: 'displayinfofield',
-					margin: '0 0 0 5',
-					info: 'The number of consecutive health probe failures that move the instance to the unhealthy state.<br />The default is 5 and a valid value lies between 2 and 10.'
-				}]
-			}]
-		}, {
-			xtype: 'grid',
-			anchor: '100%',
-			title: 'Listeners',
-			itemId: 'listeners',
-			deferEmptyText: false,
-			store: {
-				proxy: 'object',
-				fields: [ 'protocol', 'lb_port', 'instance_port', 'backend', 'backend_name' ]
-			},
-			forceFit: true,
-			plugins: {
-				ptype: 'gridstore'
-			},
-
-			viewConfig: {
-				emptyText: 'No listeners defined'
-			},
-
-			columns: [
-				{ header: 'Protocol', flex: 150, sortable: true, dataIndex: 'protocol' },
-				{ header: 'Load balancer port', flex: 280, sortable: true, dataIndex: 'lb_port' },
-				{ header: 'Instance port', flex: 180, sortable: true, dataIndex: 'instance_port' },
-				{ header: 'Backend role', flex: 180, sortable: true, dataIndex: 'backend_name' },
-				{ header: '&nbsp;', width: 20, sortable: false, dataIndex: 'id', align:'center', xtype: 'templatecolumn',
-					tpl: '<img class="delete" src="/ui2/images/icons/delete_icon_16x16.png">', clickHandler: function (comp, store, record) {
-						store.remove(record);
-					}
-				}
-			],
-
-			listeners: {
-				itemclick: function (view, record, item, index, e) {
-					if (e.getTarget('img.delete'))
-						view.store.remove(record);
-				}
-			},
-
-			dockedItems: [{
-				xtype: 'toolbar',
-				dock: 'top',
-				layout: {
-					type: 'hbox',
-					align: 'left',
-					pack: 'start'
-				},
-				items: [{
-					ui: 'paging',
-					iconCls: 'x-tbar-add',
-					handler: function() {
-						Scalr.Confirm({
-							form: [{
-								xtype: 'combo',
-								name: 'protocol',
-								fieldLabel: 'Protocol',
-								labelWidth: 150,
-								editable: false,
-								store: [ 'TCP', 'HTTP' ],
-								queryMode: 'local',
-								allowBlank: false
-							}, {
-								xtype: 'textfield',
-								name: 'lb_port',
-								fieldLabel: 'Load balancer port',
-								labelWidth: 150,
-								allowBlank: false,
-								validator: function (value) {
-									if (value < 1024 || value > 65535) {
-										if (value != 80 && value != 443)
-											return 'Valid LoadBalancer ports are - 80, 443 and 1024 through 65535';
-									}
-									return true;
-								}
-							}, {
-								xtype: 'textfield',
-								name: 'instance_port',
-								fieldLabel: 'Instance port',
-								labelWidth: 150,
-								allowBlank: false,
-								validator: function (value) {
-									if (value < 1 || value > 65535)
-										return 'Valid instance ports are one (1) through 65535';
-									else
-										return true;
-								}
-							}, {
-								xtype: 'combo',
-								store: {
-									fields: [ 'id', 'name' ],
-									proxy: 'object',
-									data: this.up('#haproxy').rolesData
-								},
-								valueField: 'id',
-								displayField: 'name',
-								fieldLabel: 'Backend farm role',
-								editable: false,
-								allowBlank: false,
-								labelWidth: 150,
-								queryMode: 'local',
-								name: 'backend'
-							}],
-							ok: 'Add',
-							title: 'Add new listener',
-							formValidate: true,
-							closeOnSuccess: true,
-							scope: this,
-							success: function (formValues, form) {
-								var view = this.up('#listeners'), store = view.store;
-
-								if (store.findBy(function (record) {
-									if (
-										record.get('protocol') == formValues.protocol &&
-											record.get('lb_port') == formValues.lb_port &&
-											record.get('instance_port') == formValues.instance_port &&
-											record.get('backend') == formValues.backend
-										) {
-										Scalr.message.Error('Such listener already exists');
-										return true;
-									}
-								}) == -1) {
-									formValues['backend_name'] = form.down('[name="backend"]').findRecordByValue(formValues['backend']).get('name');
-									store.add(formValues);
-									return true;
-								} else {
-									return false;
-								}
-							}
-						});
-					}
-				}]
-			}]
+            xtype: 'fieldset',
+            items: {
+                xtype: 'haproxysettings',
+                defaults: {
+                    maxWidth: 620
+                },
+                margin: '0 0 18 0'
+            }
 		}]
 	});
+});
+
+Ext.define('Scalr.ui.HaproxySettingsField', {
+	extend: 'Ext.container.Container',
+	alias: 'widget.haproxysettings',
+	layout: 'anchor',
+    cls: 'x-grid-shadow',
+    
+    setValue: function(value){
+        var me = this,
+            ct = me.down('#backends');
+        value = value || {};
+        if (me.rendered) {
+            ct.suspendLayouts();
+            ct.removeAll();
+            me.setFieldValues(value);
+            if (Ext.isArray(value.backends)){
+                Ext.Array.each(value.backends, function(item){
+                    me.addBackend(item);
+                });
+            }
+            if (!value.backends || value.backends.length === 0) {
+                me.addBackend();
+            }
+            ct.resumeLayouts(true);
+        }
+    },
+    
+    getValue: function(){
+        var value = {
+            'haproxy.port': this.down('[name="haproxy.port"]').getValue(),
+            'haproxy.healthcheck.interval': this.down('[name="haproxy.healthcheck.interval"]').getValue(),
+            'haproxy.healthcheck.fallthreshold': this.down('[name="haproxy.healthcheck.fallthreshold"]').getValue(),
+            'haproxy.healthcheck.risethreshold': this.down('[name="haproxy.healthcheck.risethreshold"]').getValue(),
+            'haproxy.backends': []
+        };
+        this.down('#backends').items.each(function(item){
+            var data = {},
+                type = item.down('[name="haproxy.type"]').getValue();
+            data[type] = item.down('[name="haproxy.' + type + '"]').getValue();
+            if (data[type]) {
+                data['port'] = item.down('[name="haproxy.port"]').getValue();
+                data['backup'] = item.down('[name="haproxy.backup"]').getValue();
+                data['down'] = item.down('[name="haproxy.down"]').getValue();
+                value['haproxy.backends'].push(data);
+            }
+        });
+        
+        return value;
+    },
+    
+    addBackend: function(data) {
+        var ct = this.down('#backends'),
+            item;
+        data = data || {};
+        item = ct.add({
+            xtype: 'container',
+            layout: 'hbox',
+            cls: 'item',
+            items:[{
+                xtype: 'buttongroupfield',
+                name: 'haproxy.type',
+                defaults: {
+                    width: 50
+                },
+                items: [{
+                    value: 'ip',
+                    text: 'IP'
+                },{
+                    value: 'farm_role_id',
+                    text: 'Role'
+                }],
+                margin: '0 10 0 3',
+                listeners: {
+                    change: function(comp, value) {
+                        var ct = comp.up('container');
+                        ct.down('[name="haproxy.ip"]').setVisible(value === 'ip');
+                        ct.down('[name="haproxy.farm_role_id"]').setVisible(value === 'farm_role_id');
+                    }
+                }
+            },{
+                xtype: 'combo',
+                name: 'haproxy.farm_role_id',
+                emptyText: 'Select role',
+                store: {
+                    fields: [ 'id', 'name' ],
+                    proxy: 'object',
+                    data: this.roles
+                },
+                valueField: 'id',
+                displayField: 'name',
+                editable: false,
+                allowBlank: false,
+                queryMode: 'local',
+                flex: 1,
+                hidden: true
+            },{
+                xtype: 'textfield',
+                name: 'haproxy.ip',
+                emptyText: 'IP address',
+                allowBlank: false,
+                maskRe: new RegExp('[0123456789.]', 'i'),
+                flex: 1
+            },{
+                xtype: 'textfield',
+                name: 'haproxy.port',
+                emptyText: 'port',
+                maskRe: new RegExp('[0123456789]', 'i'),
+                allowBlank: false,
+                fieldLabel: ':',
+                labelSeparator: '',
+                labelWidth: 4,
+                margin: '0 4',
+                width: 80
+            },{
+                xtype: 'btnfield',
+                cls: 'scalr-ui-proxy-rule-backup',
+                baseCls: 'x-button-icon',
+                tooltip: 'Backup',
+                margin: '0 0 0 18',
+                name: 'haproxy.backup',
+                inputValue: 1,
+                enableToggle: true,
+                submitValue: false
+            },{
+                xtype: 'btnfield',
+                cls: 'scalr-ui-proxy-rule-down',
+                baseCls: 'x-button-icon',
+                tooltip: 'Down',
+                margin: '0 0 0 6',
+                name: 'haproxy.down',
+                inputValue: 1,
+                enableToggle: true,
+                submitValue: false
+            },{
+                xtype: 'btn',
+                itemId: 'delete',
+                margin: '0 0 0 18',
+                cls: 'scalr-ui-btn-delete',
+                baseCls: 'x-button',
+                handler: function() {
+                    var item = this.up('container');
+                    item.ownerCt.remove(item);
+                }
+            }]
+        });
+        
+        item.setFieldValues({
+            'haproxy.type': data.farm_role_id !== undefined ? 'farm_role_id' : 'ip',
+            'haproxy.farm_role_id': data.farm_role_id,
+            'haproxy.ip': data.ip,
+            'haproxy.port': data.port || 80,
+            'haproxy.backup': data.backup,
+            'haproxy.down': data.down
+        });
+    },
+    
+    items: [{
+        xtype: 'textfield',
+        name: 'haproxy.port',
+        fieldLabel: 'Port',
+        allowBlank: false,
+        labelWidth: 40,
+        width: 120
+    },{
+        xtype: 'container',
+        layout: 'hbox',
+        cls: 'x-grid-header-ct',
+        margin: '18 0 0',
+        style: 'border-radius: 3px 3px 0 0',
+        items: [{
+            xtype: 'component',
+            html: '<div class="x-column-header-inner"><span class="x-column-header-text">Backends</span></div>',
+            cls: 'x-column-header x-column-header-first',
+            flex: 1
+        },{
+            xtype: 'component',
+            html: '<div class="x-column-header-inner"><span class="x-column-header-text">Settings</span></div>',
+            width: 76,
+            cls: 'x-column-header'
+        },{
+            xtype: 'component',
+            cls: 'x-column-header x-column-header-last',
+            width: 36
+        }]
+    },{
+        xtype: 'container',
+        cls: 'scalr-ui-striped-list',
+        itemId: 'backends',
+        layout: 'anchor',
+        defaults: {
+            anchor: '100%'
+        },
+        updateItemsCls: function(){
+            this.items.each(function(item, index){
+                item[index % 2 ? 'addCls' : 'removeCls']('item-alt');
+            });
+        },
+        listeners: {
+            add: function() {
+                this.updateItemsCls();
+            },
+            remove: function() {
+                this.updateItemsCls();
+            }
+        }
+        
+    },{
+        xtype: 'btn',
+        anchor: '100%',
+        baseCls: 'x-button-icon',
+        cls: 'x-button-add-item-big',
+        margin: '0 0 12 0',
+        handler: function() {
+            this.up('haproxysettings').addBackend();
+        }
+    },{
+        xtype: 'component',
+        cls: 'x-fieldset-delimiter-large'
+    },{
+        xtype: 'label',
+        cls: 'x-fieldset-subheader',
+        text: 'Health check'
+    },{
+        xtype: 'container',
+        layout: 'hbox',
+        items: [{
+            xtype: 'textfield',
+            name: 'haproxy.healthcheck.interval',
+            allowBlank: false,
+            fieldLabel: 'Interval ',
+            flex: 1,
+            labelWidth: 60,
+            minWidth: 100,
+            maxWidth: 120
+        },{
+            xtype: 'displayfield',
+            margin: '0 0 0 3',
+            value: 'sec'
+        },{
+            xtype: 'displayinfofield',
+            margin: '0 40 0 5',
+            info:   'The approximate interval (in seconds) between health checks of an individual instance.<br />The default is 30 seconds and a valid interval must be between 5 seconds and 600 seconds.' +
+                    'Also, the interval value must be greater than the Timeout value'
+        },{
+            xtype: 'textfield',
+            name: 'haproxy.healthcheck.fallthreshold',
+            allowBlank: false,
+            fieldLabel: 'Fall threshold',
+            flex: 1,
+            labelWidth: 90,
+            minWidth: 110,
+            maxWidth: 150
+        },{
+            xtype: 'displayinfofield',
+            margin: '0 40 0 5',
+            info:   'The number of consecutive health probe failures that move the instance to the unhealthy state.<br />The default is 5 and a valid value lies between 2 and 10.'
+        },{
+            xtype: 'textfield',
+            name: 'haproxy.healthcheck.risethreshold',
+            allowBlank: false,
+            fieldLabel: 'Rise threshold',
+            flex: 1,
+            labelWidth: 90,
+            minWidth: 110,
+            maxWidth: 150
+        },{
+            xtype: 'displayinfofield',
+            margin: '0 0 0 5',
+            info:   'The number of consecutive health probe successes required before moving the instance to the Healthy state.<br />The default is 3 and a valid value lies between 2 and 10.'
+        }]
+    }]
 });

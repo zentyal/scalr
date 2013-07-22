@@ -294,6 +294,8 @@ Scalr.regPage('Scalr.ui.services.mongodb.status', function (loadParams, modulePa
 			}
 		}]
 	});
+
+	logsStore.loadPage(1);
     
 	return panel;
 });

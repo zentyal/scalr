@@ -18,11 +18,34 @@ use FilesystemIterator;
  * @author   Vitaliy Demidov  <vitaliy@scalr.com>
  * @since    04.12.2012
  *
- * @property \Scalr\Service\OpenStack\Services\ServersService $servers  A Next Generation Cloud Servers service interface.
- * @property \Scalr\Service\OpenStack\Services\VolumeService  $volume   A Cloud Block Storage (Volume) service interface.
+ * @property \Scalr\Service\OpenStack\Services\ServersService $servers
+ *           A Next Generation Cloud Servers service interface.
+ *
+ * @property \Scalr\Service\OpenStack\Services\VolumeService $volume
+ *           A Cloud Block Storage (Volume) service interface.
+ *
+ * @property \Scalr\Service\OpenStack\Services\NetworkService $network
+ *           A Quantum API (Network) service interface.
  */
 class OpenStack
 {
+
+    const SERVICE_COMPUTE = 'compute';
+
+    const SERVICE_VOLUME = 'volume';
+
+    const SERVICE_NETWORK = 'network';
+
+    const SERVICE_METERING = 'metering';
+
+    const SERVICE_IMAGE = 'image';
+
+    const SERVICE_EC2 = 'ec2';
+
+    const SERVICE_OBJECT_STORE = 'object-store';
+
+    const SERVICE_IDENTITY = 'identity';
+
     /**
      * Available services
      * @var array
@@ -46,6 +69,13 @@ class OpenStack
      * @var  OpenStackConfig
      */
     private $config;
+
+    /**
+     * Misc. cache
+     *
+     * @var array
+     */
+    private $cache;
 
     /**
      * Constructor
@@ -170,5 +200,39 @@ class OpenStack
             unset($obj);
         }
         return $ret;
+    }
+
+    /**
+     * Gets the list of allowed services for this tenant
+     *
+     * @return  array Returns the list of allowed services for this tenant
+     */
+    public function listServices()
+    {
+        if (!isset($this->cache['services'])) {
+            $cfg = $this->getConfig();
+            $client = $this->getClient();
+            if (!($cfg->getAuthToken() instanceof AuthToken)) {
+                $client->auth();
+            }
+            $ret = array_keys($cfg->getAuthToken()->getRegionEndpoints());
+            $this->cache['services'] = array_combine($ret, $ret);
+        }
+        return array_values($this->cache['services']);
+    }
+
+    /**
+     * Checks whether specified service does exist in the retrieved endpoints for this user.
+     *
+     * @param   string     $servicename The name of the service to check
+     * @param   string     $ns          optional The namespace
+     * @return  boolean    Returns true if specified service does exist for this user.
+     */
+    public function hasService($serviceName, $ns = null)
+    {
+        if (!isset($this->cache['services'])) {
+            $this->listServices();
+        }
+        return array_key_exists((isset($ns) ? $ns . ':' : '') . $serviceName, $this->cache['services']);
     }
 }

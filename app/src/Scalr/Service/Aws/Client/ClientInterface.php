@@ -7,7 +7,7 @@ namespace Scalr\Service\Aws\Client;
  * Its main task to ensure abstraction layer between different
  * types of transporting client for the easiest scalability.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     20.09.2012
  */
 interface ClientInterface

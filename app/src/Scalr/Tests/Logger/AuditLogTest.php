@@ -12,7 +12,7 @@ use Scalr\Logger\AuditLog\Documents\FarmDocument;
 /**
  * Audit Log test
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     01.11.2012
  */
 class AuditLogTest extends TestCase
@@ -33,7 +33,7 @@ class AuditLogTest extends TestCase
     protected function setUp()
     {
         parent::setUp();
-        $container = Container::getInstance();
+        $container = \Scalr::getContainer();
         if ($container->user === null) {
             $this->setTestUserToContainer();
         } else {
@@ -51,7 +51,7 @@ class AuditLogTest extends TestCase
      */
     private function setTestUserToContainer()
     {
-        $container = Container::getInstance();
+        $container = \Scalr::getContainer();
         $container->user = new \Scalr_Account_User();
         $container->user->loadById(self::TEST_USER_ID);
     }

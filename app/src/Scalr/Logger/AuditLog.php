@@ -15,7 +15,7 @@ use \ReflectionClass;
 /**
  * Audit log service.
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    31.10.2012
  */
 class AuditLog implements AuditLogInterface

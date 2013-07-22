@@ -1,8 +1,8 @@
 Scalr.regPage('Scalr.ui.farms.builder.tabs.devel', function () {
 	return Ext.create('Scalr.ui.FarmsBuilderTab', {
 		tabTitle: 'Development options',
-		cache: {},
-
+        itemId: 'devel',
+        
 		isEnabled: function (record) {
 			return Scalr.flags['betaMode'];
 		},

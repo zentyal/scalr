@@ -7,7 +7,7 @@ use Scalr\Service\Aws\AbstractHandler;
 /**
  * AbstractCloudWatchHandler
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     25.10.2012
  * @property  \Scalr\Service\Aws\CloudWatch   $cloudWatch      An Amazon CloudWatch instance
  * @method    \Scalr\Service\Aws\CloudWatch   getCloudWatch()  getCloudWatch()                                          Gets an Amazon CloudWatch instance.

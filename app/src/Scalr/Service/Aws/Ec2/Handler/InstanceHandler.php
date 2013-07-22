@@ -1,6 +1,7 @@
 <?php
 namespace Scalr\Service\Aws\Ec2\Handler;
 
+use Scalr\Service\Aws\Ec2\DataType\MonitorInstancesResponseSetList;
 use Scalr\Service\Aws\Ec2\DataType\InstanceAttributeType;
 use Scalr\Service\Aws\Ec2\DataType\GetConsoleOutputResponseData;
 use Scalr\Service\Aws\Ec2\DataType\InstanceStateChangeList;
@@ -29,6 +30,7 @@ class InstanceHandler extends AbstractEc2Handler
 
     /**
      * Gets InstanceData object from the EntityManager.
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param   string                    $instanceId Identifier.
      * @return  \Scalr\Service\Aws\Ec2\DataType\InstanceData|null    Returns InstanceData if it does exist in the cache or NULL otherwise.
@@ -254,5 +256,72 @@ class InstanceHandler extends AbstractEc2Handler
             $instanceIdList = new ListDataType($instanceIdList);
         }
         return $this->getEc2()->getApiHandler()->stopInstances($instanceIdList, $force);
+    }
+
+    /**
+     * StartInstances action
+     *
+     * Starts an Amazon EBS-backed AMI that you've previously stopped.
+     *
+     * Instances that use Amazon EBS volumes as their root devices can be quickly stopped and started.
+     * When an instance is stopped, the compute resources are released and you are not billed for hourly instance
+     * usage. However, your root partition Amazon EBS volume remains, continues to persist your data, and
+     * you are charged for Amazon EBS volume usage. You can restart your instance at any time. Each time
+     * you transition an instance from stopped to started, we charge a full instance hour, even if transitions
+     * happen multiple times within a single hour.
+     *
+     * Note! Before stopping an instance, make sure it is in a state from which it can be restarted.
+     * Stopping an instance does not preserve data stored in RAM.
+     * Performing this operation on an instance that uses an instance store as its root device returns
+     * an error.
+     *
+     * @param   ListDataType|array|string $instanceIdList One or more instance IDs.
+     *
+     * @return  InstanceStateChangeList  Return the InstanceStateChangeList
+     * @throws  ClientException
+     * @throws  Ec2Exception
+     */
+    public function start($instanceIdList)
+    {
+        if (!($instanceIdList instanceof ListDataType)) {
+            $instanceIdList = new ListDataType($instanceIdList);
+        }
+        return $this->getEc2()->getApiHandler()->startInstances($instanceIdList);
+    }
+
+    /**
+     * MonitorInstances action
+     *
+     * Enables monitoring for a running instance.
+     *
+     * @param   ListDataType|array|string $instanceIdList One or more instance IDs
+     * @return  MonitorInstancesResponseSetList  Returns the MonitorInstancesResponseSetList
+     * @throws  ClientException
+     * @throws  Ec2Exception
+     */
+    public function monitor($instanceIdList)
+    {
+       if (!($instanceIdList instanceof ListDataType)) {
+            $instanceIdList = new ListDataType($instanceIdList);
+        }
+        return $this->getEc2()->getApiHandler()->monitorInstances($instanceIdList);
+    }
+
+    /**
+     * UnmonitorInstances action
+     *
+     * Disables monitoring for a running instance.
+     *
+     * @param   ListDataType|array|string $instanceIdList One or more instance IDs
+     * @return  MonitorInstancesResponseSetList  Returns the MonitorInstancesResponseSetList
+     * @throws  ClientException
+     * @throws  Ec2Exception
+     */
+    public function unmonitor($instanceIdList)
+    {
+       if (!($instanceIdList instanceof ListDataType)) {
+            $instanceIdList = new ListDataType($instanceIdList);
+        }
+        return $this->getEc2()->getApiHandler()->unmonitorInstances($instanceIdList);
     }
 }

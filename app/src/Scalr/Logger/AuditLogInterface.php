@@ -11,7 +11,7 @@ use LoggerStorageInterface;
 /**
  * AuditLog interface.
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    31.10.2012
  */
 interface AuditLogInterface

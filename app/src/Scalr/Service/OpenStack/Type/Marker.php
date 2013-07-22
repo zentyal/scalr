@@ -110,4 +110,21 @@ class Marker extends AbstractInitType
 
         return $options;
     }
+
+    /**
+     * Gets a query string
+     *
+     * @return string Returns a query string
+     */
+    public function getQueryString()
+    {
+        $str = '';
+        if ($this->getMarker() !== null) {
+            $str .= '&marker=' . rawurlencode($this->getMarker());
+        }
+        if ($this->getLimit() !== null) {
+            $str .= '&limit=' . intval($this->getLimit());
+        }
+        return ltrim($str, '&');
+    }
 }

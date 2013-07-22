@@ -263,8 +263,7 @@ class SoapClient extends \SoapClient implements ClientInterface
         if (empty($options)) {
             $res = $this->$action();
         } else {
-            //Options array must be compartible to wsdl schema definition.
-            //For present only $aws->ec2->availabilityZone->describe() is supported here
+            //Options array must be compartible with wsdl schema definition.
             $res = $this->$action($options);
         }
         if ($this->getAws() && $this->getAws()->getDebug()) {

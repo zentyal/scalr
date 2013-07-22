@@ -8,7 +8,8 @@ Ext.define('Scalr.ui.FormFilterField', {
 	hideTriggerButton: false,
 	hideSearchButton: false,
 	cls: 'x-filterfield',
-
+    filterId: 'filterfield',
+    
 	initComponent: function() {
 		var me = this;
 		this.callParent(arguments);
@@ -45,7 +46,7 @@ Ext.define('Scalr.ui.FormFilterField', {
 			if (this.store.proxy.extraParams['query'] != '')
 				this.value = this.store.proxy.extraParams['query'];
 		} else {
-			this.emptyText = 'Filter';
+			this.emptyText = this.emptyText || 'Filter';
 			this.hideSearchButton = true;
 			if (! this.hideFilterIcon)
 				this.fieldCls = this.fieldCls + ' x-form-field-livesearch';
@@ -71,9 +72,14 @@ Ext.define('Scalr.ui.FormFilterField', {
 		if (this.hideSearchButton)
 			me.clearButton[value != '' ? 'show' : 'hide' ]();
 
-		if (me.filterFn || me.filterFields) {
-			me.store.clearFilter();
-
+		if (this.store !== undefined && (me.filterFn || me.filterFields)) {
+            var filters = [];
+            this.store.filters.each(function(filter){
+                if (filter.id !== me.filterId) {
+                    filters.push(filter);
+                }
+            });
+            this.store.clearFilter();
 			var filterFn = function(record) {
 				var result = false,
 					r = new RegExp(Ext.String.escapeRegex(value), 'i');
@@ -88,10 +94,13 @@ Ext.define('Scalr.ui.FormFilterField', {
 			}
 
 			if (value != '') {
-				this.store.filter({
+				filters.push({
+                    id: this.filterId,
 					filterFn: me.filterFn || filterFn
 				});
-			}
+            }
+            this.fireEvent('beforefilter');
+            this.store.filter(filters);
 			this.fireEvent('afterfilter');
 		}
 	},
@@ -265,7 +274,12 @@ Ext.define('Scalr.ui.FormFilterField', {
 
 		Ext.apply(this.store.proxy.extraParams, this.getParseValue());
 		this.store.load();
-	}
+	},
+    
+    bindStore: function(store) {
+        this.store = store;
+        this.applyFilter(this, this.getValue());
+    }
 });
 
 Ext.define('Scalr.ui.FormFieldButtonGroup', {
@@ -284,7 +298,7 @@ Ext.define('Scalr.ui.FormFieldButtonGroup', {
 		defaults = {
 			xtype: 'button',
 			enableToggle: true,
-			toggleGroup: me.getInputId(),
+			//toggleGroup: me.getInputId(),
 			allowDepress: me.allowBlank,
 			scope: me,
 			doToggle: function(){
@@ -295,9 +309,7 @@ Ext.define('Scalr.ui.FormFieldButtonGroup', {
 				/* End */
 			},
 			toggleHandler: function(button, state){
-				if (state) {
-					button.ownerCt.setValue(button.value);
-				}
+				button.ownerCt.setValue(state ? button.value : null);
 			},
 			onMouseDown: function(e) {
 				var me = this;
@@ -334,7 +346,12 @@ Ext.define('Scalr.ui.FormFieldButtonGroup', {
 	
 	getRawValue: function() {
 		var me = this, v, b;
-		b = Ext.ButtonToggleManager.getPressed(me.getInputId());
+		me.items.each(function(){
+			if (this.pressed === true) {
+                b = this;
+			}
+		});
+        
 		if (b) {
 			v = b.value;
 			me.rawValue = v;
@@ -349,7 +366,7 @@ Ext.define('Scalr.ui.FormFieldButtonGroup', {
 		me.rawValue = value;
 		me.items.each(function(){
 			if (me.rendered) {
-				this.toggle(this.value == value);
+				this.toggle(this.value == value, this.value != value);
 			} else if (this.value == value){
 				this.pressed = true;
 			}
@@ -409,7 +426,7 @@ Ext.define('Scalr.ui.FormCustomButton', {
 	enableToggle: false,
 	maskOnDisable: false,
 
-	childEls: [ 'btnEl' ],
+	childEls: [ 'btnEl', 'btnTextEl', 'iconEl' ],
 
 	baseCls: 'x-button-text',
 	overCls: 'over',
@@ -418,20 +435,27 @@ Ext.define('Scalr.ui.FormCustomButton', {
 	expandBaseCls: true,
 	text: '',
 	type: 'base',
-	renderTpl: '',
 	tooltipType: 'qtip',
 
-	tpls: {
-		base: '<div class="x-btn-inner" id="{id}-btnEl">{text}</div>'
-	},
+    menuAlign: 'tl-bl?',
+    menuActiveCls: 'menu-active',
+    arrowAlign: 'right',
+    arrowCls: 'arrow',
+    split: false,
+
+	renderTpl: '<div class="x-btn-inner {innerCls}" id="{id}-btnEl"><div class="x-button-text-wrap" id="{id}-btnTextEl">{text}</div></div>',
 
 	initComponent: function() {
 		var me = this;
 
-		this.renderTpl = this.renderTpl || this.tpls[this.type] || this.tpls['base'];
-
 		me.callParent(arguments);
 		me.addEvents('click', 'toggle');
+
+        if (me.menu) {
+            me.split = true;
+            me.menu = Ext.menu.Manager.get(me.menu);
+            me.menu.ownerButton = me;
+        }
 
 		if (Ext.isString(me.toggleGroup)) {
 			me.enableToggle = true;
@@ -446,22 +470,28 @@ Ext.define('Scalr.ui.FormCustomButton', {
 			me.pressedCls = me.baseCls + '-' + me.pressedCls;
 			me.disabledCls = me.baseCls + '-' + me.disabledCls;
 		}
-
+        
 		me.renderData['id'] = me.getId();
 		me.renderData['disabled'] = me.disabled;
 		me.renderData['text'] = me.text;
+        me.renderData['innerCls'] = me.innerCls || '';
 	},
 
 	onRender: function () {
 		var me = this;
 
+		me.doc = Ext.getDoc();
 		me.callParent(arguments);
 
 		if (me.el) {
 			me.mon(me.el, {
 				click: me.onClick,
+				mouseup: me.onMouseUp,
+				mousedown: me.onMouseDown,
 				scope: me
 			});
+
+			me.mon()
 		}
 
 		if (me.pressed)
@@ -472,7 +502,56 @@ Ext.define('Scalr.ui.FormCustomButton', {
         if (me.tooltip) {
             me.setTooltip(me.tooltip, true);
         }
+        
+        if (me.menu) {
+            var btnListeners = {
+                scope: me,
+                mouseover: me.onMouseOver,
+                mouseout: me.onMouseOut,
+                mousedown: me.onMouseDown
+            };
+            if (me.split) {
+                btnListeners.mousemove = me.onMouseMove;
+            }
+            me.mon(me.el, btnListeners);
+            
+            me.mon(me.menu, {
+                scope: me,
+                show: me.onMenuShow,
+                hide: me.onMenuHide
+            });
+
+            me.keyMap = new Ext.util.KeyMap({
+                target: me.el,
+                key: Ext.EventObject.DOWN,
+                handler: me.onDownKey,
+                scope: me
+            });
+        }
+        
+        me.el.unselectable();
 		
+	},
+
+	// @private
+	onMouseDown: function(e) {
+		var me = this;
+		if (!me.disabled && e.button === 0) {
+            if (me.disableMouseDownPressed !== true) {
+                me.addCls(me.pressedCls);
+            }
+			me.doc.on('mouseup', me.onMouseUp, me);
+		}
+	},
+	// @private
+	onMouseUp: function(e) {
+		var me = this;
+		if (e.button === 0) {
+			if (!me.pressed) {
+				me.removeCls(me.pressedCls);
+			}
+			me.doc.un('mouseup', me.onMouseUp, me);
+		}
 	},
 
 	onDestroy: function() {
@@ -505,6 +584,7 @@ Ext.define('Scalr.ui.FormCustomButton', {
 
 		if (! me.disabled) {
 			me.doToggle();
+            me.maybeShowMenu();
 			me.fireHandler(e);
 		}
 	},
@@ -556,8 +636,389 @@ Ext.define('Scalr.ui.FormCustomButton', {
         if (Ext.isObject(this.tooltip)) {
             Ext.tip.QuickTipManager.unregister(this.btnEl);
         }
+    },
+    
+    setText: function(text) {
+        var me = this;
+        me.text = text;
+        if (me.rendered) {
+            me.btnTextEl.update(text || '&#160;');
+            me.updateLayout();
+        }
+        return me;
+    },
+    
+    //all methods below are button menu related
+    onMouseOver: function(e) {
+        var me = this;
+        if (!me.disabled && !e.within(me.el, true, true)) {
+            me.onMouseEnter(e);
+        }
+    },
+
+    onMouseOut: function(e) {
+        var me = this;
+        if (!e.within(me.el, true, true)) {
+            if (me.overMenuTrigger) {
+                me.onMenuTriggerOut(e);
+            }
+            me.onMouseLeave(e);
+        }
+    },
+    
+    onMouseEnter: function(e) {
+        var me = this;
+        me.addClsWithUI(me.overCls);
+        me.fireEvent('mouseover', me, e);
+    },
+
+    onMouseLeave: function(e) {
+        var me = this;
+        me.removeClsWithUI(me.overCls);
+        me.fireEvent('mouseout', me, e);
+    },
+
+    getRefItems: function(deep){
+        var menu = this.menu,
+            items;
+        
+        if (menu) {
+            items = menu.getRefItems(deep);
+            items.unshift(menu);
+        }
+        return items || [];
+    },
+    
+    beforeDestroy: function() {
+        var me = this;
+        if (me.menu && me.destroyMenu !== false) {
+            Ext.destroy(me.menu);
+        }
+        me.callParent();
+    },
+    
+    maybeShowMenu: function(){
+        var me = this;
+        if (me.menu && !me.hasVisibleMenu() && !me.ignoreNextClick) {
+            me.showMenu();
+        }
+    },
+
+    showMenu: function() {
+        var me = this;
+        if (me.rendered && me.menu) {
+            if (me.tooltip && me.getTipAttr() != 'title') {
+                Ext.tip.QuickTipManager.getQuickTip().cancelShow(me.btnEl);
+            }
+            if (me.menu.isVisible()) {
+                me.menu.hide();
+            }
+
+            me.menu.showBy(me.el, me.menuAlign, ((!Ext.isStrict && Ext.isIE) || Ext.isIE6) ? [-2, -2] : undefined);
+        }
+        return me;
+    },
+
+    hideMenu: function() {
+        if (this.hasVisibleMenu()) {
+            this.menu.hide();
+        }
+        return this;
+    },
+
+    hasVisibleMenu: function() {
+        var menu = this.menu;
+        return menu && menu.rendered && menu.isVisible();
+    },
+    
+    onMenuShow: function(e) {
+        var me = this;
+        me.ignoreNextClick = 0;
+        me.addClsWithUI(me.menuActiveCls);
+        me.fireEvent('menushow', me, me.menu);
+    },
+
+    onMenuHide: function(e) {
+        var me = this;
+        me.removeClsWithUI(me.menuActiveCls);
+        me.ignoreNextClick = Ext.defer(me.restoreClick, 250, me);
+        me.fireEvent('menuhide', me, me.menu);
+    },
+    
+    onMouseMove: function(e) {
+        var me = this,
+            el = me.el,
+            over = me.overMenuTrigger,
+            overlap, btnSize;
+
+        if (me.split) {
+            if (me.arrowAlign === 'right') {
+                overlap = e.getX() - el.getX();
+                btnSize = el.getWidth();
+            } else {
+                overlap = e.getY() - el.getY();
+                btnSize = el.getHeight();
+            }
+
+            if (overlap > (btnSize - me.getTriggerSize())) {
+                if (!over) {
+                    me.onMenuTriggerOver(e);
+                }
+            } else {
+                if (over) {
+                    me.onMenuTriggerOut(e);
+                }
+            }
+        }
+    },
+
+    getTriggerSize: function() {
+        var me = this,
+            size = me.triggerSize,
+            side, sideFirstLetter, undef;
+
+        if (size === undef) {
+            side = me.arrowAlign;
+            sideFirstLetter = side.charAt(0);
+            size = me.triggerSize = me.el.getFrameWidth(sideFirstLetter) + me.btnEl.getFrameWidth(sideFirstLetter) + me.frameSize[side];
+        }
+        return size;
+    },
+    
+    onMenuTriggerOver: function(e) {
+        var me = this;
+        me.overMenuTrigger = true;
+        me.fireEvent('menutriggerover', me, me.menu, e);
+    },
+
+    onMenuTriggerOut: function(e) {
+        var me = this;
+        delete me.overMenuTrigger;
+        me.fireEvent('menutriggerout', me, me.menu, e);
+    },
+    
+    restoreClick: function() {
+        this.ignoreNextClick = 0;
+    },
+    
+    onDownKey: function() {
+        var me = this;
+
+        if (!me.disabled) {
+            if (me.menu) {
+                me.showMenu();
+            }
+        }
+    },
+    
+    getSplitCls: function() {
+        var me = this;
+        return me.split ? (me.baseCls + '-' + me.arrowCls) + ' ' + (me.baseCls + '-' + me.arrowCls + '-' + me.arrowAlign) : '';
+    },
+    
+    setIconCls: function(cls) {
+        var me = this,
+            btnIconEl = me.btnIconEl,
+            oldCls = me.iconCls;
+            
+        me.iconCls = cls;
+        if (btnIconEl) {
+            // Remove the previous iconCls from the button
+            btnIconEl.removeCls(oldCls);
+            btnIconEl.addCls(cls || '');
+            //me.setComponentCls();
+            if (me.didIconStateChange(oldCls, cls)) {
+                me.updateLayout();
+            }
+        }
+        return me;
+    },
+    
+     didIconStateChange: function(old, current) {
+        var currentEmpty = Ext.isEmpty(current);
+        return Ext.isEmpty(old) ? !currentEmpty : currentEmpty;
     }
-	
+   
+});
+
+Ext.define('Scalr.ui.FormCustomButtonSplit', {
+    alias: 'widget.splitbtn',
+    extend: 'Scalr.ui.FormCustomButton',
+    arrowCls      : 'split',
+    split         : true,
+
+    setArrowHandler : function(handler, scope){
+        this.arrowHandler = handler;
+        this.scope = scope;
+    },
+
+    onRender: function() {
+        this.callParent();
+        this.btnEl.addCls(this.getSplitCls());
+    },
+    
+    onClick : function(e, t) {
+        var me = this;
+        
+        e.preventDefault();
+        if (!me.disabled) {
+            if (me.overMenuTrigger) {
+                me.maybeShowMenu();
+                me.fireEvent("arrowclick", me, e);
+                if (me.arrowHandler) {
+                    me.arrowHandler.call(me.scope || me, me, e);
+                }
+            } else {
+                me.doToggle();
+                me.fireHandler(e);
+            }
+        }
+    }
+});
+
+Ext.define('Scalr.ui.FormCustomButtonCycle', {
+    alias: 'widget.cyclebtn',
+    extend: 'Scalr.ui.FormCustomButtonSplit',
+    
+    showText: true,
+    deferChangeEvent: true,
+    suspendChangeEvent: 0,
+    
+    getButtonText: function(item) {
+        var me = this,
+            text = '';
+        
+        if (item && me.showText === true) {
+            if (me.prependText) {
+                text += me.prependText;
+            }
+            text += Ext.isDefined(me.getItemText) ? me.getItemText(item) : item.text;
+            return text;
+        }
+        return me.text;
+    },
+
+    setActiveItem: function(item, suppressEvent) {
+        var me = this;
+        
+        if (!Ext.isObject(item)) {
+            item = me.menu.getComponent(item);
+        }
+        if (item) {
+            me.suspendChangeEvent++;
+            if (!me.rendered) {
+                me.text = me.getButtonText(item);
+                me.iconCls = item.iconCls;
+            } else {
+                me.setText(me.getButtonText(item));
+                me.setIconCls(item.iconCls);
+            }
+            me.activeItem = item;
+            if (!item.checked) {
+                item.setChecked(true, false);
+            }
+            if (me.forceIcon) {
+                me.setIconCls(me.forceIcon);
+            }
+            me.suspendChangeEvent--;
+            if (!suppressEvent && me.suspendChangeEvent === 0) {
+                me.fireEvent('change', me, item);
+            }
+        }
+        
+    },
+
+    getActiveItem: function() {
+        return this.activeItem;
+    },
+    
+    getValue: function() {
+       var item = this.getActiveItem();
+       return item ? item.value : null;
+    },
+
+    initComponent: function() {
+        var me      = this,
+            checked = 0,
+            items,
+            i, iLen, item;
+
+        if (me.changeHandler) {
+            me.on('change', me.changeHandler, me.scope || me);
+            delete me.changeHandler;
+        }
+
+        items = (me.menu.items || []).concat(me.items || []);
+        me.menu = Ext.applyIf({
+            //cls: Ext.baseCSSPrefix + 'cycle-menu',
+            items: []
+        }, me.menu);
+
+        iLen = items.length;
+
+        // Convert all items to CheckItems
+        for (i = 0; i < iLen; i++) {
+            item = items[i];
+
+            item = Ext.applyIf({
+                group        : me.id,
+                itemIndex    : i,
+                checkHandler : me.checkHandler,
+                scope        : me,
+                checked      : item.checked || false
+            }, item);
+
+            me.menu.items.push(item);
+
+            if (item.checked) {
+                checked = i;
+            }
+        }
+
+        me.itemCount = me.menu.items.length;
+        me.callParent(arguments);
+        me.on('click', me.toggleSelected, me);
+        me.setActiveItem(checked, me.deferChangeEvent);
+
+        // If configured with a fixed width, the cycling will center a different child item's text each click. Prevent this.
+        if (me.width && me.showText) {
+            me.addCls(Ext.baseCSSPrefix + 'cycle-fixed-width');
+        }
+    },
+
+    // private
+    checkHandler: function(item, pressed) {
+        if (pressed) {
+            this.setActiveItem(item);
+        }
+    },
+
+    toggleSelected: function() {
+        var me = this,
+            m = me.menu,
+            checkItem;
+
+        checkItem = me.activeItem.next(':not([disabled])') || m.items.getAt(0);
+        checkItem.setChecked(true);
+    },
+    
+    add: function(item){
+        var me = this;
+        me.itemCount++;
+        return me.menu.add(Ext.applyIf({
+            group        : me.id,
+            itemIndex    : me.itemCount,
+            checkHandler : me.checkHandler,
+            scope        : me,
+            checked      : item.checked || false
+        }, item));
+    },
+    
+    removeAll: function() {
+        var me = this;
+        me.activeItem = null;
+        me.menu.removeAll();
+    }
 });
 
 Ext.define('Scalr.ui.FormCustomButtonField', {
@@ -590,7 +1051,7 @@ Ext.define('Scalr.ui.FormFieldInfoTooltip', {
 	initComponent: function () {
 		// should use value for message
 		var info = this.value || this.info;
-		this.value = '<img class="tipHelp" src="/ui2/images/icons/info_icon_16x16.png" data-qtip="' + info + '" style="cursor: help; height: 16px;">';
+		this.value = '<img class="tipHelp" src="/ui2/images/icons/info_icon_16x16.png" data-qtip=\'' + info + '\' style="cursor: help; height: 16px;">';
 
 		this.callParent(arguments);
 	}
@@ -635,7 +1096,7 @@ Ext.define('Scalr.ui.FormFieldFarmRoles', {
 		} else if (this.params.options.indexOf('disabledFarmRole') != -1) {
 			farmField.columnWidth = 1;
 		} else {
-			farmField.columnWidth = 1/3;;
+			farmField.columnWidth = 1/3;
 			farmRoleField.columnWidth = 1/3;
 			serverField.columnWidth = 1/3;
 		}
@@ -664,7 +1125,7 @@ Ext.define('Scalr.ui.FormFieldFarmRoles', {
 				if (fieldset.params.options.indexOf('disabledServer') == -1)
 					fieldset.down('[name="serverId"]').hide();
 
-				if (!this.getValue()) {
+				if (!this.getValue() || this.getValue() == '0') {
 					fieldset.down('[name="farmRoleId"]').hide();
 					return;
 				}
@@ -928,7 +1389,9 @@ Ext.define('Scalr.ui.FormFieldProgress', {
 		}
         if (display !== undefined) {
 			display += ' ' + this.units;
-		}
+		} else if (value){
+            display = value;
+        }
 		
         return display !== undefined ? display : this.emptyText;
     },
@@ -943,4 +1406,186 @@ Ext.define('Scalr.ui.FormFieldProgress', {
     valueToRaw: function(value) {
         return value;
     }
+});
+
+Ext.define('Scalr.ui.CloudLocationMap', {
+	extend: 'Ext.Component',
+	alias: 'widget.cloudlocationmap',
+	baseCls: 'scalr-ui-cloudlocationmap',
+	
+	settings: {
+		common: {
+			size: {
+				width: 210,
+				height: 100
+			},
+			style: 'background: url(/ui2/images/widget/cloudlocationmap/maps.png?1.1) 0 -400px no-repeat;'
+		},
+		large: {
+			size: {
+				width: 320,
+				height: 140
+			},
+			style: 'background: url(/ui2/images/widget/cloudlocationmap/maps_large.png?1.1) 0 -560px no-repeat;'
+		}
+	},
+	size: 'common',
+	
+	mode: 'multi',
+	platforms: {},
+	regions: {
+		us: 0,
+		sa: 3,
+		eu: 2,
+		ap: 1,
+		unknown: 4,
+		all: 5,
+        jp: 6
+	},
+	locations: {
+		ec2: {
+			'ap-northeast-1': {region: 'ap', x: {common: 125, large: 183}, y: {common:27, large: 40}},
+			'ap-southeast-1': {region: 'ap', x: {common: 95, large: 142}, y: {common:58, large: 81}},
+			'ap-southeast-2': {region: 'ap', x: {common: 133, large: 193}, y: {common:88, large: 118}},
+			'eu-west-1': {region: 'eu', x: {common: 75, large: 112}, y: {common:14, large: 18}},
+			'sa-east-1': {region: 'sa', x: {common: 114, large: 170}, y: {common:51, large: 71}},
+			'us-east-1': {region: 'us', x: {common: 145, large: 212}, y: {common:53, large: 74}},
+			'us-west-1': {region: 'us', x: {common: 43, large: 78}, y: {common:50, large: 66}},
+			'us-west-2': {region: 'us', x: {common: 35, large: 72}, y: {common:26, large: 40}}
+		},
+		ec2_world: {//all locations on a single map
+			'ap-northeast-1': {region: 'all', x: {common: 182, large: 274}, y: {common:32, large: 46}},
+			'ap-southeast-1': {region: 'all', x: {common: 156, large: 244}, y: {common:54, large: 78}},
+			'ap-southeast-2': {region: 'all', x: {common: 186, large: 286}, y: {common:76, large: 110}},
+			'eu-west-1': {region: 'all', x: {common: 88, large: 140}, y: {common:24, large: 32}},
+			'sa-east-1': {region: 'all', x: {common: 68, large: 104}, y: {common:70, large: 100}},
+			'us-east-1': {region: 'all', x: {common: 48, large: 78}, y: {common:34, large: 48}},
+			'us-west-1': {region: 'all', x: {common: 28, large: 42}, y: {common:40, large: 50}},
+			'us-west-2': {region: 'all', x: {common: 22, large: 40}, y: {common:30, large: 40}}
+		},
+		rackspace: {
+			'rs-LONx': {region: 'eu', x: {common: 75, large: 120}, y: {common:14, large: 18}},
+			'rs-ORD1': {region: 'us', x: {common: 120, large: 180}, y: {common:32, large: 44}}
+		},
+		rackspace_world: {
+			'rs-LONx': {region: 'all', x: {common: 88, large: 0}, y: {common:24, large: 0}},
+			'rs-ORD1': {region: 'all', x: {common: 40, large: 0}, y: {common:28, large: 0}}
+		},
+		rackspacengus: {
+			'DFW': {region: 'us', x: {common: 100, large: 154}, y: {common:60, large: 78}},
+			'ORD': {region: 'us', x: {common: 120, large: 180}, y: {common:32, large: 44}}
+		},
+		rackspacenguk: {
+			'LON': {region: 'eu', x: {common: 75, large: 120}, y: {common:14, large: 18}}
+		},
+        idcf: {
+            'jp-east-t1v': {region: 'jp', x: {common: 114, large: 168}, y: {common:66, large: 88}},//Tokyo
+            'jp-east-f2v': {region: 'jp', x: {common: 116, large: 176}, y: {common:46, large: 68}}//Shirakawa
+        },
+        gce: {
+            'us-central1-a': {region: 'all', x: {common: 30, large: 46}, y: {common:32, large: 48}},
+            'us-central1-b': {region: 'all', x: {common: 36, large: 56}, y: {common:30, large: 46}},
+            'us-central2-a': {region: 'all', x: {common: 42, large: 66}, y: {common:34, large: 48}},
+            'europe-west1-a': {region: 'all', x: {common: 95, large: 150}, y: {common:28, large: 38}},
+            'europe-west1-b': {region: 'all', x: {common: 100, large: 160}, y: {common:26, large: 36}}
+        }
+	},
+	renderTpl: [
+		'<div class="map" style="{mapStyle}"><div class="title"></div></div>'
+	],
+	renderSelectors: {
+		titleEl: '.title',
+		mapEl: '.map'
+	},
+    renderData: {},
+    
+	constructor: function(config) {
+		this.callParent([config]);
+		this.locations.rds = this.locations.ec2;
+		this.settings[this.size].style += 'width:' + this.settings[this.size].size.width + 'px;';
+		this.settings[this.size].style += 'height:' + this.settings[this.size].size.height + 'px;';
+		this.mapSize = this.settings[this.size].size;
+        this.renderData.mapStyle = this.settings[this.size].style
+	},
+	
+	selectLocation: function(platform, selectedLocations, allLocations, map){
+        var me = this,
+            locationFound = false,
+            platformMap = me.locations[platform + '_' + map] !== undefined ? platform + '_' + map : platform;
+        me.suspendLayouts();
+		allLocations = allLocations || [];
+		me.reset();
+		if (selectedLocations === 'all') {
+			me.mapEl.setStyle('background-position', this.getRegionPosition('all'));
+            locationFound = true;
+            if (platform === 'gce') {
+                Ext.Object.each(me.locations[platformMap], function(key, value) {
+                    me.addLocation(platform, key, value, true, true);
+                });
+            }
+		} else if (me.locations[platformMap]) {
+            selectedLocations = Ext.isArray(selectedLocations) ? selectedLocations : [selectedLocations];
+            var selectedLocation = this.locations[platformMap][selectedLocations[0]];
+            if (selectedLocation) {
+                me.mapEl.setStyle('background-position', me.getRegionPosition(selectedLocation.region));
+                if (selectedLocation.region != 'unknown') {
+                    locationFound = true;
+                    Ext.Object.each(me.locations[platformMap], function(key, value) {
+                        var selected = Ext.Array.contains(selectedLocations, key);
+                        if (selected || Ext.Array.contains(allLocations, key)) {
+                            me.addLocation(platform, key, value, selected);
+                        }
+                    });
+                }
+            }
+		}
+        if (!locationFound) {
+			me.mapEl.setStyle('background-position', me.getRegionPosition('unknown'));
+		}
+        me.resumeLayouts(true);
+	},
+    
+    addLocation: function(platform, name, data, selected, silent) {
+        var me = this,
+            title = name;
+        if (me.platforms[platform] && me.platforms[platform].locations[name]) {
+            title = me.platforms[platform].locations[name];
+        }
+        var el = Ext.DomHelper.append(me.mapEl.dom, '<div data-location="'+Ext.util.Format.htmlEncode(name)+'" style="top:'+data.y[me.size]+'px;left:'+data.x[me.size]+'px" class="location'+(selected ? ' selected' : '')+'" title="'+Ext.util.Format.htmlEncode(title)+'"></div>', true)
+        if (!silent) {
+            el.on('click', function(){
+                me.fireEvent('selectlocation', this.getAttribute('data-location'), !this.hasCls('selected'));
+            });
+        }
+        if (me.mode == 'single' && platform === 'ec2' && selected) {
+            me.titleEl.setHTML(title);
+            me.fixTitlePosition();
+        }
+    },
+	
+	fixTitlePosition: function() {
+		var loc = this.mapEl.query('.location');
+		if (loc[0]) {
+			var el = Ext.fly(loc[0]);
+			//we are trying to avoid overlapping between title and location div
+			if (el.getTop(true) > this.mapSize.height/2) {
+				this.titleEl.setTop(el.getTop(true)-35);
+			} else {
+				this.titleEl.setTop(el.getTop(true)+20);
+			}
+		}
+	},
+	
+	reset: function() {
+		var loc = this.mapEl.query('.location');
+		for (var i=0, len=loc.length; i<len; i++) {
+			Ext.removeNode(loc[i]);
+		}
+        this.titleEl.setHTML('');
+	},
+	
+	getRegionPosition: function(region) {
+		return '0 -' + (this.regions[region]*this.mapSize.height) + 'px';
+	}
+	
 });

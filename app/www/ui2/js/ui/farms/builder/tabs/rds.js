@@ -1,7 +1,7 @@
 Scalr.regPage('Scalr.ui.farms.builder.tabs.rds', function () {
 	return Ext.create('Scalr.ui.FarmsBuilderTab', {
 		tabTitle: 'RDS settings',
-		cache: {},
+		tabData: null,
 
 		isEnabled: function (record) {
 			return record.get('platform') == 'rds';
@@ -19,40 +19,33 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.rds', function () {
 		},
 
 		beforeShowTab: function (record, handler) {
-			var cloudLocation = record.get('cloud_location');
-
-			if (this.cacheExist(['availabilityZonesRDS', cloudLocation]))
-				handler();
-			else
-				Scalr.Request({
-					processBox: {
-						type: 'action'
-					},
-					url: '/platforms/ec2/xGetAvailZones',
-					params: {
-						cloudLocation: cloudLocation
-					},
-					scope: this,
-					success: function (response) {
-						response.data.unshift({ id: 'x-scalr-diff', name: 'Place in different zones' });
-						response.data.unshift({ id: '', name: 'Choose randomly' });
-						this.cacheSet(response.data, ['availabilityZonesRDS', cloudLocation]);
-						handler();
-					},
-					failure: function () {
-						this.deactivateTab();
-					}
-				});
+            Scalr.cachedRequest.load(
+                {
+                    url: '/platforms/ec2/xGetAvailZones',
+                    params: {
+                        cloudLocation: record.get('cloud_location')
+                    }
+                },
+                function(data, status) {
+                    this.tabData = data;
+                    status ? handler() : this.deactivateTab();
+                },
+                this,
+                0
+            );
 		},
 
 		showTab: function (record) {
-			var settings = record.get('settings');
+			var settings = record.get('settings'), 
+                field;
 
 			this.down('[name="rds.instance_class"]').store.load({ data: [ 'db.m1.small','db.m1.large','db.m1.xlarge','db.m2.2xlarge','db.m2.4xlarge' ] });
 			this.down('[name="rds.instance_class"]').setValue(settings['rds.instance_class'] || 'db.m1.small');
 
-			this.down('[name="rds.availability_zone"]').store.load({ data: this.cacheGet(['availabilityZonesRDS', record.get('cloud_location')]) });
-			this.down('[name="rds.availability_zone"]').setValue(settings['rds.availability_zone'] || '');
+            field = this.down('[name="rds.availability_zone"]');
+            field.store.load({ data: [{ id: 'x-scalr-diff', name: 'Place in different zones' },{ id: '', name: 'Choose randomly' }] });
+			field.store.load({ data: this.tabData, addRecords: true });
+			field.setValue(settings['rds.availability_zone'] || '');
 
 			this.down('[name="rds.storage"]').setValue(settings['rds.storage'] || '5');
 			this.down('[name="rds.master-user"]').setValue(settings['rds.master-user'] || 'root');

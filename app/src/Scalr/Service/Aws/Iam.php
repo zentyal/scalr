@@ -12,7 +12,7 @@ use Scalr\Service\Aws\Iam\V20100508\IamApi;
 /**
  * Amazon Simple Storage Service (S3) interface
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     13.11.2012
  * @property  \Scalr\Service\Aws\Iam\Handler\UserHandler $user An user service interface handler.
  * @method    \Scalr\Service\Aws\Iam\V20100508\IamApi getApiHandler() getApiHandler() Gets an IamApi handler.

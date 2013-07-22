@@ -27,7 +27,7 @@ class ContainerTest extends TestCase
      */
     protected function setUp()
     {
-        $this->container = Container::getInstance();
+        $this->container = \Scalr::getContainer();
         //Usual service
         $this->container->test1 = function ($cont) {
             return new DiObject1();
@@ -51,7 +51,7 @@ class ContainerTest extends TestCase
         };
     }
 
-	/**
+    /**
      * {@inheritdoc}
      * @see Scalr\Tests.TestCase::tearDown()
      */
@@ -68,7 +68,7 @@ class ContainerTest extends TestCase
         printf("%0.4f\n", memory_get_usage() / 1024 / 1024);
     }
 
-	/**
+    /**
      * @test
      */
     public function testReleaseMemory1()
@@ -79,7 +79,7 @@ class ContainerTest extends TestCase
             unset($obj);
         }
         $diff = memory_get_usage() - $usage;
-        $this->assertLessThan(5000, $diff);
+        $this->assertLessThan(8000, $diff);
     }
 
     /**
@@ -127,6 +127,40 @@ class ContainerTest extends TestCase
             unset($prev[$r]);
 
         $this->container->release('test3');
-        $this->assertLessThan(5000, memory_get_usage() - $usage);
+        $this->assertLessThan(15000, memory_get_usage() - $usage);
+    }
+
+    /**
+     * @test
+     */
+    public function testInvokedService()
+    {
+        $this->assertSame(
+            $this->container->config->get('scalr.phpunit'),
+            $this->container->config('scalr.phpunit')
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function testFunctionalLdap()
+    {
+        if ($this->isSkipFunctionalTests())
+            $this->markTestSkipped();
+
+        $this->assertInstanceOf('Scalr\\Net\\Ldap\\LdapClient', $this->container->ldap);
+    }
+
+    /**
+     * @test
+     */
+    public function testFunctionalDnsdb()
+    {
+        // It can be unavailable from the local net.
+        $this->markTestSkipped();
+
+        $this->assertInstanceOf('Scalr\\Db\\ConnectionPool', $this->container->dnsdb);
+        $data = $this->container->dnsdb->getOne('SELECT * FROM `domains` LIMIT 1');
     }
 }

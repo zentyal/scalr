@@ -22,6 +22,8 @@ class DbSecurityGroupHandler extends AbstractRdsHandler
     /**
      * Gets DBSecurityGroupData object from the EntityManager.
      *
+     * You should be aware of the fact that the entity manager is turned off by default.
+     *
      * @param   string                  $dBSecurityGroupName.
      * @return  DBSecurityGroupData|null Returns DBSecurityGroupData if it does exist in the cache or NULL otherwise.
      */

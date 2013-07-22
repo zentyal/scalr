@@ -58,11 +58,11 @@ class SshkeysTest extends WebTestCase
         $this->assertNotNull($env->getPlatformConfigValue(\Modules_Platforms_Ec2::PRIVATE_KEY));
         $this->assertNotNull($env->getPlatformConfigValue(\Modules_Platforms_Ec2::CERTIFICATE));
 
-// 		echo $env->awsAccountNumber . "\n\n";
-// 		echo $env->awsAccessKeyId . "\n\n";
-// 		echo $env->awsSecretAccessKey . "\n\n";
-// 		echo $env->awsCertificate . "\n\n";
-// 		echo $env->awsPrivateKey . "\n\n";
+//         echo $env->awsAccountNumber . "\n\n";
+//         echo $env->awsAccessKeyId . "\n\n";
+//         echo $env->awsSecretAccessKey . "\n\n";
+//         echo $env->awsCertificate . "\n\n";
+//         echo $env->awsPrivateKey . "\n\n";
 
         $aws = $env->aws('us-east-1');
         $ret = $aws->validateCertificateAndPrivateKey();

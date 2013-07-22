@@ -13,7 +13,7 @@ use Scalr\Service\Aws\Sqs\Handler\MessageHandler;
 /**
  * Amazon Simple Queue Service (SQS) interface
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     06.11.2012
  * @property-read  \Scalr\Service\Aws\Sqs\Handler\QueueHandler   $queue    A SQS Queue handler.
  * @property-read  \Scalr\Service\Aws\Sqs\Handler\MessageHandler $message  A SQS Message handler.

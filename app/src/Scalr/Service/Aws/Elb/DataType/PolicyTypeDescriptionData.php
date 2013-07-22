@@ -8,7 +8,7 @@ use Scalr\Service\Aws\Elb\AbstractElbDataType;
  *
  * The PolicyTypeDescription data type.
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    19.09.2012
  * @property PolicyAttributeTypeDescriptionList $policyAttributeTypeDescriptions The description of the policy attributes associated with
  *                                                                               the LoadBalancer policies defined by the Elastic Load Balancing service.

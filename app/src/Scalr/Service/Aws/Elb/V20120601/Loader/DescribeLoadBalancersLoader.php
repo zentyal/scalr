@@ -27,7 +27,7 @@ use Scalr\Service\Aws\Elb\DataType\AppCookieStickinessPolicyData;
  *
  * Loads DescribeLoadBalancersResult
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     29.09.2012
  */
 class DescribeLoadBalancersLoader implements LoaderInterface

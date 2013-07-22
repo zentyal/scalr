@@ -10,6 +10,10 @@ use Scalr\Service\Aws\Ec2Exception;
  *
  * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    08.01.2013
+ *
+ * @method   \Scalr\Service\Aws\Ec2\DataType\InstanceBlockDeviceMappingResponseData get()
+ *           get(int $index)
+ *           Returns InstanceBlockDeviceMappingResponseData object from the specified position in the list.
  */
 class InstanceBlockDeviceMappingResponseList extends Ec2ListDataType
 {

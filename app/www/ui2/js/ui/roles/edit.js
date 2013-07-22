@@ -3,7 +3,7 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 
 	var imagesStore = Ext.create('store.store', {
 		data: moduleParams.role.images,
-		fields: [ 'platform', 'location', 'platform_name', 'location_name', 'image_id' , 'os_name', 'os_family', 'os_version', 'architecture'],
+		fields: [ 'platform', 'location', 'platform_name', 'location_name', 'image_id', 'architecture'],
 		proxy: 'object'
 	});
 
@@ -105,6 +105,8 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 					value = 'Database servers';
 				else if (this.inputValue == 'mongodb')
 					value = 'Database servers';
+			    else if (this.inputValue == 'mariadb')
+                    value = 'Database servers';
 				else if (this.inputValue == 'redis')
 					value = 'Database servers';
 				else if (this.inputValue.indexOf('cf_') == 0)
@@ -134,17 +136,6 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 				value: moduleParams.role.name
 			}, {
 				xtype: 'combo',
-				fieldLabel: 'Arch',
-				name: 'arch',
-				width: 400,
-				readOnly: moduleParams.role.id != 0 ? true : false,
-				store: [ 'i386', 'x86_64' ],
-				value: moduleParams.role.arch,
-				queryMode: 'local',
-				allowBlank: false,
-				editable: false
-			}, {
-				xtype: 'combo',
 				fieldLabel: 'Scalr agent',
 				name: 'agent',
 				width: 400,
@@ -154,13 +145,6 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 				queryMode: 'local',
 				allowBlank: false,
 				editable: false
-			}, {
-				xtype: 'textfield',
-				fieldLabel: 'Agent version',
-				name: 'szr_version',
-				width: 400,
-				readOnly: moduleParams.role.id != 0 ? true : false,
-				value: moduleParams.role.szr_version
 			}, {
 				xtype: 'textfield',
 				fieldLabel: 'OS',
@@ -218,6 +202,12 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 					readOnly: moduleParams.role.id != 0 ? true : false,
 					handler: checkboxBehaviorListener
 				}, {
+                    boxLabel: 'MariaDB 5',
+                    inputValue: 'mariadb',
+                    name: 'behaviors[]',
+                    readOnly: moduleParams.role.id != 0 ? true : false,
+                    handler: checkboxBehaviorListener
+                }, {
 					boxLabel: 'MySQL 5.5',
 					inputValue: 'mysql2',
 					name: 'behaviors[]',
@@ -350,35 +340,6 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 			}]
 		}]
 	});
-
-	var operationSystems = {
-		'ubuntu': [
-		   {version: '8.04', name: 'Ubuntu 8.04 Hardy'}, 
-		   {version: '9.04', name: 'Ubuntu 9.04 Jaunty'},
-		   {version: '10.04', name: 'Ubuntu 10.04 Lucid'},
-           {version: '10.10', name: 'Ubuntu 10.10 Maverick'},
-           {version: '11.04', name: 'Ubuntu 11.04 Natty'},
-           {version: '11.10', name: 'Ubuntu 11.10 Oneiric'},
-           {version: '12.04', name: 'Ubuntu 12.04 Precise'}
-		],
-		'centos': [
-		   {version: '5', name: 'CentOS 5.X Final'},
-		   {version: '6', name: 'CentOS 6.X Final'}
-		],
-		'oel': [
-		   {version: '5', name: 'Oracle Enterprise Linux 5.X'}
-		],
-		'red hat enterprise linux': [
-		   {version: '5', name: 'Red hat enterprise linux server 5.X'}
-		],
-		'unknown': [
-		   {version: 'unknown', name: 'Unknown'}
-		],
-		'debian': [
-		   {version: '5', name: 'Debian 5.0.X'},
-		   {version: '6', name: 'Debian 6.0.X'}
-		]
-	};
 	
 	var tabImages = panel.add({
 		title: 'Images',
@@ -393,9 +354,6 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 					image_id: records[i].get('image_id'), 
 					platform: records[i].get('platform'), 
 					location: records[i].get('location'),
-					os_name: records[i].get('os_name'),
-					os_version: records[i].get('os_version'),
-					os_family: records[i].get('os_family'),
 					architecture: records[i].get('architecture')
 				};
 
@@ -408,9 +366,6 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 			this.down('[name="image_platform"]').setReadOnly(false);
 			this.down('[name="image_location"]').setReadOnly(false);
 			this.down('[name="image_id"]').reset();
-			this.down('[name="os_name"]').reset();
-			this.down('[name="os_version"]').reset();
-			this.down('[name="os_family"]').reset();
 			this.down('[name="architecture"]').reset();
 
 			this.down('#image_add').show();
@@ -477,71 +432,6 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 					name: 'architecture',
 					queryMode: 'local'
 				}, {
-					xtype: 'combo',
-					fieldLabel: 'OS Family',
-					store: [['ubuntu', 'Ubuntu'], ['centos', 'CentOS'], ['debian', 'Debian'], ['oel', 'Oracle Enterprise Linux'], ['red hat enterprise linux', 'RedHat Enterprise Linux'], ['unknown', 'Other']],
-					valueField: 'version',
-					displayField: 'name',
-					allowBlank: false,
-					editable: false,
-					value: 'ubuntu',
-					name: 'os_family',
-					queryMode: 'local',
-					listeners: {
-						change: function () {
-							if (this.getValue() == 'ubuntu') {
-								this.up().down('[name="os_version"]').store.load(
-									{data: operationSystems['ubuntu']}	
-								);
-								this.up().down('[name="os_version"]').setValue('10.04');
-							}
-							else if (this.getValue() == 'centos') {
-								this.up().down('[name="os_version"]').store.load(
-									{data: operationSystems['centos']}	
-								);
-								this.up().down('[name="os_version"]').setValue('6');
-							}
-							else if (this.getValue() == 'oel') {
-								this.up().down('[name="os_version"]').store.load(
-									{data: operationSystems['oel']}	
-								);
-								this.up().down('[name="os_version"]').setValue('5');
-							}
-						}
-					}
-				}, {
-					xtype: 'combo',
-					fieldLabel: 'OS Generation',
-					store: {
-						fields: [ 'version', 'name'],
-						proxy: 'object',
-						data: operationSystems['ubuntu']
-					},
-					valueField: 'version',
-					displayField: 'version',
-					allowBlank: false,
-					editable: false,
-					value: '10.04',
-					name: 'os_version',
-					queryMode: 'local',
-					listeners: {
-						change: function () {
-							
-							var os = operationSystems[this.up().down('[name="os_family"]').getValue()];
-							if (os)
-							Ext.Array.each(os, function(value) {
-								if (value.version == this.getValue())
-									this.up().down('[name="os_name"]').setValue(value.name);
-							}, this);
-						}
-					}
-				}, {
-					xtype: 'textfield',
-					fieldLabel: 'OS Name',
-					allowBlank: false,
-					name: 'os_name',
-					value: 'Ubuntu 10.04 Lucid'
-				}, {
 					xtype: 'textfield',
 					fieldLabel: 'Image ID',
 					allowBlank: false,
@@ -564,20 +454,12 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 								invalid = !tabImages.down('[name="image_location"]').isValid() || invalid;
 								
 							invalid = !tabImages.down('[name="image_id"]').isValid() || invalid;
-							
-							invalid = !tabImages.down('[name="os_name"]').isValid() || invalid;
-							invalid = !tabImages.down('[name="os_version"]').isValid() || invalid;
-							invalid = !tabImages.down('[name="os_family"]').isValid() || invalid;
 							invalid = !tabImages.down('[name="architecture"]').isValid() || invalid;
 
 							if (! invalid) {
 								var platform = tabImages.down('[name="image_platform"]').getValue(),
 									location = tabImages.down('[name="image_location"]').getValue(),
 									image_id = tabImages.down('[name="image_id"]').getValue(),
-									
-									os_name = tabImages.down('[name="os_name"]').getValue(),
-									os_family = tabImages.down('[name="os_family"]').getValue(),
-									os_version = tabImages.down('[name="os_version"]').getValue();
 									arch = tabImages.down('[name="architecture"]').getValue();
 
 								if (platform == 'gce')
@@ -591,7 +473,7 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 										return true;
 									}
 
-									if (record.get('image_id') == image_id) {
+									if (record.get('image_id') == image_id && record.get('location') == location) {
 										Scalr.message.Error('Image ID ' + image_id + ' already used');
 										return true;
 									}
@@ -607,9 +489,6 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 										location: location,
 										location_name: location_name,
 										image_id: image_id,
-										os_name: os_name,
-										os_version: os_version,
-										os_family: os_family,
 										architecture: arch
 									});
 									tabImages.imageAddReset();
@@ -626,9 +505,6 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 							var records = tabImages.down('#images_view').getSelectionModel().getSelection();
 
 							if (records[0]) {
-								records[0].set('os_name', tabImages.down('[name="os_name"]').getValue());
-								records[0].set('os_family', tabImages.down('[name="os_family"]').getValue());
-								records[0].set('os_version', tabImages.down('[name="os_version"]').getValue());
 								records[0].set('architecture', tabImages.down('[name="architecture"]').getValue());
 								
 								var location = tabImages.down('[name="image_location"]').getValue();
@@ -696,13 +572,10 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 			},
 
 			columns: [
-			    { header: "Image ID", width: 130, dataIndex: 'image_id', sortable: true },
-				{ header: "Platform", width: 130, dataIndex: 'platform_name', sortable: true },
+			    { header: "Image ID", width: 300, dataIndex: 'image_id', sortable: true },
+				{ header: "Platform", width: 200, dataIndex: 'platform_name', sortable: true },
 				{ header: "Location", flex: 1, dataIndex: 'location_name', sortable: true },
-				{ header: "Architecture", width: 120, dataIndex: 'architecture', sortable: true },
-				{ header: "OS Family", width: 150, dataIndex: 'os_family', sortable: true },
-				{ header: "OS Generation", width: 120, dataIndex: 'os_version', sortable: true },
-				{ header: "OS Name", flex: 1, dataIndex: 'os_name', sortable: true }
+				{ header: "Architecture", width: 120, dataIndex: 'architecture', sortable: true }
 			],
 
 			listeners: {
@@ -716,9 +589,6 @@ Scalr.regPage('Scalr.ui.roles.edit', function (loadParams, moduleParams) {
 						tabImages.down('[name="image_location"]').setValue(rec.get('location')).setReadOnly(true);
 						tabImages.down('[name="image_id"]').setValue(rec.get('image_id'));
 						
-						tabImages.down('[name="os_family"]').setValue(rec.get('os_family'));
-						tabImages.down('[name="os_name"]').setValue(rec.get('os_name'));
-						tabImages.down('[name="os_version"]').setValue(rec.get('os_version'));
 						tabImages.down('[name="architecture"]').setValue(rec.get('architecture'));
 
 						tabImages.down('#image_add').hide();

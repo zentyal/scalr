@@ -11,7 +11,7 @@ use Scalr\Service\Aws\Client\QueryClient;
  * HTTP Query-based requests are defined as any HTTP requests using the HTTP verb GET or POST
  * and a Query parameter named either Action or Operation.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     09.11.2012
  */
 class S3QueryClient extends QueryClient

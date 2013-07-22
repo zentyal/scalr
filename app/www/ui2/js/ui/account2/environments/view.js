@@ -6,12 +6,21 @@ Scalr.regPage('Scalr.ui.account2.environments.view', function (loadParams, modul
 	var getTeamNames = function(teams, links) {
 		var list = [];
 		if (teams) {
-			for (var i=0, len=teams.length; i<len; i++) {
-				var record = storeTeams.getById(teams[i]);
-				if (record) {
-					list.push(links?'<a href="#/account/teams?teamId='+record.get('id')+'">'+record.get('name')+'</a>':record.get('name'));
-				}
-			}
+            if (Scalr.flags['authMode'] == 'ldap') {
+                list = teams;
+                var len = list.length, maxLen = 2;
+                if (len > maxLen) {
+                    list = list.slice(0, maxLen);
+                    list.push('and ' + (len - list.length) + ' more');
+                }
+            } else {
+                for (var i=0, len=teams.length; i<len; i++) {
+                    var record = storeTeams.getById(teams[i]);
+                    if (record) {
+                        list.push(links?'<a href="#/account/teams?teamId='+record.get('id')+'">'+record.get('name')+'</a>':record.get('name'));
+                    }
+                }
+            }
 		}
 		return list.join(', ');
 	};
@@ -217,8 +226,11 @@ Scalr.regPage('Scalr.ui.account2.environments.view', function (loadParams, modul
 			cls: 'hideoncreate'
 		},{
 			xtype: 'fieldset',
-			title: 'Accessible by',
-			items: [isAccountOwner ? {
+			title: Scalr.flags['authMode'] == 'ldap' ? 'Accessible by LDAP groups (comma separated)' : 'Accessible by',
+			items: [isAccountOwner ? Scalr.flags['authMode'] == 'ldap' ? {
+                xtype: 'accountauthldapfield',
+                name: 'teams'
+            } : {
 				xtype: 'gridfield',
 				name: 'teams',
 				flex: 1,
@@ -253,10 +265,10 @@ Scalr.regPage('Scalr.ui.account2.environments.view', function (loadParams, modul
 					{text: 'Team name', flex: 1, dataIndex: 'name', sortable: true},
 					{text: 'Users', width: 120, dataIndex: 'users', sortable: false, xtype: 'templatecolumn', tpl: '<tpl if="users.length"><a href="#/account/teams?teamId={id}">{users.length}</a></tpl>'},
 					{
-						text: 'Other environments', 
-						flex: 1, 
+						text: 'Other environments',
+						flex: 1,
 						sortable: false,
-						xtype: 'templatecolumn', 
+						xtype: 'templatecolumn',
 						tpl: new Ext.XTemplate(
 							'{[this.getOtherEnvList(values.id)]}',
 						{
@@ -487,4 +499,28 @@ Scalr.regPage('Scalr.ui.account2.environments.view', function (loadParams, modul
 		}]	
 	});
 	return panel;
+});
+
+Ext.define('Scalr.ui.AccountEnvironmentAuthLdap', {
+    extend: 'Ext.form.field.TextArea',
+    alias: 'widget.accountauthldapfield',
+
+    setValue: function(value) {
+        return this.callParent([ Ext.isArray(value) ? value.join(', ') : value ]);
+    },
+
+    getValue: function() {
+        var value = this.callParent(arguments);
+        return value.split(',');
+    },
+
+    getSubmitData: function() {
+        var me = this,
+            data = null;
+        if (!me.disabled && me.submitValue) {
+            data = {};
+            data[me.getName()] = Ext.encode(me.getValue());
+        }
+        return data;
+    }
 });

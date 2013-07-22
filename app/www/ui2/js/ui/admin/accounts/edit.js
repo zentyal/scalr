@@ -2,7 +2,7 @@ Scalr.regPage('Scalr.ui.admin.accounts.edit', function (loadParams, moduleParams
 	var form = Ext.create('Ext.form.Panel', {
 		bodyCls: 'x-panel-body-frame',
 		width: 700,
-		title: 'Accounts &raquo; ' + (moduleParams['account']['id'] ? ('Edit &raquo; ' + moduleParams['account']['name']) : 'Create'),
+		title: 'Admin &raquo; Accounts &raquo; ' + (moduleParams['account']['id'] ? ('Edit &raquo; ' + moduleParams['account']['name']) : 'Create'),
 		fieldDefaults: {
 			anchor: '100%',
 			labelWidth: 130
@@ -21,21 +21,23 @@ Scalr.regPage('Scalr.ui.admin.accounts.edit', function (loadParams, moduleParams
 			}]
 		}, {
 			xtype: 'fieldset',
-			title: 'Owner information',
-			hidden: (!!moduleParams['account']['id']),
+			title: Scalr.flags['authMode'] == 'ldap' ? 'LDAP information' : 'Owner information',
+            hidden: Scalr.flags['authMode'] == 'scalr' && !!moduleParams['account']['id'],
 			items: [{
 				xtype: 'textfield',
 				name: 'ownerEmail',
-				fieldLabel: 'Email'
+				fieldLabel: Scalr.flags['authMode'] == 'ldap' ? 'LDAP login' : 'Email'
 			}, {
 				xtype: 'textfield',
 				name: 'ownerPassword',
+                hidden: Scalr.flags['authMode'] == 'ldap',
+                disabled: Scalr.flags['authMode'] == 'ldap',
 				fieldLabel: 'Password'
 			}]
 		}, {
 			xtype: 'fieldset',
 			title: 'Limits',
-			hidden: (!moduleParams['account']['id']),
+			hidden: !moduleParams['account']['id'] || Scalr.flags['authMode'] == 'ldap',
 			items: [{
 				xtype: 'textfield',
 				name: 'limitEnv',

@@ -9,7 +9,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * AbstractDataType
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     10.10.2012
  */
 abstract class AbstractDataType extends AbstractServiceRelatedType

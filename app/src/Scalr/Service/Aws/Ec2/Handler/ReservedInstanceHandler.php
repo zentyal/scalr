@@ -22,6 +22,7 @@ class ReservedInstanceHandler extends AbstractEc2Handler
 
     /**
      * Gets ReservedInstanceData object from the EntityManager.
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param   string  $reservedInstancesId An unique Identifier.
      * @return  \Scalr\Service\Aws\Ec2\DataType\ReservedInstanceData|null    Returns ReservedInstanceData if it does exist in the cache or NULL otherwise.

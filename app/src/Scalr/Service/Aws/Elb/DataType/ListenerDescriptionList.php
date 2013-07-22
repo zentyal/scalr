@@ -7,7 +7,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * ListenerDescriptionList
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    01.10.2012
  * @method   ListenerDescriptionData get() get($position = null) Gets ListenerDescriptionData at specified position
  *                                                                    in the list.

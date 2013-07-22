@@ -10,7 +10,7 @@ use Scalr\Service\Aws\Elb\AbstractElbDataType;
  * about Elastic Load Balancing security groups, go to Using Security Groups With Elastic Load Balancing
  * in the Elastic Load Balancing Developer Guide.
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    19.09.2012
  */
 class SourceSecurityGroupData extends AbstractElbDataType

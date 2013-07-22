@@ -9,7 +9,7 @@ Ext.Ajax.on('requestcomplete', function(conn, response) {
 
 // catch server error page (404, 403, timeOut and other)
 Ext.Ajax.on('requestexception', function(conn, response, options) {
-	if (options.doNotShowError == true)
+	if (options.hideErrorMessage == true)
 		return;
 
 	if (response.status == 403) {

@@ -9,7 +9,7 @@ use Scalr\Service\Aws\CloudWatch\AbstractCloudWatchDataType;
  * The MetricDatum data type encapsulates the information sent with PutMetricData to either create
  * a new metric or add new values to be aggregated into an existing metric.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     25.10.2012
  * @property  DimensionList             $dimensions           A list of dimensions associated with the metric.
  *                                                            Length constraints: Minimum of 0 item(s) in the list.

@@ -9,6 +9,10 @@ use Scalr\Service\Aws\Ec2Exception;
  *
  * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    09.01.2013
+ *
+ * @method   \Scalr\Service\Aws\Ec2\DataType\GroupData get()
+ *           get(int $index)
+ *           Gets the GroupData object from the specified position in the list.
  */
 class GroupList extends Ec2ListDataType
 {

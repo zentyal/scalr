@@ -1,6 +1,7 @@
 <?php
 namespace Scalr\Service\OpenStack\Services;
 
+use Scalr\Service\OpenStack\OpenStack;
 use Scalr\Service\OpenStack\Services\Volume\Handler\SnapshotsHandler;
 use Scalr\Service\OpenStack\Exception\OpenStackException;
 use Scalr\Service\OpenStack\Client\RestClientResponse;
@@ -10,8 +11,13 @@ use Scalr\Service\OpenStack\Services\Volume\V1\VolumeApi;
  *
  * @author   Vitaliy Demidov  <vitaliy@scalr.com>
  * @since    18.12.2012
- * @property SnapshotsHandler      $snapshots      Gets a Snapshots service interface handler.
- * @method   VolumeApi             getApiHandler() getApiHandler()                 Gets an Volume API handler for the specific version
+ *
+ * @property \Scalr\Service\OpenStack\Services\Volume\Handler\SnapshotsHandler $snapshots
+ *           Gets a Snapshots service interface handler.
+ *
+ * @method   \Scalr\Service\OpenStack\Services\Volume\V1\VolumeApi getApiHandler()
+ *           getApiHandler()
+ *           Gets an Volume API handler for the specific version
  */
 class VolumeService extends AbstractService implements ServiceInterface
 {
@@ -32,7 +38,7 @@ class VolumeService extends AbstractService implements ServiceInterface
      */
     public static function getType()
     {
-        return 'volume';
+        return OpenStack::SERVICE_VOLUME;
     }
 
     /**

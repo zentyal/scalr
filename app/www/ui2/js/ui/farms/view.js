@@ -10,7 +10,7 @@ Scalr.regPage('Scalr.ui.farms.view', function (loadParams, moduleParams) {
 			{name: 'id', type: 'int'},
 			{name: 'clientid', type: 'int'},
 			'name', 'status', 'dtadded', 'running_servers', 'non_running_servers', 'roles', 'zones','client_email',
-			'havemysqlrole','shortcuts', 'havepgrole', 'haveredisrole', 'haverabbitmqrole', 'havemongodbrole', 'havemysql2role',
+			'havemysqlrole','shortcuts', 'havepgrole', 'haveredisrole', 'haverabbitmqrole', 'havemongodbrole', 'havemysql2role', 'havemariadbrole', 
 			'haveperconarole', 'lock', 'lock_comment', 'created_by_id', 'created_by_email', 'alerts'
 		],
 		proxy: {
@@ -100,7 +100,7 @@ Scalr.regPage('Scalr.ui.farms.view', function (loadParams, moduleParams) {
 				xtype: 'optionscolumn',
 				getOptionVisibility: function (item, record) {
 					var data = record.data;
-
+                    
 					if (item.itemId == 'option.launchFarm')
 						return (data.status == 0);
 
@@ -120,6 +120,7 @@ Scalr.regPage('Scalr.ui.farms.view', function (loadParams, moduleParams) {
 						item.itemId == 'option.mysql' ||
 						item.itemId == 'option.mysql2' ||
 						item.itemId == 'option.postgresql' ||
+						item.itemId == 'option.mariadb' ||
 						item.itemId == 'option.percona' ||
 						item.itemId == 'option.redis' ||
 						item.itemId == 'option.rabbitmq' ||
@@ -145,6 +146,8 @@ Scalr.regPage('Scalr.ui.farms.view', function (loadParams, moduleParams) {
 								return data.havemongodbrole;
 							else if (item.itemId == 'option.percona')
 								return data.haveperconarole;
+						    else if (item.itemId == 'option.mariadb')
+                                return data.havemariadbrole;
 							else
 								return true;
 						}
@@ -316,6 +319,7 @@ Scalr.regPage('Scalr.ui.farms.view', function (loadParams, moduleParams) {
 									type: 'terminate',
 									disabled: data.isMongoDbClusterRunning || false,
 									msg: 'Hey mate! Have you made any modifications to your instances since you launched the farm <b>' + data['farmName'] + '</b>? \'Cause if you did, you might want to save your modifications lest you lose them! Save them by taking a snapshot, which creates a machine image.',
+									multiline: true,
 									formWidth: 700,
 									form: [{
 										hidden: !data.isMongoDbClusterRunning,
@@ -432,6 +436,11 @@ Scalr.regPage('Scalr.ui.farms.view', function (loadParams, moduleParams) {
 					text: 'Redis status',
 					href: "#/db/manager/dashboard?farmId={id}&type=redis"
 				}, {
+                    itemId: 'option.mariadb',
+                    iconCls: 'x-menu-icon-mariadb',
+                    text: 'MariaDB status',
+                    href: "#/db/manager/dashboard?farmId={id}&type=mariadb"
+                }, {
 					itemId: 'option.rabbitmq',
 					iconCls: 'x-menu-icon-rabbitmq',
 					text: 'RabbitMQ status',
@@ -595,11 +604,18 @@ Scalr.regPage('Scalr.ui.farms.view', function (loadParams, moduleParams) {
 				xtype: 'button',
 				text: 'Show only my farms',
 				enableToggle: true,
+                pressed: Scalr.storage.get('grid-farms-view-show-only-my-farms'),
 				width: 150,
 				toggleHandler: function (field, checked) {
 					store.proxy.extraParams.showOnlyMy = checked ? '1' : '';
+                    Scalr.storage.set('grid-farms-view-show-only-my-farms', checked);
 					store.loadPage(1);
-				}
+				},
+                listeners: {
+                    added: function() {
+                        store.proxy.extraParams.showOnlyMy = this.pressed ? '1' : '';
+                    }
+                }
 			}]
 		}]
 	});

@@ -8,7 +8,7 @@ use Scalr\Service\Aws\AbstractDataType;
 /**
  * AbstractElbDataType
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    03.10.2012
  * @method   \Scalr\Service\Aws\Elb getElb()               getElb()                            Gets an Amazon ELB instance
  * @method   AbstractElbDataType    setElb()               setElb(\Scalr\Service\Aws\Elb $elb) Sets an Amazon ELB instance

@@ -10,8 +10,17 @@ use Scalr\Service\Aws\Ec2Exception;
  * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    09.01.2013
  *
- * @method   string            getReservationId()  getReservationId()      Gets an associated Reservattion ID.
- * @method   InstanceList      setReservationId()  setReservationId($id)   Sets an associated Reservattion ID.
+ * @method   string getReservationId()
+ *           getReservationId()
+ *           Gets an associated Reservattion ID.
+ *
+ * @method   \Scalr\Service\Aws\Ec2\DataType\InstanceList setReservationId()
+ *           setReservationId($id)
+ *           Sets an associated Reservattion ID.
+ *
+ * @method   \Scalr\Service\Aws\Ec2\DataType\InstanceData get()
+ *           get($index)
+ *           Gets InstanceData object from the spicified position from the list
  */
 class InstanceList extends Ec2ListDataType
 {

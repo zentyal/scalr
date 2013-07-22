@@ -271,7 +271,7 @@ Ext.define('Scalr.ui.GridDnsRowEditing', {
 	autoCancel: true,
 	errorSummary: false,
 	continuousAdd: true,
-	
+
     init: function(grid) {
 		this.mon(Ext.getDoc(), {
 			mousewheel: this.onDocClick,
@@ -280,14 +280,14 @@ Ext.define('Scalr.ui.GridDnsRowEditing', {
 		});
         this.callParent(arguments);
     },
-	
+
 	destroy: function() {
 		var doc = doc = Ext.getDoc();
 		doc.un('mousewheel', this.onDocClick, this);
 		doc.un('mousedown', this.onDocClick, this);
 		this.callParent(arguments);
 	},
-	
+
 	listeners: {
 		startedit: function(editor, o) {
 			if (o.record.get('isnew')) {

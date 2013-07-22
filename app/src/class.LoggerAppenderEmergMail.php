@@ -21,10 +21,10 @@
  */
 
 /**
- * @ignore 
+ * @ignore
  */
 if (!defined('LOG4PHP_DIR')) define('LOG4PHP_DIR', dirname(__FILE__) . '/..');
- 
+
 require_once(LOG4PHP_DIR . '/LoggerAppenderSkeleton.php');
 require_once(LOG4PHP_DIR . '/LoggerLog.php');
 
@@ -50,7 +50,7 @@ class LoggerAppenderEmergMail extends LoggerAppenderSkeleton {
      * @var string 'subject' field
      */
     var $subject = 'Log4php Report';
-    
+
     /**
      * @var string 'to' field
      */
@@ -61,7 +61,7 @@ class LoggerAppenderEmergMail extends LoggerAppenderSkeleton {
      * @access private
      */
     var $body = '';
-    
+
     /**
      * Constructor.
      *
@@ -75,11 +75,11 @@ class LoggerAppenderEmergMail extends LoggerAppenderSkeleton {
     public function activateOptions() {
         $this->closed = false;
     }
-    
+
     public function close() {
         $this->closed = true;
     }
-    
+
     /**
      * @return string
      */
@@ -87,7 +87,7 @@ class LoggerAppenderEmergMail extends LoggerAppenderSkeleton {
     {
         return $this->from;
     }
-    
+
     /**
      * @return string
      */
@@ -103,12 +103,12 @@ class LoggerAppenderEmergMail extends LoggerAppenderSkeleton {
     {
         return $this->to;
     }
-    
+
     function setSubject($subject)
     {
         $this->subject = $subject;
     }
-    
+
     function setTo($to)
     {
         $this->to = $to;
@@ -117,27 +117,27 @@ class LoggerAppenderEmergMail extends LoggerAppenderSkeleton {
     function setFrom($from)
     {
         $this->from = $from;
-    }  
+    }
 
     function append($event)
     {
-    	if ($this->layout !== null)
+        if ($this->layout !== null)
             $this->body = $this->layout->format($event);
-            
-        if (stristr($this->body, "AWS was not able to validate the provided access credentials") || 
-        	stristr($this->body, "The X509 Certificate you provided does not exist in our records") ||
-        	stristr($this->body, "You are not subscribed to this service")
+
+        if (stristr($this->body, "AWS was not able to validate the provided access credentials") ||
+            stristr($this->body, "The X509 Certificate you provided does not exist in our records") ||
+            stristr($this->body, "You are not subscribed to this service")
         )
         return;
-            
-   		$from = $this->from;
+
+           $from = $this->from;
         $to = $this->to;
-        
+
         if (!empty($this->body) and $from !== null and $to !== null and $this->layout !== null) {
                         $subject = $this->subject;
             LoggerLog::debug("LoggerAppenderMail::close() sending mail from=[{$from}] to=[{$to}] subject=[{$subject}]");
             mail(
-                $to, $subject, 
+                $to, $subject,
                 $this->layout->getHeader() . $this->body . $this->layout->getFooter(),
                 "From: {$from}\r\n"
             );

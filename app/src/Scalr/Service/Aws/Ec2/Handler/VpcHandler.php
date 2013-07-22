@@ -22,6 +22,7 @@ class VpcHandler extends AbstractEc2Handler
 
     /**
      * Gets VpcData object from the EntityManager.
+     * You should be aware of the fact that the entity manager is turned off by default.
      *
      * @param   string       $vpcId  Unique Identifier.
      * @return  VpcData|null Returns VpcData if it does exist in the cache or NULL otherwise.

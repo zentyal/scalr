@@ -2,7 +2,6 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.rabbitmq', function () {
 	return Ext.create('Scalr.ui.FarmsBuilderTab', {
 		tabTitle: 'RabbitMQ settings',
 		itemId: 'rabbitmq',
-		cache: {},
 		
 		isEnabled: function(record){
 			return record.get('behaviors').match('rabbitmq');
@@ -13,8 +12,10 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.rabbitmq', function () {
 				var default_storage_engine = 'ebs';
 			else if (record.get('platform') == 'rackspace') 
 				var default_storage_engine = 'eph';
-			else if (record.get('platform') == 'cloudstack') 
+			else if (record.get('platform') == 'cloudstack' || record.get('platform') == 'idcf') 
 				var default_storage_engine = 'csvol';
+	        else if (record.get('platform') == 'gce') 
+                var default_storage_engine = 'gce_persistent';
 			
 			
 			return {
@@ -26,24 +27,27 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.rabbitmq', function () {
 		
 		showTab: function(record){
 			var settings = record.get('settings');
+			var storages = new Array();
 			
 			if (record.get('platform') == 'ec2') {
-				this.down('[name="rabbitmq.data_storage.engine"]').store.load({
-					data: ['ebs']
-				});
+				storages[storages.length] = [{name:'ebs', description:'Single EBS Volume'}];
 			}
-			else if (record.get('platform') == 'rackspace') {
-				this.down('[name="rabbitmq.data_storage.engine"]').store.load({
-					data: ['eph']
-				});
+			else if (record.get('platform') == 'rackspace' || record.get('platform') == 'rackspacengus' || record.get('platform') == 'rackspacenguk') {
+				storages[storages.length] = [{name:'eph', description:'Ephemeral device'}];
 			}
-			else if (record.get('platform') == 'cloudstack') {
-				this.down('[name="rabbitmq.data_storage.engine"]').store.load({
-					data: ['csvol']
-				});
+			else if (record.get('platform') == 'cloudstack' || record.get('platform') == 'idcf') {
+				storages[storages.length] = [{name:'csvol', description:'CloudStack Block Volume'}];
 			}
+			else if (record.get('platform') == 'gce') {
+				storages[storages.length] = [{name:'eph', description:'Ephemeral device'}];
+                storages[storages.length] = {name:'gce_persistent', description:'GCE Persistent disk'};
+            }
 			
-			if (settings['rabbitmq.data_storage.engine'] == 'ebs' || settings['rabbitmq.data_storage.engine'] == 'csvol') {
+			this.down('[name="rabbitmq.data_storage.engine"]').store.load({
+                data: storages
+            });
+			
+			if (settings['rabbitmq.data_storage.engine'] != 'eph') {
 			
 				if (record.get('new')) 
 					this.down('[name="rabbitmq.data_storage.ebs.size"]').setReadOnly(false);
@@ -65,7 +69,7 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.rabbitmq', function () {
 			
 			settings['rabbitmq.nodes_ratio'] = this.down('[name="rabbitmq.nodes_ratio"]').getValue();
 			
-			if (settings['rabbitmq.data_storage.engine'] == 'ebs' || settings['rabbitmq.data_storage.engine'] == 'csvol') {
+			if (settings['rabbitmq.data_storage.engine'] != 'eph') {
 				if (record.get('new')) 
 					settings['rabbitmq.data_storage.ebs.size'] = this.down('[name="rabbitmq.data_storage.ebs.size"]').getValue();
 			}
@@ -95,19 +99,19 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.rabbitmq', function () {
 				fieldLabel: 'Storage engine',
 				editable: false,
 				store: {
-					fields: ['id', 'name'],
-					proxy: 'object'
-				},
-				valueField: 'name',
-				displayField: 'name',
+                    fields: [ 'description', 'name' ],
+                    proxy: 'object'
+                },
+                valueField: 'name',
+                displayField: 'description',
 				width: 400,
-				labelWidth: 160,
+				labelWidth: 200,
 				queryMode: 'local',
 				listeners: {
 					change: function(){
 						this.up('#rabbitmq').down('[name="ebs_settings"]').hide();
 						
-						if (this.getValue() == 'ebs' || this.getValue() == 'csvol') {
+						if (this.getValue() != 'eph') {
 							this.up('#rabbitmq').down('[name="ebs_settings"]').show();
 						}
 					}

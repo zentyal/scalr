@@ -9,7 +9,12 @@ use Scalr\Service\Aws\Ec2Exception;
  *
  * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    28.12.2012
+ *
  * @property string      $requestId    Request ID
+ *
+ * @method   \Scalr\Service\Aws\Ec2\DataType\SecurityGroupData get()
+ *           get(int $index)
+ *           Gets SecurityGroupData object for the specified position in the list.
  */
 class SecurityGroupList extends Ec2ListDataType
 {

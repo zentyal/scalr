@@ -298,7 +298,9 @@ class OpenStackConfig
                 ),
             );
         } else {
-            throw new OpenStackException('Neither api key or password have not been provided for the OpenStack config.');
+            throw new OpenStackException(
+                'Neither api key nor password was provided for the OpenStack config.'
+            );
         }
         if ($this->getTenantName() !== null) {
             $s['tenantName'] = $this->getTenantName();

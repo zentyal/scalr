@@ -12,7 +12,7 @@ use Scalr\Service\Aws\Elb\DataType\ListenerDescriptionData;
  *
  * The ListenerDescription data type.
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    19.09.2012
  * @property ListenerData     $listener  Specifies the TCP port on which the instance server is listening.
  *                                       This property cannot be modified for the life of the LoadBalancer.

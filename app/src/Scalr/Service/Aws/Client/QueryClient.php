@@ -10,7 +10,7 @@ use Scalr\Service\Aws\DataType\ErrorData;
  * HTTP Query-based requests are defined as any HTTP requests using the HTTP verb GET or POST
  * and a Query parameter named either Action or Operation.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     21.09.2012
  */
 
@@ -44,6 +44,8 @@ class QueryClient extends AbstractClient implements ClientInterface
      */
     protected $apiVersion;
 
+    protected $useragent;
+
     /**
      * Constructor
      *
@@ -58,6 +60,9 @@ class QueryClient extends AbstractClient implements ClientInterface
         $this->secretAccessKey = $secretAccessKey;
         $this->setApiVersion($apiVersion);
         $this->setUrl($url);
+        $this->useragent = sprintf('Scalr AWS Client (http://scalr.com) PHP/%s pecl_http/%s',
+            phpversion(), phpversion('http')
+        );
     }
 
     /**
@@ -136,14 +141,15 @@ class QueryClient extends AbstractClient implements ClientInterface
         if (substr($path, -1) !== '/') {
             $path .= '/';
         }
-        $httpMethod = 'GET';
+        $time = time();
+        $httpMethod = 'POST';
         $commonDefault = array(
             'AWSAccessKeyId'   => $this->awsAccessKeyId,
             'Action'           => $action,
             'SignatureVersion' => '2',
             'SignatureMethod'  => 'HmacSHA1',
             'Version'          => $this->getApiVersion(),
-            'Expires'          => $this->getExpirationTime()
+            'Timestamp'        => gmdate('c', $time),
         );
         if (isset($options['_host'])) {
             $host = $options['_host'];
@@ -181,13 +187,17 @@ class QueryClient extends AbstractClient implements ClientInterface
         }
         $options['Signature'] = base64_encode(hash_hmac($algo, $stringToSign, $this->secretAccessKey, 1));
         $httpRequest = $this->createRequest();
+        $httpRequest->addHeaders(array(
+            'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Date'         => gmdate('r', $time),
+        ));
         $httpRequest->setUrl('https://' . $host . $path);
         $httpRequest->setMethod(constant('HTTP_METH_' . $httpMethod));
         $httpRequest->setOptions(array(
             'redirect'  => 10,
-            'useragent' => 'Scalr AWS Client (http://scalr.com)'
+            'useragent' => $this->useragent,
         ));
-        $httpRequest->addQueryData($options);
+        $httpRequest->addPostFields($options);
         /* @var $message \HttpMessage */
         $message = $this->tryCall($httpRequest);
         $response = new QueryClientResponse($message);

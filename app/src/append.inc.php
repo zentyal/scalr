@@ -1,3 +1,3 @@
 <?
-	@xdebug_stop_profiling();
+    @xdebug_stop_profiling();
 ?>

@@ -11,54 +11,17 @@ Scalr.utils.CreateProcessBox = function (config) {
 	config = config || {};
 	config['msg'] = config['msg'] || messages[config['type']] || 'Processing ...';
 
-	var c = Ext.create('Ext.panel.Panel', {
-		itemId: 'box',
-		floating: true,
-		modal: true,
-		data: config,
-		width: 310,
-		shadow: false,
-		cls: 'x-panel-confirm x-panel-confirm-plain',
+	return Scalr.utils.Window({
 		title: config['msg'],
-		titleAlign: 'center',
-		bodyStyle: 'text-align: center; padding-bottom: 19px; padding-top: 10px;',
-		tpl: '<span class="scalr-ui-progress-bar"></span>',
-
-		onFloatShow: function () {
-			var me = this, xy, size = me.getSize();
-
-			xy = me.el.getAlignToXY(me.container, 'c-c', [ 0, - size['height'] / 2 ]);
-			me.setPagePosition(xy);
-			//me.el.applyStyles('opacity: 1');
-		},
-		listeners: {
-			/*beforedestroy: function () {
-				this.el.applyStyles('-webkit-transition: all 1s ease');
-
-				//if (! this.scalrAnimDestroy) {
-				//}
-
-			},*/
-			//afterrender: function () {
-			//	this.el.applyStyles('opacity: 0; -webkit-transition: opacity 0.5s ease');
-			//}
-		}
-
-		/*scalrDestroy: function () {
-			var me = this;
-			setTimeout(function () {
-				me.el.applyStyles('-webkit-transition: all 1s');
-				me.el.dom.addEventListener('webkitTransitionEnd', function () {
-					me.destroy();
-				});
-				me.el.applyStyles('opacity: 0');
-			}, 1000);
-		}*/
+		width: 298,
+		bodyStyle: 'padding-top: 0px',
+		items: [{
+			xtype: 'component',
+			style: 'margin-bottom: 10px; margin-top: 15px',
+			html: '<span class="scalr-ui-progress-bar"></span>'
+		}],
+		closeOnEsc: false
 	});
-
-	c.show();
-
-	return c;
 };
 
 Scalr.utils.CloneObject = function (o) {
@@ -99,11 +62,52 @@ Scalr.utils.Confirm = function (config) {
 
 	config['ok'] = config['ok'] || a;
 	config['closeOnSuccess'] = config['closeOnSuccess'] || false;
-	var items = [];
+	var items = [], winConfig = {
+		width: config.formWidth || 400,
+		title: config.title || null,
+		items: items,
+		dockedItems: [{
+			xtype: 'container',
+			dock: 'bottom',
+			layout: {
+				type: 'hbox',
+				pack: 'center'
+			},
+			items: [{
+				xtype: 'btn',
+				cls: 'x-button-text-large x-button-text-focus',
+				text: config['ok'] || 'OK',
+				width: 160,
+				itemId: 'buttonOk',
+				disabled: config['disabled'] || false,
+				handler: function () {
+					var values = this.up('#box').down('#form') ? this.up('#box').down('#form').getValues() : {};
+
+					if (! config.closeOnSuccess)
+						this.up('#box').close();
+
+					if (config.success.call(config.scope || this.up('#box'), values, this.up('#box') ? this.up('#box').down('#form') : this) && config.closeOnSuccess) {
+						this.up('#box').close();
+					}
+				}
+			}, {
+				xtype: 'btn',
+				cls: 'x-button-text-large',
+				text: 'Cancel',
+				width: 160,
+				margin: '0 0 0 16',
+				handler: function () {
+					this.up('#box').close();
+				}
+			}]
+		}]
+	};
 
 	if (Ext.isDefined(config.type)) {
 		items.push({
 			xtype: 'component',
+			cls: 'x-panel-confirm-message' + (config.multiline ? ' x-panel-confirm-message-multiline' : ''),
+			style: Ext.isDefined(config.form) ? 'padding: 0 0 22px 0' : '',
 			data: config,
 			tpl: '<div class="icon icon-{type}"></div><div class="message">{msg}</div>'
 		});
@@ -111,7 +115,6 @@ Scalr.utils.Confirm = function (config) {
 
 	if (Ext.isDefined(config.form)) {
 		var form = {
-			margin: Ext.isDefined(config.type) ? '0 5 0 5' : '5 5 0 5',
 			layout: 'anchor',
 			itemId: 'form',
 			xtype: 'form',
@@ -140,65 +143,7 @@ Scalr.utils.Confirm = function (config) {
 		items.push(form);
 	}
 
-	var c = Ext.create('Ext.panel.Panel', {
-		itemId: 'box',
-		floating: true,
-		modal: true,
-		shadow: false,
-		cls: 'scalr-mb-container',
-		border: false,
-		cls: 'x-panel-confirm' + (Ext.isDefined(config.form) ? '' : ' x-panel-confirm-plain'),
-		width: config.formWidth || 400,
-		title: config.title || null,
-		maxHeight: Scalr.application.getHeight() - 10, // padding from top and bottom
-		autoScroll: true,
-		titleAlign: 'center',
-		items: items,
-		dockedItems: [{
-			xtype: 'container',
-			dock: 'bottom',
-			layout: {
-				type: 'hbox',
-				pack: 'center'
-			},
-			items: [{
-				xtype: 'button',
-				text: config['ok'] || 'OK',
-				width: 150,
-				cls: 'x-btn-plain',
-				itemId: 'buttonOk',
-				disabled: config['disabled'] || false,
-				handler: function () {
-					var values = this.up('#box').down('#form') ? this.up('#box').down('#form').getValues() : {};
-
-					if (! config.closeOnSuccess)
-						this.up('#box').close();
-
-					if (config.success.call(config.scope || this.up('#box'), values, this.up('#box') ? this.up('#box').down('#form') : this) && config.closeOnSuccess) {
-						this.up('#box').close();
-					}
-				}
-			}, {
-				xtype: 'button',
-				text: 'Cancel',
-				width: 150,
-				cls: 'x-btn-plain',
-				margin: '0 0 0 16',
-				handler: function () {
-					this.up('#box').close();
-				}
-			}]
-		}]
-	});
-
-	c.keyMap = new Ext.util.KeyMap(Ext.getBody(), [{
-		key: Ext.EventObject.ESC,
-		fn: function () {
-			this.close();
-		},
-		scope: c
-	}]);
-
+	var c = Scalr.utils.Window(winConfig);
 	if (! Ext.isDefined(config.form)) {
 		c.keyMap.addBinding({
 			key: Ext.EventObject.ENTER,
@@ -210,14 +155,6 @@ Scalr.utils.Confirm = function (config) {
 		});
 	}
 
-	c.on('destroy', function () {
-		this.keyMap.destroy();
-	});
-
-	c.show();
-	c.center();
-	c.toFront();
-
 	return c;
 };
 
@@ -228,20 +165,21 @@ Scalr.utils.Window = function(config) {
 		floating: true,
 		modal: true,
 		shadow: false,
-		cls: 'scalr-mb-container',
 		border: false,
 		cls: 'x-panel-confirm',
 		width: 400,
 		maxHeight: Scalr.application.getHeight() - 10, // padding from top and bottom
 		autoScroll: true,
-		titleAlign: 'center'
+		titleAlign: 'center',
+		closeOnEsc: true
 	});
 
 	var c = Ext.widget(config);
 	c.keyMap = new Ext.util.KeyMap(Ext.getBody(), [{
 		key: Ext.EventObject.ESC,
 		fn: function () {
-			this.close();
+			if (this.closeOnEsc)
+				this.close();
 		},
 		scope: c
 	}]);
@@ -265,47 +203,43 @@ Scalr.utils.Request = function (config) {
 			if (!options.disableAutoHideProcessBox && options.processBox)
 				options.processBox.destroy();
 
-			if (success == true && response.responseText && (Ext.isDefined(response.status) ? response.status == 200 : true)) {
+            if (success == true && response.responseText && (Ext.isDefined(response.status) ? response.status == 200 : true)) {
 				// only for HTTP Code = 200 (for fake ajax upload files doesn't exist response status)
 				//try {
-					var result = Ext.decode(response.responseText);
+                var result = Ext.decode(response.responseText, config.disableHandleError);
 
-					if (result && result.success == true) {
-						if (result.successMessage)
-							Scalr.message.Success(result.successMessage);
+                if (result && result.success == true) {
+                    if (result.successMessage)
+                        Scalr.message.Success(result.successMessage);
 
-						if (result.warningMessage)
-							Scalr.message.Warning(result.warningMessage);
+                    if (result.warningMessage)
+                        Scalr.message.Warning(result.warningMessage);
 
-						options.successF.call(this, result, response, options);
-						/*try {
-							options.successF.call(this, result, response, options);
-						} catch (e) {
-							Scalr.message.Error('Success handler error:' + e);
-						}*/
-						return true;
-					} else {
-						if (result && result.errorMessage)
-							Scalr.message.Error(result.errorMessage);
+                    options.successF.call(this, result, response, options);
+                    /*try {
+                        options.successF.call(this, result, response, options);
+                    } catch (e) {
+                        Scalr.message.Error('Success handler error:' + e);
+                    }*/
+                    return true;
+                } else {
+                    if (result && result.errorMessage)
+                        Scalr.message.Error(result.errorMessage);
 
-						options.failureF.call(this, result, response, options);
-						/*try {
-							options.failureF.call(this, result, response, options);
-						} catch (e) {
-							Scalr.message.Error('Failure handler error:' + e);
-						}*/
-						return;
-					}
-				/*} catch (e) {
-					Scalr.message.Error('Received incorrect response from server (' + e + ')');
-					//Scalr.utils.PostReport(response, options, e);
-				}*/
+                    options.failureF.call(this, result, response, options);
+                    /*try {
+                        options.failureF.call(this, result, response, options);
+                    } catch (e) {
+                        Scalr.message.Error('Failure handler error:' + e);
+                    }*/
+                    return;
+                }
 			}
 
-			if (response.status == 500 || !response.responseText) {
+			if ((response.status == 500 || (!response.responseText && response.status != 0)) && !options.disableHandleError) {
 				Scalr.utils.PostError({
 					message: 'responseText is null in ajax request\nRequest:\n' + Scalr.utils.VarDump(response.request.options.params || {}) +
-						'\nresponse headers: \n' + Scalr.utils.VarDump(response.getAllResponseHeaders()) +
+						'\nresponse headers: \n' + response && Ext.isFunction(response.getAllResponseHeaders) ? Scalr.utils.VarDump(response.getAllResponseHeaders()) : '' +
 						'\nresponse text: \n' + response.responseText,
 					url: document.location.href
 				});
@@ -323,6 +257,8 @@ Scalr.utils.Request = function (config) {
 	//	Scalr.message.Flush();
 
 	config.disableAutoHideProcessBox = !!config.disableAutoHideProcessBox;
+    config.disableHandleError = !!config.disableHandleError;
+    config.hideErrorMessage = !!config.hideErrorMessage;
 
 	config.successF = config.success || function () {};
 	config.failureF = config.failure || function () {};
@@ -417,13 +353,23 @@ Scalr.utils.PostException = function(e) {
 };
 
 Scalr.utils.PostError = function(params) {
+    if (params['file'] && params['file'] == 'runtime')
+        return;
+
+    if (params['message']) {
+        if (params['message'] == 'Script error.')
+            return;
+    } else
+        return;
+
 	Scalr.Request({
 		url: '/guest/xPostError',
-		doNotShowError: true,
+        hideErrorMessage: true,
+        disableHandleError: true,
 		params: params
 	});
 
-	Scalr.message.Warning("Whoops! Something went wrong, and we have been notified. Try reloading the page if things don't work.");
+	//Scalr.message.Warning("Whoops! Something went wrong, and we have been notified. Try reloading the page if things don't work.");
 };
 
 Scalr.utils.IsEqualValues = function (obj1, obj2) {
@@ -443,12 +389,56 @@ Scalr.utils.getGravatarUrl = function (emailHash, size) {
 }
 
 Scalr.utils.getColorById = function(id) {
-	var goldenRatio = 0.618033988749895,
-		colors = [
-			'#D90000', '#00B3D9', '#EC8200', '#839A01', '#E916E3', '#0000B9', '#B08500', '#006C1C', '#000000', '#8B02F0'
-		],
-		colorIndex = Math.floor((id * goldenRatio - Math.floor(id * goldenRatio)) * (colors.length - 1));
-	return colors[colorIndex] ? colors[colorIndex] : colors[0];
+    if (Ext.isNumeric(id) && id > 0) {
+        var goldenRatio = 0.618033988749895,
+            colors = [
+                'D90000', '00B3D9', 'EC8200', '839A01', 'E916E3', '0000B9', 'B08500', '006C1C', '000000', '8B02F0'
+            ],
+            colorIndex = Math.floor((id * goldenRatio - Math.floor(id * goldenRatio)) * (colors.length - 1));
+        return colors[colorIndex] ? colors[colorIndex] : colors[0];
+    } else {
+        return 'transparent';
+    }
+}
+
+Scalr.utils.beautifyOsFamily = function(osfamily) {
+    var map = {
+        unknown: 'Unknown',
+        ubuntu: 'Ubuntu',
+        centos: 'CentOS',
+        gcel: 'GCEL',
+        rhel: 'RHEL',
+        redhat: 'RedHat',
+        oel: 'OEL',
+        debian: 'Debian',
+        amazon: 'Amazon Linux',
+        windows: 'Windows'
+    };
+
+    return map[osfamily] || osfamily;
+}
+
+Scalr.utils.beautifySoftware = function(name) {
+    var map = {
+        apache: 'Apache',
+        base: 'Base',
+        lamp: 'LAMP',
+        memcached: 'Memcached',
+        mongodb: 'MongoDB',
+        nginx: 'Ngnix',
+        postgresql: 'PostgreSQL',
+        rabbitmq: 'RabbitMQ',
+        redis: 'Redis',
+        tomcat: 'Tomcat',
+        vpcrouter: 'VPC Router',
+        percona: 'Percona',
+        mariadb: 'MariaDB',
+        mysql: 'MySQL',
+        chef: 'Chef',
+        haproxy: 'HAProxy'
+    };
+
+    return map[name] || name;
 }
 
 /*

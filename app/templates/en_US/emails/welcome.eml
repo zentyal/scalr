@@ -2,7 +2,7 @@
 Let's get started with Scalr!
 ===========================================
 
-Hello {$client.firstname},
+Hello {{client_firstname}},
 
 You have recently signed up for a free Scalr trial. We are happy to have you on board! 
 Please feel free to contact us at yoda@scalr.com if you have any questions. 
@@ -20,7 +20,7 @@ If you need additional help, check http://wiki.scalr.net or reply to this email.
 Your password
 -------------------------------------------
 
-One more thing. We automatically generated your password. It's {$client.password}
+One more thing. We automatically generated your password. It's {{password}}
 
 -------------------------------------------
 

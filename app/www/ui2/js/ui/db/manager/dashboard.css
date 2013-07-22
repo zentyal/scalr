@@ -76,6 +76,10 @@
 	overflow:hidden;
 }
 
+.x-dbmsclustermapfield-btn.x-btn-custom-disabled{
+    cursor: default;
+}
+
 .x-dbmsclustermapfield-btn-over{
 	background: #F2F3F4;
 }

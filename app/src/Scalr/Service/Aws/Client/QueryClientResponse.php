@@ -8,7 +8,7 @@ use Scalr\Service\Aws\DataType\Loader\ErrorLoader;
 /**
  * Query Client Response
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     23.09.2012
  */
 class QueryClientResponse implements ClientResponseInterface
@@ -40,7 +40,7 @@ class QueryClientResponse implements ClientResponseInterface
      *
      * @param   \HttpMessage $message  HTTP Message object
      */
-    public function __construct (\HttpMessage $message)
+    public function __construct(\HttpMessage $message)
     {
         $this->message = $message;
     }
@@ -52,7 +52,7 @@ class QueryClientResponse implements ClientResponseInterface
      * @param    array     $args
      * @return   mixed
      */
-    public function __call ($method, $args)
+    public function __call($method, $args)
     {
         if (method_exists($this->message, $method)) {
             return call_user_method_array($method, $this->message, $args);
@@ -63,7 +63,7 @@ class QueryClientResponse implements ClientResponseInterface
      * {@inheritdoc}
      * @see Scalr\Service\Aws\Client.ClientResponseInterface::getHeaders()
      */
-    public function getHeaders ()
+    public function getHeaders()
     {
         return $this->message->getHeaders();
     }
@@ -72,7 +72,7 @@ class QueryClientResponse implements ClientResponseInterface
      * {@inheritdoc}
      * @see Scalr\Service\Aws\Client.ClientResponseInterface::getHeader()
      */
-    public function getHeader ($headername)
+    public function getHeader($headername)
     {
         return $this->message->getHeader($headername);
     }
@@ -81,7 +81,7 @@ class QueryClientResponse implements ClientResponseInterface
      * {@inheritdoc}
      * @see Scalr\Service\Aws\Client.ClientResponseInterface::getRawContent()
      */
-    public function getRawContent ()
+    public function getRawContent()
     {
         return $this->message->getBody();
     }
@@ -90,7 +90,7 @@ class QueryClientResponse implements ClientResponseInterface
      * {@inheritdoc}
      * @see Scalr\Service\Aws\Client.ClientResponseInterface::getError()
      */
-    public function getError ()
+    public function getError()
     {
         if (!isset($this->errorData)) {
             $this->errorData = false;

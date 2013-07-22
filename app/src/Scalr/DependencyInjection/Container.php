@@ -6,7 +6,7 @@ namespace Scalr\DependencyInjection;
  * DependencyInjection container.
  * Inspired by Fabien Potencier.
  *
- * @author   Vitaliy Demidov    <zend@i.ua>
+ * @author   Vitaliy Demidov    <vitaliy@scalr.com>
  * @since    19.10.2012
  *
  * @property string $awsRegion
@@ -45,6 +45,23 @@ namespace Scalr\DependencyInjection;
  * @property \Scalr\Logger\LoggerStorageInterface $auditLogStorage
  *           The AuditLogStorage
  *
+ * @property \Scalr\SimpleMailer $mailer
+ *           Returns the new instance of the SimpleMailer class.
+ *           This is not a singletone.
+ *
+ * @property \ADODB_mysqli $adodb
+ *           Gets an ADODB mysqli Connection object
+ *
+ * @property \ADODB_mysqli $dnsdb
+ *           Gets an ADODB mysqli Connection to PDNS Database
+ *
+ * @property \Scalr\System\Config\Yaml $config
+ *           Gets configuration
+ *
+ *
+ * @method   mixed config()
+ *           config(string $name)
+ *           Gets config value for the dot notation access key
  *
  * @method   \Scalr\Service\Aws aws()
  *           aws(string|\DBServer|\DBFarmRole|\DBEBSVolume $awsRegion = null,
@@ -57,6 +74,16 @@ namespace Scalr\DependencyInjection;
  * @method   \Scalr\Service\OpenStack\OpenStack openstack()
  *           openstack($platform, $region)
  *           Gets an Openstack instance for the current environment
+ *
+ * @method   \ADODB_mysqli adodb()
+ *           adodb()
+ *           Gets an ADODB mysqli Connection object
+ *
+ * @method   \Scalr\Net\Ldap\LdapClient ldap()
+ *           ldap($user, $password)
+ *           Gets a  new instance of LdapClient. If user and pass are not specified for
+ *           scalr.connections.ldap section in the config the user and password which are specified
+ *           for calling this method will be used.
  */
 class Container
 {
@@ -170,6 +197,18 @@ class Container
     }
 
     /**
+     * Invoker
+     *
+     * Gets possible to use $container($id) instead of $container->get($id)
+     * @param   string   $id Service ID
+     * @return  mixed
+     */
+    public function __invoke($id)
+    {
+        return $this->get($id);
+    }
+
+    /**
      * @param   string     $id
      * @param   array      $arguments
      * @throws  \RuntimeException
@@ -207,12 +246,18 @@ class Container
             }
             $this->releasehooks[$parentid][$id] = true;
         }
-        $this->values[$id] = function (Container $container) use ($id, $callable, &$ptr) {
+        $this->values[$id] = function (Container $container, $arguments = null) use ($id, $callable, &$ptr) {
             if (!isset($ptr[$id])) {
                 $ptr[$id] = $callable($container);
             }
+            //Invokes magic method for the specified object if it does exist.
+            if (!empty($arguments) && is_array($arguments) &&
+                is_object($ptr[$id]) && method_exists($ptr[$id], '__invoke')) {
+                return call_user_func_array(array($ptr[$id], '__invoke'), $arguments);
+            }
             return $ptr[$id];
         };
+
         return $this;
     }
 

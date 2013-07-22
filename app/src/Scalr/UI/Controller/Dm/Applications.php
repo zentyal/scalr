@@ -1,187 +1,187 @@
 <?php
 class Scalr_UI_Controller_Dm_Applications extends Scalr_UI_Controller
 {
-	const CALL_PARAM_NAME = 'applicationId';
+    const CALL_PARAM_NAME = 'applicationId';
 
-	public function defaultAction()
-	{
-		$this->viewAction();
-	}
+    public function defaultAction()
+    {
+        $this->viewAction();
+    }
 
-	public function saveAction()
-	{
-		$this->request->defineParams(array(
-			'applicationId' => array('type' => 'int'),
-			'sourceId' => array('type' => 'int'),
-			'name', 'pre_deploy_script', 'post_deploy_script'
-		));
+    public function saveAction()
+    {
+        $this->request->defineParams(array(
+            'applicationId' => array('type' => 'int'),
+            'sourceId' => array('type' => 'int'),
+            'name', 'pre_deploy_script', 'post_deploy_script'
+        ));
 
-		$application = Scalr_Dm_Application::init();
-		if ($this->getParam('applicationId')) {
-			$application->loadById($this->getParam('applicationId'));
-			$this->user->getPermissions()->validate($application);
-		}
-		else {
-			$application->envId = $this->getEnvironmentId();
-		}
+        $application = Scalr_Dm_Application::init();
+        if ($this->getParam('applicationId')) {
+            $application->loadById($this->getParam('applicationId'));
+            $this->user->getPermissions()->validate($application);
+        }
+        else {
+            $application->envId = $this->getEnvironmentId();
+        }
 
-		$chkId = Scalr_Dm_Application::getIdByNameAndSource($this->getParam('name'), $this->getParam('sourceId'));
-		if ((!$this->getParam('applicationId') && $chkId) || ($chkId && $chkId != $this->getParam('applicationId')))
-			throw new Exception("Application already exists in database");
+        $chkId = Scalr_Dm_Application::getIdByNameAndSource($this->getParam('name'), $this->getParam('sourceId'));
+        if ((!$this->getParam('applicationId') && $chkId) || ($chkId && $chkId != $this->getParam('applicationId')))
+            throw new Exception("Application already exists in database");
 
-		$application->name = $this->getParam('name');
-		$application->sourceId = $this->getParam('sourceId');
+        $application->name = $this->getParam('name');
+        $application->sourceId = $this->getParam('sourceId');
 
-		$application->setPreDeployScript($this->getParam('pre_deploy_script'));
-		$application->setPostDeployScript($this->getParam('post_deploy_script'));
+        $application->setPreDeployScript($this->getParam('pre_deploy_script'));
+        $application->setPostDeployScript($this->getParam('post_deploy_script'));
 
-		$application->save();
+        $application->save();
 
-		$this->response->success('Application successfully saved');
+        $this->response->success('Application successfully saved');
         $this->response->data(array('app' => $application));
-	}
+    }
 
-	private function getSources()
-	{
-		$sources = self::loadController('Sources', 'Scalr_UI_Controller_Dm')->getList();
+    private function getSources()
+    {
+        $sources = self::loadController('Sources', 'Scalr_UI_Controller_Dm')->getList();
 
-		if (count($sources) == 0)
-			throw new Exception('You need to create application source first');
+        if (count($sources) == 0)
+            throw new Exception('You need to create application source first');
 
-		return $sources;
-	}
+        return $sources;
+    }
 
-	public function xDeployAction()
-	{
-		$this->request->defineParams(array(
-			'applicationId' => array('type' => 'int'),
-			'farmId' 	   => array('type' => 'int'),
-			'farmRoleId'   => array('type' => 'int'),
-			'remotePath'
-		));
+    public function xDeployAction()
+    {
+        $this->request->defineParams(array(
+            'applicationId' => array('type' => 'int'),
+            'farmId' 	   => array('type' => 'int'),
+            'farmRoleId'   => array('type' => 'int'),
+            'remotePath'
+        ));
 
-		$application = Scalr_Dm_Application::init()->loadById($this->getParam('applicationId'));
-		$this->user->getPermissions()->validate($application);
+        $application = Scalr_Dm_Application::init()->loadById($this->getParam('applicationId'));
+        $this->user->getPermissions()->validate($application);
 
-		$dbFarmRole = DBFarmRole::LoadByID($this->getParam('farmRoleId'));
-		$this->user->getPermissions()->validate($dbFarmRole);
+        $dbFarmRole = DBFarmRole::LoadByID($this->getParam('farmRoleId'));
+        $this->user->getPermissions()->validate($dbFarmRole);
 
-		$servers = $dbFarmRole->GetServersByFilter(array('status' => SERVER_STATUS::RUNNING));
+        $servers = $dbFarmRole->GetServersByFilter(array('status' => SERVER_STATUS::RUNNING));
 
-		if (!$this->getParam('remotePath'))
-			throw new Exception("Remote path reuired for deployment");
-		
-		if (count($servers) == 0)
-			throw new Exception("There is no running servers on selected farm/role");
+        if (!$this->getParam('remotePath'))
+            throw new Exception("Remote path reuired for deployment");
 
-		foreach ($servers as $dbServer) {
-			$deploymentTask = Scalr_Dm_DeploymentTask::init();
+        if (count($servers) == 0)
+            throw new Exception("There is no running servers on selected farm/role");
 
-			$deploymentTask->create(
-				$this->getParam('farmRoleId'),
-				$this->getParam('applicationId'),
-				$dbServer->serverId,
-				Scalr_Dm_DeploymentTask::TYPE_MANUAL,
-				$this->getParam('remotePath')
-			);
-		}
+        foreach ($servers as $dbServer) {
+            $deploymentTask = Scalr_Dm_DeploymentTask::init();
 
-		$this->response->success('Deployment task created');
-	}
+            $deploymentTask->create(
+                $this->getParam('farmRoleId'),
+                $this->getParam('applicationId'),
+                $dbServer->serverId,
+                Scalr_Dm_DeploymentTask::TYPE_MANUAL,
+                $this->getParam('remotePath')
+            );
+        }
 
-	public function deployAction()
-	{
-		$application = Scalr_Dm_Application::init()->loadById($this->getParam('applicationId'));
-		$this->user->getPermissions()->validate($application);
+        $this->response->success('Deployment task created');
+    }
 
-		$this->response->page('ui/dm/applications/deploy.js', array(
-			'application_name'	=> $application->name,
-			'farmWidget'        => self::loadController('Farms')->getFarmWidget(array(), 'disabledServer')
-		));
-	}
+    public function deployAction()
+    {
+        $application = Scalr_Dm_Application::init()->loadById($this->getParam('applicationId'));
+        $this->user->getPermissions()->validate($application);
 
-	public function createAction()
-	{
-		$this->response->page('ui/dm/applications/create.js', array(
-			'sources'	=> $this->getSources()
-		));
-	}
+        $this->response->page('ui/dm/applications/deploy.js', array(
+            'application_name'	=> $application->name,
+            'farmWidget'        => self::loadController('Farms')->getFarmWidget(array(), 'disabledServer')
+        ));
+    }
 
-	public function editAction()
-	{
-		$this->request->defineParams(array(
-			'applicationId' => array('type' => 'int')
-		));
+    public function createAction()
+    {
+        $this->response->page('ui/dm/applications/create.js', array(
+            'sources'	=> $this->getSources()
+        ));
+    }
 
-		$application = Scalr_Dm_Application::init()->loadById($this->getParam('applicationId'));
-		$this->user->getPermissions()->validate($application);
+    public function editAction()
+    {
+        $this->request->defineParams(array(
+            'applicationId' => array('type' => 'int')
+        ));
 
-		$this->response->page('ui/dm/applications/create.js', array(
-			'sources'	=> $this->getSources(),
-			'application' => array(
-				'name'		=> $application->name,
-				'id'		=> $application->id,
-				'source_id'	=> $application->sourceId,
-				'pre_deploy_script'	=> $application->getPreDeployScript(),
-				'post_deploy_script'=> $application->getPostDeployScript()
-			)
-		));
-	}
+        $application = Scalr_Dm_Application::init()->loadById($this->getParam('applicationId'));
+        $this->user->getPermissions()->validate($application);
 
-	public function viewAction()
-	{
-		$this->response->page('ui/dm/applications/view.js');
-	}
+        $this->response->page('ui/dm/applications/create.js', array(
+            'sources'	=> $this->getSources(),
+            'application' => array(
+                'name'		=> $application->name,
+                'id'		=> $application->id,
+                'source_id'	=> $application->sourceId,
+                'pre_deploy_script'	=> $application->getPreDeployScript(),
+                'post_deploy_script'=> $application->getPostDeployScript()
+            )
+        ));
+    }
 
-	public function xRemoveApplicationsAction()
-	{
-		$this->request->defineParams(array(
-			'applicationId' => array('type' => 'int')
-		));
+    public function viewAction()
+    {
+        $this->response->page('ui/dm/applications/view.js');
+    }
 
-		$application = Scalr_Dm_Application::init()->loadById($this->getParam('applicationId'));
-		$this->user->getPermissions()->validate($application);
+    public function xRemoveApplicationsAction()
+    {
+        $this->request->defineParams(array(
+            'applicationId' => array('type' => 'int')
+        ));
 
-		$application->delete();
+        $application = Scalr_Dm_Application::init()->loadById($this->getParam('applicationId'));
+        $this->user->getPermissions()->validate($application);
 
-		$this->response->success();
-	}
+        $application->delete();
 
-	public function xGetApplicationsAction()
-	{
-		$sql = "SELECT id, name FROM dm_applications WHERE env_id = '{$this->getEnvironmentId()}'";
+        $this->response->success();
+    }
 
-		if ($this->getParam('applicationId'))
-			$sql .= ' AND id='.$this->db->qstr($this->getParam('applicationId'));
+    public function xGetApplicationsAction()
+    {
+        $sql = "SELECT id, name FROM dm_applications WHERE env_id = '{$this->getEnvironmentId()}'";
 
-		$response = $this->buildResponseFromSql($sql, array("name"));
+        if ($this->getParam('applicationId'))
+            $sql .= ' AND id='.$this->db->qstr($this->getParam('applicationId'));
 
-		foreach ($response["data"] as &$row) {
-			//$row['source_url'] = $this->db->getOne("SELECT url FROM dm_sources WHERE id=?", array($row['source_id']));
-			//$row['used_on'] = $this->db->getOne("SELECT COUNT(*) FROM dm_deployment_tasks WHERE dm_application_id=?", array($row['id']));
-		}
+        $response = $this->buildResponseFromSql($sql, array("name"));
 
-		$this->response->data($response);
-	}
-	
-	public function xListApplicationsAction()
-	{
-		$this->request->defineParams(array(
-			'sort' => array('type' => 'json')
-		));
+        foreach ($response["data"] as &$row) {
+            //$row['source_url'] = $this->db->getOne("SELECT url FROM dm_sources WHERE id=?", array($row['source_id']));
+            //$row['used_on'] = $this->db->getOne("SELECT COUNT(*) FROM dm_deployment_tasks WHERE dm_application_id=?", array($row['id']));
+        }
 
-		$sql = "SELECT name, dm_source_id as source_id, env_id, id FROM dm_applications WHERE env_id = '{$this->getEnvironmentId()}'";
+        $this->response->data($response);
+    }
 
-		if ($this->getParam('applicationId'))
-			$sql .= ' AND id='.$this->db->qstr($this->getParam('applicationId'));
+    public function xListApplicationsAction()
+    {
+        $this->request->defineParams(array(
+            'sort' => array('type' => 'json')
+        ));
 
-		$response = $this->buildResponseFromSql($sql, array("name"));
+        $sql = "SELECT name, dm_source_id as source_id, env_id, id FROM dm_applications WHERE env_id = '{$this->getEnvironmentId()}'";
 
-		foreach ($response["data"] as &$row) {
-			$row['source_url'] = $this->db->getOne("SELECT url FROM dm_sources WHERE id=?", array($row['source_id']));
-			$row['used_on'] = $this->db->getOne("SELECT COUNT(*) FROM dm_deployment_tasks WHERE dm_application_id=?", array($row['id']));
-		}
+        if ($this->getParam('applicationId'))
+            $sql .= ' AND id='.$this->db->qstr($this->getParam('applicationId'));
 
-		$this->response->data($response);
-	}
+        $response = $this->buildResponseFromSql($sql, array("name"));
+
+        foreach ($response["data"] as &$row) {
+            $row['source_url'] = $this->db->getOne("SELECT url FROM dm_sources WHERE id=?", array($row['source_id']));
+            $row['used_on'] = $this->db->getOne("SELECT COUNT(*) FROM dm_deployment_tasks WHERE dm_application_id=?", array($row['id']));
+        }
+
+        $this->response->data($response);
+    }
 }

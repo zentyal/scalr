@@ -11,22 +11,22 @@ $ScalrUpdate->Run();
 
 class Update20130328
 {
-	public function Run()
-	{
-		global $db;
+    public function Run()
+    {
+        global $db;
 
-		$time = microtime(true);
+        $time = microtime(true);
 
-		$db->Execute("ALTER TABLE `script_revisions` DROP INDEX  `scriptid_revision` , ADD UNIQUE  `scriptid_revision` (  `scriptid` ,  `revision` )");
-		
-		print "Done.\n";
+        $db->Execute("ALTER TABLE `script_revisions` DROP INDEX  `scriptid_revision` , ADD UNIQUE  `scriptid_revision` (  `scriptid` ,  `revision` )");
 
-		$t = round(microtime(true) - $time, 2);
+        print "Done.\n";
 
-		printf("Upgrade process took %0.2f seconds\n\n\n", $t);
-	}
+        $t = round(microtime(true) - $time, 2);
 
-	public function migrate()
-	{
-	}
+        printf("Upgrade process took %0.2f seconds\n\n\n", $t);
+    }
+
+    public function migrate()
+    {
+    }
 }

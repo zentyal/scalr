@@ -12,13 +12,33 @@ use Scalr\Service\Aws\Ec2\AbstractEc2DataType;
  * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    16.01.2013
  *
- * @method   \Scalr\Service\Aws\DataType\ListDataType                               getSecurityGroupId()      getSecurityGroupId()    Gets a security group IDs.
- * @method   \Scalr\Service\Aws\DataType\ListDataType                               getSecurityGroup()        getSecurityGroup()      Gets a list of security group names.
- * @method   \Scalr\Service\Aws\Ec2\DataType\PlacementResponseData                  getPlacement()            getPlacement()          Gets a Placement object.
- * @method   \Scalr\Service\Aws\Ec2\DataType\BlockDeviceMappingList                 getBlockDeviceMapping()   getBlockDeviceMapping() Gets a block device mapping list.
- * @method   \Scalr\Service\Aws\Ec2\DataType\MonitoringInstanceData                 getMonitoring()           getMonitoring()         Gets an monitoring instance data.
- * @method   \Scalr\Service\Aws\Ec2\DataType\InstanceNetworkInterfaceSetRequestList getNetworkInterface()     getNetworkInterface()   Gets an network interfaces list
- * @method   \Scalr\Service\Aws\Ec2\DataType\IamInstanceProfileRequestData          getIamInstanceProfile()   getIamInstanceProfile() Gets an IamInstanceProfileRequestData
+ * @method   \Scalr\Service\Aws\DataType\ListDataType getSecurityGroupId()
+ *           getSecurityGroupId()
+ *           Gets a security group IDs.
+ *
+ * @method   \Scalr\Service\Aws\DataType\ListDataType getSecurityGroup()
+ *           getSecurityGroup()
+ *           Gets a list of security group names.
+ *
+ * @method   \Scalr\Service\Aws\Ec2\DataType\PlacementResponseData getPlacement()
+ *           getPlacement()
+ *           Gets a Placement object.
+ *
+ * @method   \Scalr\Service\Aws\Ec2\DataType\BlockDeviceMappingList getBlockDeviceMapping()
+ *           getBlockDeviceMapping()
+ *           Gets a block device mapping list.
+ *
+ * @method   \Scalr\Service\Aws\Ec2\DataType\MonitoringInstanceData getMonitoring()
+ *           getMonitoring()
+ *           Gets an monitoring instance data.
+ *
+ * @method   \Scalr\Service\Aws\Ec2\DataType\InstanceNetworkInterfaceSetRequestList getNetworkInterface()
+ *           getNetworkInterface()
+ *           Gets an network interfaces list
+ *
+ * @method   \Scalr\Service\Aws\Ec2\DataType\IamInstanceProfileRequestData getIamInstanceProfile()
+ *           getIamInstanceProfile()
+ *           Gets an IamInstanceProfileRequestData
  */
 class RunInstancesRequestData extends AbstractEc2DataType
 {
@@ -189,6 +209,22 @@ class RunInstancesRequestData extends AbstractEc2DataType
     }
 
     /**
+     * Appends the ID of the Security Group to the request
+     *
+     * @param   string       $securityGroupId The ID of the security group.
+     * @return  RunInstancesRequestData
+     */
+    public function appendSecurityGroupId($securityGroupId)
+    {
+        if ($this->getSecurityGroupId() === null) {
+            $this->setSecurityGroupId(new ListDataType());
+        }
+        $this->getSecurityGroupId()->append((string)$securityGroupId);
+
+        return $this;
+    }
+
+    /**
      * Sets securityGroup list
      *
      * Condition: Valid only for EC2 security groups; for EC2 groups either a group ID or a group name is accepted
@@ -202,6 +238,22 @@ class RunInstancesRequestData extends AbstractEc2DataType
             $securityGroupList = new ListDataType($securityGroupList);
         }
         return $this->__call(__FUNCTION__, array($securityGroupList));
+    }
+
+    /**
+     * Appends the Name of the security group to the request
+     *
+     * @param   string       $securityGroup The Name of the security group.
+     * @return  RunInstancesRequestData
+     */
+    public function appendSecurityGroup($securityGroup)
+    {
+        if ($this->getSecurityGroup() === null) {
+            $this->setSecurityGroup(new ListDataType());
+        }
+        $this->getSecurityGroup()->append((string)$securityGroup);
+
+        return $this;
     }
 
     /**
@@ -230,13 +282,37 @@ class RunInstancesRequestData extends AbstractEc2DataType
     }
 
     /**
+     * Appends block device mapping data to the request
+     *
+     * @param  BlockDeviceMappingData|array $blockDevice The block device data
+     * @return RunInstancesRequestData
+     */
+    public function appendBlockDeviceMapping($blockDevice)
+    {
+        if ($blockDevice !== null) {
+            if ($this->getBlockDeviceMapping() === null) {
+                return $this->setBlockDeviceMapping($blockDevice);
+            } else {
+                $this->getBlockDeviceMapping()->append($blockDevice);
+            }
+        }
+        return $this;
+    }
+
+    /**
      * Sets Monitoring
      *
-     * @param   MonitoringInstanceData $monitoring
+     * @param   MonitoringInstanceData|boolean $monitoring
+     *          MonitoringInstanceData or boolean value which means
+     *          whether monitoring is enabled for the instance
+     *
      * @return  RunInstancesRequestData
      */
-    public function setMonitoring(MonitoringInstanceData $monitoring = null)
+    public function setMonitoring($monitoring = null)
     {
+        if ($monitoring !== null && !($monitoring instanceof MonitoringInstanceData)) {
+            $monitoring = new MonitoringInstanceData((bool)$monitoring);
+        }
         return $this->__call(__FUNCTION__, array($monitoring));
     }
 

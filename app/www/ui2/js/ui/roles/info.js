@@ -61,9 +61,6 @@ Scalr.regPage('Scalr.ui.roles.info', function (loadParams, moduleParams) {
 				fieldLabel: 'OS',
 				name: 'os'
 			}, {
-				fieldLabel: 'Architecture',
-				name: 'architecture'
-			}, {
 				fieldLabel: 'Scalr agent',
 				value: (moduleParams.info.generation == 1 ? 'ami-scripts' : 'scalarizr') + 
 				" ("+(moduleParams.info.szrVersion ? moduleParams.info.szrVersion : 'Unknown version')+")"

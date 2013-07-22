@@ -8,7 +8,7 @@ scalr:
     mongo: &connections_mongo
       host: 'localhost'
       name: 'db'
-    gearman:
+    gearman: &connections_gearman
       servers: ['localhost']
     
   auditlog:
@@ -20,7 +20,7 @@ scalr:
         collection: 'auditlog'
         
   cloudyn:
-    master_email: ""
+    master_email: ''
     #Allowed values for the cloudyn.environment are [DEV|ITG|QA|PROD]
     environment: DEV
     
@@ -45,43 +45,28 @@ scalr:
       domain_name: 'example-dns.net'
       
   msg_sender:
-    client:
-      connections: 
-        mysql:
-          <<: *connections_mysql
-          driver: 'mysql+pymysql'
-          pool_recycle: 120
-          pool_size: 4
-      # log_file only for debug
-      # log_file: "/var/log/scalr.message-send-client.log"
-      pid_file: "/var/run/scalr.message-send-client.pid"
-    worker:
-      connections: 
-        mysql:
-          <<: *connections_mysql
-          driver: 'mysql+pymysql'
-          pool_recycle: 120
-          pool_size: 40
-      net_pool_size: 75 
-      # log_file only for debug
-      # log_file: "/var/log/scalr.message-send-worker.log"
-      pid_file: "/var/run/scalr.message-send-worker.pid"
-      
+    connections: 
+      mysql:
+        <<: *connections_mysql
+        driver: 'mysql+pymysql'
+        pool_recycle: 120
+        pool_size: 10
+    pool_size: 10
+    log_file: "/var/log/scalr.messaging.log"
+    pid_file: "/var/run/scalr.messaging.pid"
 
-#    [snmp_stats_poller]
-#    farm_tasks_queue_size = 1000
-#    snmp_tasks_queue_size = 10000
-#    rrd_tasks_queue_size = 20000
-#    farm_workers_num = 2
-#    snmp_workers_num = 35
-#    rrd_workers_num = 5
-#    rrd_db_dir = "/tmp"
-#    log_file = "/var/log/scalr.snmp-stats-poller.log"
-    
-#    [metric_check]
-#    sql_pool_size = 40
-#    net_pool_size = 1000 
-#    log_file = "/var/log/scalr.metric-check.log"
-      
+  stats_poller:
+    connections: 
+      mysql:
+        <<: *connections_mysql
+        driver: 'mysql+pymysql'
+        pool_recycle: 120
+        pool_size: 4
+    metrics: ['cpu', 'la', 'mem', 'net']
+    farm_procs: 2
+    serv_thrds: 35
+    rrd_thrds: 2
+    rrd_db_dir: '/tmp/rrd_db_dir'
+    log_file: '/var/log/scalr.stats-poller.log'
+    pid_file: '/var/run/scalr.stats-poller.pid'
 
-      

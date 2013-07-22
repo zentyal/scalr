@@ -38,6 +38,7 @@ class GetConsoleOutputResponseData extends AbstractEc2DataType
 
     /**
      * The console output.
+     * Base64 encoded string.
      *
      * @var string
      */

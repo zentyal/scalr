@@ -37,8 +37,7 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
      */
     public function isSkipFunctionalTests()
     {
-        return isset(\CONFIG::$PHPUNIT_SKIP_FUNCTIONAL_TESTS) && \CONFIG::$PHPUNIT_SKIP_FUNCTIONAL_TESTS ||
-               !isset(\CONFIG::$PHPUNIT_SKIP_FUNCTIONAL_TESTS) ;
+        return \Scalr::config('scalr.phpunit.skip_functional_tests') ? true : false;
     }
 
     /**
@@ -59,10 +58,10 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
      */
     public function decamilize($input)
     {
-    $u = preg_replace_callback('/(_|^)([^_]+)/', function($c){
-        return ucfirst(strtolower($c[2]));
-    }, $input);
-    return $u;
+        $u = preg_replace_callback('/(_|^)([^_]+)/', function($c){
+            return ucfirst(strtolower($c[2]));
+        }, $input);
+        return $u;
     }
 
     /**
@@ -119,5 +118,55 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
     public static function getTestName($suffix = '')
     {
         return 'phpunit' . (!empty($suffix) ? '-' . $suffix : '') . '-' . self::getInstallationId();
+    }
+
+    /**
+     * Gets reflection method for the specified object
+     *
+     * @param   object     $object Object
+     * @param   string     $method Private or Protected Method name
+     * @return  \ReflectionMethod  Returns reflection method for provided object with setAccessible property
+     * @throws  \Exception
+     */
+    public static function getAccessibleMethod($object, $method)
+    {
+        if (is_object($object)) {
+            $class = get_class($object);
+        } else {
+            throw new \Exception(sprintf(
+                'Invalid argument. First parameter must be object, %s given.',
+                gettype($object)
+            ));
+        }
+
+        $ref = new \ReflectionMethod($class, $method);
+        $ref->setAccessible(true);
+
+        return $ref;
+    }
+
+    /**
+     * Gets reflection property for the specified object
+     *
+     * @param   object     $object   Object
+     * @param   string     $property Private or protected property name
+     * @return  \ReflectionProperty  Returns reflection property for provided object with setAccessible property
+     * @throws  \Exception
+     */
+    public static function getAccessibleProperty($object, $property)
+    {
+        if (is_object($object)) {
+            $class = get_class($object);
+        } else {
+            throw new \Exception(sprintf(
+                'Invalid argument. First parameter must be object, %s given.',
+                gettype($object)
+            ));
+        }
+
+        $ref = new \ReflectionProperty($class, $property);
+        $ref->setAccessible(true);
+
+        return $ref;
     }
 }

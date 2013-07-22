@@ -29,4 +29,10 @@ class InstanceBlockDeviceMappingResponseData extends AbstractEc2DataType
      * @var string
      */
     public $deviceName;
+
+    /**
+     * The virtual device name
+     * @var string
+     */
+    public $virtualName;
 }

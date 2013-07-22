@@ -1,6 +1,7 @@
 <?php
 namespace Scalr\Tests\Service\Aws;
 
+use Scalr\Service\Aws\Client\ClientException;
 use Scalr\Service\Aws\Client\ClientResponseInterface;
 use Scalr\Service\Aws\S3\DataType\AccessControlPolicyData;
 use Scalr\Service\Aws;
@@ -12,7 +13,7 @@ use \SplFileInfo;
 /**
  * Amazon A3 Test
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     12.11.2012
  */
 class S3Test extends AwsTestCase
@@ -100,6 +101,21 @@ class S3Test extends AwsTestCase
     public function getS3Mock($callback = null)
     {
         return $this->getServiceInterfaceMock('S3');
+    }
+
+    /**
+     * @test
+     */
+    public function testFunctionalErrorMessageShouldContainAction()
+    {
+        $this->skipIfEc2PlatformDisabled();
+
+        try {
+            $object = $this->s3->object->create('unexistent-bucket', '- illegal name -', 'content');
+            $this->assertTrue(false, 'ClientException must be thrown here.');
+        } catch (ClientException $e) {
+            $this->assertContains('Request AddObject failed.', $e->getMessage());
+        }
     }
 
     /**

@@ -9,7 +9,7 @@ use Scalr\Service\Aws\Iam\AbstractIamDataType;
  *
  * The AccessKey data type contains information about an AWS access key.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     13.11.2012
  */
 class AccessKeyData extends AbstractIamDataType

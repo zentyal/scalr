@@ -18,6 +18,22 @@
             }
         }
     </style>
+    <script type="text/javascript">
+
+	  var _gaq = _gaq || [];
+	  var pluginUrl =
+		  '//www.google-analytics.com/plugins/ga/inpage_linkid.js';
+	  _gaq.push(['_require', 'inpage_linkid', pluginUrl]);
+	  _gaq.push(['_setAccount', 'UA-9229929-13']);
+	  _gaq.push(['_trackPageview']);
+
+	  (function() {
+	    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+	    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+	    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	  })();
+
+	</script>
 </head>
 <body>
     <div id="loading" style="position: absolute; left: 0px; right: 0px; top: 0px; bottom: 0px; background-color: #F0F1F4; z-index: 10000000;">
@@ -83,111 +99,123 @@
             var t = 4; // timestamp
             script.src = debugMode || beta42Mode ? '/ui2/js/' + p + '/ext-all-debug-' + t + '.js' : '/ui2/js/' + p + '/ext-all-' + t + '.js';
             script.onload = function () {
-                try {
-                    updateProgress(30);
+                Ext.onReady(function() {
+                    try {
+                        updateProgress(30);
 
-                    if (! (Ext.isChrome || Ext.isGecko || Ext.isSafari)) {
-                        showError(errorMessage);
-                    } else {
-                        Ext.Ajax.defaultHeaders = { 'X-Scalr-Interface': 'v2' };
-                        Ext.Ajax.request({
-                            url: '/guest/xInit',
-                            params: { locationHash: document.location.hash, scalrPrivateInterface: 'v2' },
-                            success: function (response) {
-                                try {
-                                    var obj = Ext.decode(response.responseText);
+                        if (! (Ext.isChrome || Ext.isGecko || Ext.isSafari)) {
+                            showError(errorMessage);
+                        } else {
+                            Ext.Ajax.defaultHeaders = { 'X-Scalr-Interface': 'v2' };
+                            Ext.Ajax.request({
+                                url: '/guest/xInit',
+                                params: { locationHash: document.location.hash, scalrPrivateInterface: 'v2' },
+                                success: function (response) {
+                                    try {
+                                        var obj = Ext.decode(response.responseText);
 
-                                    if (obj.success == true) {
-                                        Ext.ns('Scalr');
-                                        Scalr.InitParams = obj.initParams;
-                                        Scalr.Init = Ext.emptyFn;
+                                        if (obj.success == true) {
+                                            Ext.ns('Scalr');
+                                            Scalr.InitParams = obj.initParams;
+                                            Scalr.Init = Ext.emptyFn;
 
-                                        // loading css
-                                        (function () {
-                                            var onloadCss = function () {
-                                                if (Scalr.InitParams.css.length > 0) {
-                                                    // from 30 to 50
-                                                    var p = Math.ceil((Scalr.InitParams.css.length / len) * 20) + 30;
-                                                    updateProgress(p);
+                                            // loading css
+                                            (function () {
+                                                var onloadCss = function () {
+                                                    if (Scalr.InitParams.css.length > 0) {
+                                                        // from 30 to 50
+                                                        var p = Math.ceil((Scalr.InitParams.css.length / len) * 20) + 30;
+                                                        updateProgress(p);
 
-                                                    var el = document.createElement('link');
-                                                    el.type = 'text/css';
-                                                    el.rel = 'stylesheet';
-                                                    el.href = Scalr.InitParams.css.shift();
-                                                    head.appendChild(el);
+                                                        var el = document.createElement('link');
+                                                        el.type = 'text/css';
+                                                        el.rel = 'stylesheet';
+                                                        el.href = Scalr.InitParams.css.shift();
+                                                        head.appendChild(el);
 
-                                                    var checkCss = function () {
-                                                        var flag = false;
-                                                        for (var j = 0; j < document.styleSheets.length; j++)
-                                                            if (document.styleSheets[j].href == el.href)
-                                                                flag = true;
+                                                        var checkCss = function () {
+                                                            var flag = false;
+                                                            for (var j = 0; j < document.styleSheets.length; j++)
+                                                                if (document.styleSheets[j].href == el.href)
+                                                                    flag = true;
 
-                                                        if (flag)
-                                                            onloadCss();
-                                                        else
-                                                            Ext.Function.defer(checkCss, 50);
-                                                    };
-
-                                                    Ext.Function.defer(checkCss, 50);
-                                                } else {
-                                                    // loading js
-                                                    // from 50 to 100
-                                                    updateProgress(50);
-                                                    var len = Scalr.InitParams.extjs.length, js = Scalr.InitParams.extjs;
-                                                    /* remove denepdency in js (create Scalr.Application on Scalr.Init) to enable this code
-                                                    for (var i = 0; i < len; i++) {
-                                                        var j = js[i];
-														(function(j){
-                                                        Ext.Loader.injectScriptElement(j, function() {
-                                                            var ind = Scalr.InitParams.extjs.indexOf(j);
-                                                            Scalr.InitParams.extjs.splice(ind, 1);
-
-                                                            if (! Scalr.InitParams.extjs.length) {
-                                                                updateProgress(100);
-                                                                Scalr.Init(Scalr.InitParams.context);
-                                                            } else {
-                                                                var p = Math.ceil((1 - Scalr.InitParams.extjs.length / len) * 50) + 50;
-                                                                updateProgress(p);
-                                                            }
-                                                        });
-														})(j)
-                                                    }*/
-                                                    
-                                                    (function () {
-                                                        var onloadJs = function () {
-                                                            if (Scalr.InitParams.extjs.length > 0) {
-                                                                var p = Math.ceil((1 - Scalr.InitParams.extjs.length / len) * 50) + 50;
-                                                                updateProgress(p);
-                                                                Ext.Loader.injectScriptElement(Scalr.InitParams.extjs.shift(), onloadJs);
-                                                            } else {
-                                                                updateProgress(100);
-                                                                Scalr.Init(Scalr.InitParams.context);
-                                                            }
+                                                            if (flag)
+                                                                onloadCss();
+                                                            else
+                                                                Ext.Function.defer(checkCss, 50);
                                                         };
-                                                        onloadJs();
-                                                    })();
-                                                }
-                                            };
-                                            onloadCss();
-                                        })();
-                                    } else {
-                                        showError(obj.errorMessage || 'Service is temporary not available. Please try again in a minute.')
+
+                                                        Ext.Function.defer(checkCss, 50);
+                                                    } else {
+                                                        // loading js
+                                                        // from 50 to 100
+                                                        updateProgress(50);
+                                                        var len = Scalr.InitParams.extjs.length, js = Scalr.InitParams.extjs;
+                                                        /* remove denepdency in js (create Scalr.Application on Scalr.Init) to enable this code
+                                                         for (var i = 0; i < len; i++) {
+                                                         var j = js[i];
+                                                         (function(j){
+                                                         Ext.Loader.injectScriptElement(j, function() {
+                                                         var ind = Scalr.InitParams.extjs.indexOf(j);
+                                                         Scalr.InitParams.extjs.splice(ind, 1);
+
+                                                         if (! Scalr.InitParams.extjs.length) {
+                                                         updateProgress(100);
+                                                         Scalr.Init(Scalr.InitParams.context);
+                                                         } else {
+                                                         var p = Math.ceil((1 - Scalr.InitParams.extjs.length / len) * 50) + 50;
+                                                         updateProgress(p);
+                                                         }
+                                                         });
+                                                         })(j)
+                                                         }*/
+
+                                                        (function () {
+                                                            var onloadJs = function () {
+                                                                if (Scalr.InitParams.extjs.length > 0) {
+                                                                    var p = Math.ceil((1 - Scalr.InitParams.extjs.length / len) * 50) + 50;
+                                                                    updateProgress(p);
+                                                                    Ext.Loader.injectScriptElement(Scalr.InitParams.extjs.shift(), onloadJs);
+                                                                } else {
+                                                                    updateProgress(100);
+                                                                    Scalr.Init(Scalr.InitParams.context);
+                                                                }
+                                                            };
+                                                            onloadJs();
+                                                        })();
+                                                    }
+                                                };
+                                                onloadCss();
+                                            })();
+                                        } else {
+                                            showError(obj.errorMessage || 'Service is temporary not available. Please try again in a minute.')
+                                        }
+                                    } catch (e) {
+                                        showError('Service is temporary not available. Please try again in a minute.')
                                     }
-                                } catch (e) {
+                                },
+                                failure: function () {
                                     showError('Service is temporary not available. Please try again in a minute.')
                                 }
-                            },
-                            failure: function () {
-                                showError('Service is temporary not available. Please try again in a minute.')
-                            }
-                        });
+                            });
+                        }
+                    } catch (e) {
+                        showError('Error init UI')
                     }
-                } catch (e) {
-                    showError('Error init UI')
-                }
+                });
             }
             head.appendChild(script);
         }
     </script>
+    <script>
+	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+	
+	  ga('create', 'UA-9229929-13', 'scalr.net');
+	  ga('send', 'pageview');
+	
+	</script>
 </body>
 </html>

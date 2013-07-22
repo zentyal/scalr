@@ -191,44 +191,44 @@ class CloudFrontTest extends AwsTestCase
         unset($list);
 
         //Creates distribution
-// 		$origin = new CloudFrontDataType\DistributionConfigOriginData();
-// 		$origin->originId = 'MyOriginId';
-// 		$origin->domainName = 'test.s3.amazonaws.com';
-// 		$origin->setS3OriginConfig(new CloudFrontDataType\DistributionS3OriginConfigData(''));
+//         $origin = new CloudFrontDataType\DistributionConfigOriginData();
+//         $origin->originId = 'MyOriginId';
+//         $origin->domainName = 'test.s3.amazonaws.com';
+//         $origin->setS3OriginConfig(new CloudFrontDataType\DistributionS3OriginConfigData(''));
 
-// 		$fvd = new CloudFrontDataType\ForwardedValuesData();
-// 		$fvd->queryString = false;
-// 		$fvd->setCookies(new CloudFrontDataType\ForwardedValuesCookiesData(
-// 			CloudFrontDataType\ForwardedValuesCookiesData::FORWARD_NONE
-// 		));
+//         $fvd = new CloudFrontDataType\ForwardedValuesData();
+//         $fvd->queryString = false;
+//         $fvd->setCookies(new CloudFrontDataType\ForwardedValuesCookiesData(
+//             CloudFrontDataType\ForwardedValuesCookiesData::FORWARD_NONE
+//         ));
 
-// 		$ts = new CloudFrontDataType\TrustedSignerList();
-// 		$ts->setEnabled(false);
+//         $ts = new CloudFrontDataType\TrustedSignerList();
+//         $ts->setEnabled(false);
 
-// 		$dcb = new CloudFrontDataType\CacheBehaviorData();
-// 		$dcb->minTtl = 3600;
-// 		$dcb->targetOriginId = $origin->originId;
-// 		$dcb->viewerProtocolPolicy = 'allow-all';
-// 		$dcb->setForwardedValues($fvd);
-// 		$dcb->setTrustedSigners($ts);
+//         $dcb = new CloudFrontDataType\CacheBehaviorData();
+//         $dcb->minTtl = 3600;
+//         $dcb->targetOriginId = $origin->originId;
+//         $dcb->viewerProtocolPolicy = 'allow-all';
+//         $dcb->setForwardedValues($fvd);
+//         $dcb->setTrustedSigners($ts);
 
-// 		$dc = new CloudFrontDataType\DistributionConfigData();
-// 		$dc->comment = 'phpunit test distribution';
-// 		$dc->enabled = false;
-// 		$dc->setAliases(array(
-// 			array('cname' => 'test2.scalr.com')
-// 		));
-// 		$dc->priceClass = 'PriceClass_All';
-// 		$dc->setOrigins($origin);
-// 		$dc->setDefaultCacheBehavior($dcb);
+//         $dc = new CloudFrontDataType\DistributionConfigData();
+//         $dc->comment = 'phpunit test distribution';
+//         $dc->enabled = false;
+//         $dc->setAliases(array(
+//             array('cname' => 'test2.scalr.com')
+//         ));
+//         $dc->priceClass = 'PriceClass_All';
+//         $dc->setOrigins($origin);
+//         $dc->setDefaultCacheBehavior($dcb);
 
-// 		$dist = $aws->cloudFront->distribution->create($dc);
-// 		$this->assertInstanceOf($this->getCloudFrontClassName('DataType\\DistributionData'), $dist);
+//         $dist = $aws->cloudFront->distribution->create($dc);
+//         $this->assertInstanceOf($this->getCloudFrontClassName('DataType\\DistributionData'), $dist);
 
-// 		$dist->refresh();
+//         $dist->refresh();
         //Too time consuming test
-// 		$ret = $dist->delete();
-// 		$this->assertTrue($ret);
+//         $ret = $dist->delete();
+//         $this->assertTrue($ret);
 
         //Releases all memory from storage.
         $aws->getEntityManager()->detachAll();

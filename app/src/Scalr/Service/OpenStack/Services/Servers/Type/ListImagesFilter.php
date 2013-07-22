@@ -189,9 +189,8 @@ class ListImagesFilter extends Marker
     }
 
     /**
-     * Gets query data array
-     *
-     * @return array Returns query data array
+     * {@inheritdoc}
+     * @see Scalr\Service\OpenStack\Type.Marker::getQueryData()
      */
     public function getQueryData()
     {
@@ -213,5 +212,4 @@ class ListImagesFilter extends Marker
         }
         return $options;
     }
-
 }

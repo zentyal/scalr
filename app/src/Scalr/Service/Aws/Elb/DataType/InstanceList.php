@@ -7,7 +7,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * InstanceList
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    01.10.2012
  *
  * @method   InstanceData get() get($position = null) Gets InstanceData at specified position

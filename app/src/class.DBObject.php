@@ -1,7 +1,7 @@
 <?php
-	
-	class DBObject
-	{			
-		
-	}
+
+    class DBObject
+    {
+
+    }
 ?>

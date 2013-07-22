@@ -8,7 +8,7 @@ use Scalr\Service\Aws\CloudWatch\AbstractCloudWatchDataType;
  *
  * The DimensionFilter data type is used to filter ListMetrics results.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     24.10.2012
  */
 class DimensionFilterData extends AbstractCloudWatchDataType

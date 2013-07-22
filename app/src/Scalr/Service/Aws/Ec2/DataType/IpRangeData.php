@@ -29,6 +29,6 @@ class IpRangeData extends AbstractEc2DataType
     public function __construct($cidrIp = null)
     {
         parent::__construct();
-        $this->cidrIp = (string) $cidrIp;
+        $this->cidrIp = $cidrIp;
     }
 }

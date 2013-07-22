@@ -44,10 +44,10 @@ class OpenStackTestCase extends TestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->container = Container::getInstance();
+        $this->container = \Scalr::getContainer();
         $this->environment = new \Scalr_Environment();
         if (!$this->isSkipFunctionalTests()) {
-            $this->environment->loadById(\CONFIG::$PHPUNIT_TEST_ENVID);
+            $this->environment->loadById(\Scalr::config('scalr.phpunit.envid'));
         }
     }
 

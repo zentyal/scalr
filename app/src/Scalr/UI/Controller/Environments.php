@@ -2,369 +2,232 @@
 
 class Scalr_UI_Controller_Environments extends Scalr_UI_Controller
 {
-	const CALL_PARAM_NAME = 'envId';
-	
-	private $checkVarError;
-	
-	public static function getApiDefinitions()
-	{
-		return array('xListEnvironments', 'xGetInfo', 'xCreate', 'xSave', 'xRemove');
-	}
+    const CALL_PARAM_NAME = 'envId';
 
-	public function hasAccess()
-	{
-		if (parent::hasAccess()) {
-			return ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER || $this->user->isTeamOwner()) ? true : false;
-		} else
-			return false;
-	}
+    private $checkVarError;
 
-	public function defaultAction()
-	{
-		$this->viewAction();
-	}
+    public static function getApiDefinitions()
+    {
+        return array('xListEnvironments', 'xGetInfo', 'xCreate', 'xSave', 'xRemove');
+    }
 
-	public function viewAction()
-	{
-		$this->response->page('ui/environments/view.js');
-	}
+    public function hasAccess()
+    {
+        if (parent::hasAccess()) {
+            return ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER || $this->user->isTeamOwner()) ? true : false;
+        } else
+            return false;
+    }
 
-	public function view2Action()
-	{
-		// TODO: refactor
-		$sql = "SELECT
-			id,
-			name,
-			dt_added AS dtAdded,
-			status
-			FROM client_environments
-			WHERE client_id = ".$this->user->getAccountId()."
-			GROUP BY id
-		";
+    public function xListEnvironmentsAction()
+    {
+        $this->request->defineParams(array(
+            'sort' => array('type' => 'json')
+        ));
 
-		$envList = $this->db->getAll($sql);
-		
-		foreach ($envList as &$row) {
-			$env = Scalr_Environment::init()->loadById($row['id']);
-			foreach ($env->getEnabledPlatforms() as $platform)
-				$row['platforms'][] = SERVER_PLATFORMS::GetName($platform);
-			$row['teams'] = $this->db->getCol('SELECT team_id FROM `account_team_envs` WHERE env_id = ?', array($row['id']));
-			$row['dtAdded'] = Scalr_Util_DateTime::convertTz($row['dtAdded']);
-			$row[ENVIRONMENT_SETTINGS::TIMEZONE] = $env->getPlatformConfigValue(ENVIRONMENT_SETTINGS::TIMEZONE);
-		}
-		
-		$timezones = array();
-		$timezoneAbbreviationsList = timezone_abbreviations_list();
-		foreach ($timezoneAbbreviationsList as $timezoneAbbreviations) {
-			foreach ($timezoneAbbreviations as $value) {
-				if (preg_match( '/^(America\/|Antartica\/|Arctic\/|Asia\/|Atlantic\/|Europe\/|Indian\/|Pacific\/|Australia\/|UTC)/', $value['timezone_id']))
-					$timezones[$value['timezone_id']] = $value['offset'];
-			}
-		}
+        if ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER) {
+            $sql = "SELECT
+                id,
+                name,
+                dt_added AS dtAdded,
+                status
+                FROM client_environments
+                WHERE client_id = ? AND :FILTER:
+                GROUP BY id
+            ";
+            $params = array($this->user->getAccountId());
+        } else {
+            $sql = "SELECT
+                client_environments.id,
+                client_environments.name,
+                client_environments.dt_added AS dtAdded,
+                client_environments.status
+                FROM client_environments
+                JOIN account_team_envs ON client_environments.id = account_team_envs.env_id
+                JOIN account_team_users ON account_team_envs.team_id = account_team_users.team_id
+                WHERE client_environments.client_id = ? AND account_team_users.permissions = ? AND account_team_users.user_id = ? AND :FILTER:
+                GROUP BY client_environments.id
+            ";
 
-		@ksort($timezones);
-		$timezones = array_keys($timezones);
-		
-		$platforms = SERVER_PLATFORMS::GetList();
-		unset($platforms[SERVER_PLATFORMS::RDS]);
+            $params = array($this->user->getAccountId(), Scalr_Account_Team::PERMISSIONS_OWNER, $this->user->id);
+        }
 
-		//TODO:
-		if (!$this->request->getHeaderVar('Interface-Beta')) {
-			//unset($platforms[SERVER_PLATFORMS::OPENSTACK]);
-			//unset($platforms[SERVER_PLATFORMS::RACKSPACENG_UK]);
-			//unset($platforms[SERVER_PLATFORMS::RACKSPACENG_US]);
-			unset($platforms[SERVER_PLATFORMS::UCLOUD]);
-			//unset($platforms[SERVER_PLATFORMS::GCE]);
-		}
-		
-		$teams = $this->db->getAll("SELECT id, name FROM account_teams WHERE account_id='" . $this->user->getAccountId() . "'");
-		
-		$this->response->page('ui/environments/view2.js', array(
-			'envList' => $envList,
-			'timezones' => $timezones,
-			'platforms' => $platforms,
-			'teams' => $teams
-		), array('ui/environments/platform/ec2.js'), array('ui/environments/view2.css'));
-	}
-	
-	public function xListEnvironmentsAction()
-	{
-		$this->request->defineParams(array(
-			'sort' => array('type' => 'json')
-		));
-		
-		if ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER) {
-			$sql = "SELECT
-				id,
-				name,
-				dt_added AS dtAdded,
-				status
-				FROM client_environments
-				WHERE client_id = ? AND :FILTER:
-				GROUP BY id
-			";
-			$params = array($this->user->getAccountId());
-		} else {
-			$sql = "SELECT
-				client_environments.id,
-				client_environments.name,
-				client_environments.dt_added AS dtAdded,
-				client_environments.status
-				FROM client_environments
-				JOIN account_team_envs ON client_environments.id = account_team_envs.env_id
-				JOIN account_team_users ON account_team_envs.team_id = account_team_users.team_id
-				WHERE client_environments.client_id = ? AND account_team_users.permissions = ? AND account_team_users.user_id = ? AND :FILTER:
-				GROUP BY client_environments.id
-			";
+        $response = $this->buildResponseFromSql($sql, array('id', 'name', 'dtAdded', 'status'), array(), $params);
+        foreach ($response['data'] as &$row) {
+            foreach (Scalr_Environment::init()->loadById($row['id'])->getEnabledPlatforms() as $platform)
+                $row['platforms'][] = SERVER_PLATFORMS::GetName($platform);
 
-			$params = array($this->user->getAccountId(), Scalr_Account_Team::PERMISSIONS_OWNER, $this->user->id);
-		}
+            $row['platforms'] = implode(', ', $row['platforms']);
+            $row['dtAdded'] = Scalr_Util_DateTime::convertTz($row['dtAdded']);
+        }
 
-		$response = $this->buildResponseFromSql($sql, array('id', 'name', 'dtAdded', 'status'), array(), $params);
-		foreach ($response['data'] as &$row) {
-			foreach (Scalr_Environment::init()->loadById($row['id'])->getEnabledPlatforms() as $platform)
-				$row['platforms'][] = SERVER_PLATFORMS::GetName($platform);
+        $this->response->data($response);
+    }
 
-			$row['platforms'] = implode(', ', $row['platforms']);
-			$row['dtAdded'] = Scalr_Util_DateTime::convertTz($row['dtAdded']);
-		}
+    public function xSetStatusAction()
+    {
+        $env = Scalr_Environment::init();
+        $env->loadById($this->getParam('envId'));
+        $this->user->getPermissions()->validate($env);
 
-		$this->response->data($response);
-	}
+        if (! ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER || $this->user->isTeamUserInEnvironment($env->id, Scalr_Account_Team::PERMISSIONS_OWNER)))
+            throw new Scalr_Exception_InsufficientPermissions();
 
-	public function xSetStatusAction()
-	{
-		$env = Scalr_Environment::init();
-		$env->loadById($this->getParam('envId'));
-		$this->user->getPermissions()->validate($env);
+        $env->status = $this->getParam('status') == Scalr_Environment::STATUS_ACTIVE ? Scalr_Environment::STATUS_ACTIVE : Scalr_Environment::STATUS_INACTIVE;
+        $env->save();
 
-		if (! ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER || $this->user->isTeamUserInEnvironment($env->id, Scalr_Account_Team::PERMISSIONS_OWNER)))
-			throw new Scalr_Exception_InsufficientPermissions();
+        $this->response->success("Environment's status successfully changed");
+    }
 
-		$env->status = $this->getParam('status') == Scalr_Environment::STATUS_ACTIVE ? Scalr_Environment::STATUS_ACTIVE : Scalr_Environment::STATUS_INACTIVE;
-		$env->save();
+    public function xRemoveAction()
+    {
+        if ($this->user->getType() != Scalr_Account_User::TYPE_ACCOUNT_OWNER)
+            throw new Scalr_Exception_InsufficientPermissions();
 
-		$this->response->success("Environment's status successfully changed");
-	}
+        $env = Scalr_Environment::init()->loadById($this->getParam('envId'));
+        $this->user->getPermissions()->validate($env);
+        $env->delete();
 
-	public function xSetSystemAction()
-	{
-		$env = Scalr_Environment::init();
-		$env->loadById($this->getParam('envId'));
-		$this->user->getPermissions()->validate($env);
+        if ($env->id == $this->getEnvironmentId())
+            Scalr_Session::getInstance()->setEnvironmentId(null); // reset
 
-		if ($this->user->getType() != Scalr_Account_User::TYPE_ACCOUNT_OWNER)
-			throw new Scalr_Exception_InsufficientPermissions();
+        $this->response->success("Environment successfully removed");
+        $this->response->data(array('env' => array('id' => $env->id), 'flagReload' => $env->id == $this->getEnvironmentId() ? true : false));
+    }
 
-		$env->setSystem();
+    public function xCreateAction()
+    {
+        if ($this->user->getType() != Scalr_Account_User::TYPE_ACCOUNT_OWNER)
+            throw new Scalr_Exception_InsufficientPermissions();
 
-		$this->response->success("System environment successfully changed");
-	}
+        $this->user->getAccount()->validateLimit(Scalr_Limits::ACCOUNT_ENVIRONMENTS, 1);
+        $env = $this->user->getAccount()->createEnvironment($this->getParam('name'));
 
-	public function xRemoveAction()
-	{
-		if ($this->user->getType() != Scalr_Account_User::TYPE_ACCOUNT_OWNER)
-			throw new Scalr_Exception_InsufficientPermissions();
+        $this->response->success("Environment successfully created");
+        $this->response->data(array(
+            'env' => array(
+                'id' => $env->id,
+                'name' => $env->name
+            )
+        ));
+    }
 
-		$env = Scalr_Environment::init()->loadById($this->getParam('envId'));
-		$this->user->getPermissions()->validate($env);
-		$env->delete();
-		
-		if ($env->id == $this->getEnvironmentId())
-			Scalr_Session::getInstance()->setEnvironmentId(null); // reset
-		
-		$this->response->success("Environment successfully removed");
-		$this->response->data(array('env' => array('id' => $env->id), 'flagReload' => $env->id == $this->getEnvironmentId() ? true : false));
-	}
-	
-	public function createAction()
-	{
-		if ($this->user->getType() != Scalr_Account_User::TYPE_ACCOUNT_OWNER)
-			throw new Scalr_Exception_InsufficientPermissions();
+    public function xRenameAction()
+    {
+        if ($this->user->getType() != Scalr_Account_User::TYPE_ACCOUNT_OWNER)
+            throw new Scalr_Exception_InsufficientPermissions();
 
-		$this->user->getAccount()->validateLimit(Scalr_Limits::ACCOUNT_ENVIRONMENTS, 1);
-		$this->response->page('ui/environments/create.js', array());
-	}
-	
-	public function xCreateAction()
-	{
-		if ($this->user->getType() != Scalr_Account_User::TYPE_ACCOUNT_OWNER)
-			throw new Scalr_Exception_InsufficientPermissions();
+        $this->request->defineParams(array(
+            'name' => array('type' => 'string', 'validator' => array(
+                Scalr_Validator::REQUIRED => true,
+                Scalr_Validator::NOHTML => true
+            ))
+        ));
 
-		$this->user->getAccount()->validateLimit(Scalr_Limits::ACCOUNT_ENVIRONMENTS, 1);
-		$env = $this->user->getAccount()->createEnvironment($this->getParam('name'));
-		
-		$this->response->success("Environment successfully created");
-		$this->response->data(array(
-			'env' => array(
-				'id' => $env->id,
-				'name' => $env->name
-			)
-		));
-	}
+        if ($this->request->validate()->isValid()) {
+            $env = Scalr_Environment::init();
+            $env->loadById($this->getParam('envId'));
+            $this->user->getPermissions()->validate($env);
 
-	public function xRenameAction()
-	{
-		if ($this->user->getType() != Scalr_Account_User::TYPE_ACCOUNT_OWNER)
-			throw new Scalr_Exception_InsufficientPermissions();
+            $env->name = $this->getParam('name');
+            $env->save();
 
-		$this->request->defineParams(array(
-			'name' => array('type' => 'string', 'validator' => array(
-				Scalr_Validator::REQUIRED => true,
-				Scalr_Validator::NOHTML => true
-			))
-		));
+            $this->response->success("Environment's name successfully changed");
+            $this->response->data(array('env' => array('id' => $env->id, 'name' => $env->name)));
+        } else {
+            $this->response->failure('Illegal name for environment');
+        }
+    }
 
-		if ($this->request->validate()->isValid()) {
-			$env = Scalr_Environment::init();
-			$env->loadById($this->getParam('envId'));
-			$this->user->getPermissions()->validate($env);
+    protected function getEnvironmentInfo()
+    {
+        $env = Scalr_Environment::init();
+        $env->loadById($this->getParam('envId'));
+        $this->user->getPermissions()->validate($env);
 
-			$env->name = $this->getParam('name');
-			$env->save();
+        $params = array();
 
-			$this->response->success("Environment's name successfully changed");
-			$this->response->data(array('env' => array('id' => $env->id, 'name' => $env->name)));
-		} else {
-			$this->response->failure('Illegal name for environment');
-		}
-	}
+        $params[ENVIRONMENT_SETTINGS::TIMEZONE] = $env->getPlatformConfigValue(ENVIRONMENT_SETTINGS::TIMEZONE);
 
-	protected function getEnvironmentInfo()
-	{
-		$env = Scalr_Environment::init();
-		$env->loadById($this->getParam('envId'));
-		$this->user->getPermissions()->validate($env);
-		
-		$params = array();
+        return array(
+            'id' => $env->id,
+            'name' => $env->name,
+            'params' => $params,
+            'enabledPlatforms' => $env->getEnabledPlatforms()
+        );
+    }
 
-		$params[ENVIRONMENT_SETTINGS::TIMEZONE] = $env->getPlatformConfigValue(ENVIRONMENT_SETTINGS::TIMEZONE);
-		
-		return array(
-			'id' => $env->id,
-			'name' => $env->name,
-			'params' => $params,
-			'enabledPlatforms' => $env->getEnabledPlatforms()
-		);
-	}
+    public function xGetInfoAction()
+    {
+        $this->response->data(array('environment' => $this->getEnvironmentInfo()));
+    }
 
-	public function editAction()
-	{
-		$env = $this->getEnvironmentInfo();
+    private function checkVar($name, $type, $env, $requiredError = '', $group = '')
+    {
+        $varName = str_replace('.', '_', ($group != '' ? $name . '.' . $group : $name));
 
-		if (! ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER || $this->user->isTeamUserInEnvironment($env['id'], Scalr_Account_Team::PERMISSIONS_OWNER)))
-			throw new Scalr_Exception_InsufficientPermissions();
+        switch ($type) {
+            case 'int':
+                if ($this->getParam($varName)) {
+                    return intval($this->getParam($varName));
+                } else {
+                    $value = $env->getPlatformConfigValue($name, true, $group);
+                    if (!$value && $requiredError)
+                        $this->checkVarError[$name] = $requiredError;
 
-		$platforms = SERVER_PLATFORMS::GetList();
-		unset($platforms[SERVER_PLATFORMS::RDS]);
+                    return $value;
+                }
+                break;
 
-		//TODO:
-		if (!$this->request->getHeaderVar('Interface-Beta')) {
-			//unset($platforms[SERVER_PLATFORMS::OPENSTACK]);
-			//unset($platforms[SERVER_PLATFORMS::RACKSPACENG_UK]);
-			//unset($platforms[SERVER_PLATFORMS::RACKSPACENG_US]);
-			unset($platforms[SERVER_PLATFORMS::UCLOUD]);
-			//unset($platforms[SERVER_PLATFORMS::GCE]);
-		}
+            case 'string':
+                if ($this->getParam($varName)) {
+                    return $this->getParam($varName);
+                } else {
+                    $value = $env->getPlatformConfigValue($name, true, $group);
+                    if ($value == '' && $requiredError)
+                        $this->checkVarError[$name] = $requiredError;
 
-		$timezones = array();
-		$timezoneAbbreviationsList = timezone_abbreviations_list();
-		foreach ($timezoneAbbreviationsList as $timezoneAbbreviations) {
-			foreach ($timezoneAbbreviations as $value) {
-				if (preg_match( '/^(America\/|Antartica\/|Arctic\/|Asia\/|Atlantic\/|Europe\/|Indian\/|Pacific\/|Australia\/|UTC)/', $value['timezone_id']))
-					$timezones[$value['timezone_id']] = $value['offset'];
-			}
-		}
+                    return $value;
+                }
+                break;
 
-		@ksort($timezones);
-		$timezones = array_keys($timezones);
+            case 'password':
+                if ($this->getParam($varName) && $this->getParam($varName) != '******') {
+                    return $this->getParam($varName);
+                } else {
+                    $value = $env->getPlatformConfigValue($name, true, $group);
+                    if ($value == '' && $requiredError)
+                        $this->checkVarError[$name] = $requiredError;
 
-		$this->response->page('ui/environments/edit.js', array(
-			'environment' => $env,
-			'platforms' => $platforms,
-			'timezones' => $timezones
-		), array(), array('ui/environments/edit.css'));
+                    return $value;
+                }
+                break;
 
-		/*
-		 * $this->response->page('ui/environments/edit.js', array(
-			'environment' => $env,
-			'platforms' => $platforms,
-			'timezones' => Scalr_Util_DateTime::getTimezones()
-		));
-		 */
-	}
+            case 'bool':
+                return $this->getParam($varName) ? 1 : 0;
+        }
+    }
 
-	public function xGetInfoAction()
-	{
-		$this->response->data(array('environment' => $this->getEnvironmentInfo()));
-	}
+    public function xSaveAction()
+    {
+        $this->request->defineParams(array('envId' => array('type' => 'int')));
 
-	private function checkVar($name, $type, $env, $requiredError = '', $group = '')
-	{
-		$varName = str_replace('.', '_', ($group != '' ? $name . '.' . $group : $name));
+        $env = Scalr_Environment::init()->loadById($this->getParam('envId'));
+        $this->user->getPermissions()->validate($env);
 
-		switch ($type) {
-			case 'int':
-				if ($this->getParam($varName)) {
-					return intval($this->getParam($varName));
-				} else {
-					$value = $env->getPlatformConfigValue($name, true, $group);
-					if (!$value && $requiredError)
-						$this->checkVarError[$name] = $requiredError;
+        if (! ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER || $this->user->isTeamUserInEnvironment($env->id, Scalr_Account_Team::PERMISSIONS_OWNER)))
+            throw new Scalr_Exception_InsufficientPermissions();
 
-					return $value;
-				}
-				break;
+        $pars = array();
 
-			case 'string':
-				if ($this->getParam($varName)) {
-					return $this->getParam($varName);
-				} else {
-					$value = $env->getPlatformConfigValue($name, true, $group);
-					if ($value == '' && $requiredError)
-						$this->checkVarError[$name] = $requiredError;
+        // check for settings
+        $pars[ENVIRONMENT_SETTINGS::TIMEZONE] = $this->checkVar(ENVIRONMENT_SETTINGS::TIMEZONE, 'string', $env, "Timezone required");
 
-					return $value;
-				}
-				break;
+        $env->setPlatformConfig($pars);
 
-			case 'password':
-				if ($this->getParam($varName) && $this->getParam($varName) != '******') {
-					return $this->getParam($varName);
-				} else {
-					$value = $env->getPlatformConfigValue($name, true, $group);
-					if ($value == '' && $requiredError)
-						$this->checkVarError[$name] = $requiredError;
+        if (! $this->user->getAccount()->getSetting(Scalr_Account::SETTING_DATE_ENV_CONFIGURED))
+            $this->user->getAccount()->setSetting(Scalr_Account::SETTING_DATE_ENV_CONFIGURED, time());
 
-					return $value;
-				}
-				break;
-
-			case 'bool':
-				return $this->getParam($varName) ? 1 : 0;
-		}
-	}
-	
-	public function xSaveAction()
-	{
-		$this->request->defineParams(array('envId' => array('type' => 'int')));
-
-		$env = Scalr_Environment::init()->loadById($this->getParam('envId'));
-		$this->user->getPermissions()->validate($env);
-
-		if (! ($this->user->getType() == Scalr_Account_User::TYPE_ACCOUNT_OWNER || $this->user->isTeamUserInEnvironment($env->id, Scalr_Account_Team::PERMISSIONS_OWNER)))
-			throw new Scalr_Exception_InsufficientPermissions();
-
-		$pars = array();
-
-		// check for settings
-		$pars[ENVIRONMENT_SETTINGS::TIMEZONE] = $this->checkVar(ENVIRONMENT_SETTINGS::TIMEZONE, 'string', $env, "Timezone required");
-
-		$env->setPlatformConfig($pars);
-		
-		if (! $this->user->getAccount()->getSetting(Scalr_Account::SETTING_DATE_ENV_CONFIGURED))
-			$this->user->getAccount()->setSetting(Scalr_Account::SETTING_DATE_ENV_CONFIGURED, time());
-
-		$this->response->success('Environment saved');
-	}
+        $this->response->success('Environment saved');
+    }
 }

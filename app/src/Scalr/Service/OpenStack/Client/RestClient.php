@@ -25,7 +25,12 @@ class RestClient implements ClientInterface
      */
     protected $config;
 
-    private $context;
+    /**
+     * Default useragent
+     *
+     * @var string
+     */
+    protected $useragent;
 
     /**
      * @var bool
@@ -40,6 +45,9 @@ class RestClient implements ClientInterface
     public function __construct(OpenStackConfig $config)
     {
         $this->config = $config;
+        $this->useragent = sprintf('Scalr OpenStack Client (http://scalr.com) PHP/%s pecl_http/%s',
+            phpversion(), phpversion('http')
+        );
     }
 
     /**
@@ -63,7 +71,7 @@ class RestClient implements ClientInterface
         $req->resetCookies();
         $req->setOptions(array(
             'redirect'  => 10,
-            'useragent' => 'Scalr OpenStack Client (http://scalr.com)',
+            'useragent' => $this->useragent,
         ));
         return $req;
     }
@@ -77,7 +85,7 @@ class RestClient implements ClientInterface
      * @throws   QueryClientException
      * @returns  HttpMessage    Returns HttpMessage if success.
      */
-    protected function tryCall ($httpRequest, $attempts = 5, $interval = 200)
+    protected function tryCall($httpRequest, $attempts = 5, $interval = 200)
     {
         try {
             $message = $httpRequest->send();
@@ -96,7 +104,8 @@ class RestClient implements ClientInterface
      * {@inheritdoc}
      * @see Scalr\Service\OpenStack\Client.ClientInterface::call()
      */
-    public function call($service, $path = '/', array $options = null, $verb = 'GET', AppFormat $accept = null, $auth = true)
+    public function call($service, $path = '/', array $options = null, $verb = 'GET',
+                         AppFormat $accept = null, $auth = true)
     {
         if ($accept === null) {
             $accept = AppFormat::json();
@@ -141,7 +150,7 @@ class RestClient implements ClientInterface
         $endpoint = $service instanceof ServiceInterface ? $service->getEndpointUrl() : $service;
         if (substr($endpoint, -1) === '/') {
             //removes trailing slashes
-            $endpoint = preg_replace('#/+$#', '', $endpoint);
+            $endpoint = rtrim($endpoint, '/');
         }
         $req->addHeaders($headers);
         $req->setUrl($endpoint . $path);

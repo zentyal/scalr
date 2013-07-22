@@ -38,7 +38,7 @@ Scalr.regPage('Scalr.ui.servers.import_step1_2', function (loadParams, modulePar
 				listeners: {
 					'change': function() {
 						var value = this.getValue();
-						if (value == 'eucalyptus' || value == 'rackspace' || value == 'openstack' || value == 'cloudstack' || value == 'idcf' || value == 'ucloud') {
+						if (value != 'ec2' && value != 'gce') {
 							var lstore = moduleParams['locations'][value];
 
 							form.down('#loc_combo').store.load({ data: lstore });
@@ -46,6 +46,12 @@ Scalr.regPage('Scalr.ui.servers.import_step1_2', function (loadParams, modulePar
 							form.down('#loc_combo').show().enable();
 						} else {
 							form.down('#loc_combo').hide().disable();
+						}
+						
+						if (value != 'ec2' && value != 'gce' && value != 'rackspacengus' && value != 'rackspacenguk') {
+							form.down('#ipAddress').show().enable();
+						} else {
+							form.down('#ipAddress').hide().disable();
 						}
 					}
 				}
@@ -70,7 +76,14 @@ Scalr.regPage('Scalr.ui.servers.import_step1_2', function (loadParams, modulePar
 				name: 'roleName',
 				fieldLabel: 'Role name',
 				value: ''
-			}]
+			}, {
+                xtype: 'textfield',
+				itemId: 'ipAddress',
+                name: 'ipAddress',
+                fieldLabel: 'IP address',
+				emptyText: 'Leave blank for auto-detection',
+                value: ''
+            }]
 		}],
 
 		dockedItems: [{

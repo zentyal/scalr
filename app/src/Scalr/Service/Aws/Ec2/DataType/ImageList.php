@@ -9,6 +9,10 @@ use Scalr\Service\Aws\Ec2Exception;
  *
  * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    24.01.2013
+ *
+ * @method   \Scalr\Service\Aws\Ec2\DataType\ImageData get()
+ *           get(int $index)
+ *           Gets ImageData object from the specified position in the list.
  */
 class ImageList extends Ec2ListDataType
 {

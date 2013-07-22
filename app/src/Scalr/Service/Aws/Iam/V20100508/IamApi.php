@@ -21,7 +21,7 @@ use Scalr\Service\Aws\Client\ClientInterface;
  *
  * Implements Iam Low-Level API Actions.
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     13.11.2012
  */
 class IamApi extends AbstractApi

@@ -1,10 +1,10 @@
 Scalr.regPage('Scalr.ui.farms.builder.tabs.variables', function (moduleTabParams) {
 	return Ext.create('Scalr.ui.FarmsBuilderTab', {
-		tabTitle: 'Global variables (beta)',
+		tabTitle: 'Global variables',
+        itemId: 'variables',
 		labelWidth: 200,
-		paramsCache: {},
-		cache: {},
-
+        
+        layout: 'anchor',
 		isEnabled: function (record) {
 			return true;
 		},

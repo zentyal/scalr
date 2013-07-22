@@ -7,7 +7,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * BackendServerDescriptionList
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    01.10.2012
  *
  * @method   BackendServerDescriptionData get() get($position = null) Gets BackendServerDescriptionList at specified position

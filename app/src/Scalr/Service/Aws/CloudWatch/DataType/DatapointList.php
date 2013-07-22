@@ -7,7 +7,7 @@ use Scalr\Service\Aws\DataType\ListDataType;
 /**
  * DatapointList
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    25.10.2012
  * @property string           label                       A label describing the specified metric.
  * @method   DatapointData    get() get($position = null) Gets DatapointData at specified position

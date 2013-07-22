@@ -1,15 +1,14 @@
 Scalr.regPage('Scalr.ui.farms.builder.tabs.deployments', function () {
-    function addApp (target, app, type) {
+    var addApp = function (target, app, type) {
         if (type == 'create') {
             this.down('#appList').store.add(app);
-            var appList = this.cacheGet(['dmApplications']);
-            appList[appList.length] = app;
-            this.cacheSet(appList, ['dmApplications']);
+            this.tabData = this.tabData || [];
+            this.tabData.push(app);
         }
     }
 	return Ext.create('Scalr.ui.FarmsBuilderTab', {
 		tabTitle: 'Deployments',
-		cache: {},
+		tabData: null,
 
 		isEnabled: function (record) {
 			return record.get('platform') != 'rds';
@@ -22,30 +21,24 @@ Scalr.regPage('Scalr.ui.farms.builder.tabs.deployments', function () {
 		},
 
 		beforeShowTab: function (record, handler) {
-			if (this.cacheExist(['dmApplications']))
-				handler();
-			else
-				Scalr.Request({
-					processBox: {
-						type: 'action'
-					},
-					url: '/dm/applications/xGetApplications/',
-					scope: this,
-					success: function (response) {
-						this.cacheSet(response.data, ['dmApplications']);
-						handler();
-					},
-					failure: function () {
-						this.deactivateTab();
-					}
-				});
+            this.up('#farmbuilder').cache.load(
+                {
+                    url: '/dm/applications/xGetApplications/'
+                },
+                function(data, status){
+                    this.tabData = data;
+                    status ? handler() : this.deactivateTab();
+                },
+                this,
+                0
+            );
             Scalr.event.on('update', addApp, this);
 		},
 
 
 		showTab: function (record) {
 			var settings = record.get('settings');
-			this.down('[name="dm.application_id"]').store.load({ data: this.cacheGet(['dmApplications']) });
+			this.down('[name="dm.application_id"]').store.load({ data: this.tabData || []});
             if(this.down('[name="dm.application_id"]').store.data.length && this.down('[name="dm.application_id"]').store.getAt(0)['id'] != 0)
                 this.down('[name="dm.application_id"]').store.insert(0, {id: 0, name: ''});
 			

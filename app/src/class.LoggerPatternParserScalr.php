@@ -12,13 +12,13 @@ class LoggerPatternParserScalr extends LoggerPatternParser {
     function parse()
     {
         LoggerLog::debug("LoggerPatternParser::parse()");
-    
+
         $c = '';
         $this->i = 0;
         $this->currentLiteral = '';
         while ($this->i < $this->patternLength) {
             $c = $this->pattern{$this->i++};
-//            LoggerLog::debug("LoggerPatternParser::parse() char is now '$c' and currentLiteral is '{$this->currentLiteral}'");            
+//            LoggerLog::debug("LoggerPatternParser::parse() char is now '$c' and currentLiteral is '{$this->currentLiteral}'");
             switch($this->state) {
                 case LOG4PHP_LOGGER_PATTERN_PARSER_LITERAL_STATE:
                     // LoggerLog::debug("LoggerPatternParser::parse() state is 'LOG4PHP_LOGGER_PATTERN_PARSER_LITERAL_STATE'");
@@ -28,16 +28,16 @@ class LoggerPatternParserScalr extends LoggerPatternParser {
                         continue;
                     }
                     if($c == LOG4PHP_LOGGER_PATTERN_PARSER_ESCAPE_CHAR) {
-                        // LoggerLog::debug("LoggerPatternParser::parse() char is an escape char");                    
+                        // LoggerLog::debug("LoggerPatternParser::parse() char is an escape char");
                         // peek at the next char.
                         switch($this->pattern{$this->i}) {
                             case LOG4PHP_LOGGER_PATTERN_PARSER_ESCAPE_CHAR:
-                                // LoggerLog::debug("LoggerPatternParser::parse() next char is an escape char");                    
+                                // LoggerLog::debug("LoggerPatternParser::parse() next char is an escape char");
                                 $this->currentLiteral .= $c;
                                 $this->i++; // move pointer
                                 break;
                             case 'n':
-                                // LoggerLog::debug("LoggerPatternParser::parse() next char is 'n'");                            
+                                // LoggerLog::debug("LoggerPatternParser::parse() next char is 'n'");
                                 $this->currentLiteral .= LOG4PHP_LINE_SEP;
                                 $this->i++; // move pointer
                                 break;
@@ -55,7 +55,7 @@ class LoggerPatternParserScalr extends LoggerPatternParser {
                     }
                     break;
               case LOG4PHP_LOGGER_PATTERN_PARSER_CONVERTER_STATE:
-                    // LoggerLog::debug("LoggerPatternParser::parse() state is 'LOG4PHP_LOGGER_PATTERN_PARSER_CONVERTER_STATE'");              
+                    // LoggerLog::debug("LoggerPatternParser::parse() state is 'LOG4PHP_LOGGER_PATTERN_PARSER_CONVERTER_STATE'");
                         $this->currentLiteral .= $c;
                         switch($c) {
                         case '-':
@@ -74,7 +74,7 @@ class LoggerPatternParserScalr extends LoggerPatternParser {
                         } // switch
                     break;
               case LOG4PHP_LOGGER_PATTERN_PARSER_MIN_STATE:
-                    // LoggerLog::debug("LoggerPatternParser::parse() state is 'LOG4PHP_LOGGER_PATTERN_PARSER_MIN_STATE'");              
+                    // LoggerLog::debug("LoggerPatternParser::parse() state is 'LOG4PHP_LOGGER_PATTERN_PARSER_MIN_STATE'");
                         $this->currentLiteral .= $c;
                     if(ord($c) >= ord('0') and ord($c) <= ord('9')) {
                         $this->formattingInfo->min = ($this->formattingInfo->min * 10) + (ord($c) - ord('0'));
@@ -85,7 +85,7 @@ class LoggerPatternParserScalr extends LoggerPatternParser {
                         }
                         break;
               case LOG4PHP_LOGGER_PATTERN_PARSER_DOT_STATE:
-                    // LoggerLog::debug("LoggerPatternParser::parse() state is 'LOG4PHP_LOGGER_PATTERN_PARSER_DOT_STATE'");              
+                    // LoggerLog::debug("LoggerPatternParser::parse() state is 'LOG4PHP_LOGGER_PATTERN_PARSER_DOT_STATE'");
                         $this->currentLiteral .= $c;
                     if(ord($c) >= ord('0') and ord($c) <= ord('9')) {
                         $this->formattingInfo->max = ord($c) - ord('0');
@@ -96,7 +96,7 @@ class LoggerPatternParserScalr extends LoggerPatternParser {
                     }
                         break;
               case LOG4PHP_LOGGER_PATTERN_PARSER_MAX_STATE:
-                    // LoggerLog::debug("LoggerPatternParser::parse() state is 'LOG4PHP_LOGGER_PATTERN_PARSER_MAX_STATE'");              
+                    // LoggerLog::debug("LoggerPatternParser::parse() state is 'LOG4PHP_LOGGER_PATTERN_PARSER_MAX_STATE'");
                         $this->currentLiteral .= $c;
                     if(ord($c) >= ord('0') and ord($c) <= ord('9')) {
                         $this->formattingInfo->max = ($this->formattingInfo->max * 10) + (ord($c) - ord('0'));
@@ -116,17 +116,17 @@ class LoggerPatternParserScalr extends LoggerPatternParser {
 
     function finalizeConverter($c)
     {
-        LoggerLog::debug("LoggerPatternParser::finalizeConverter() with char '$c'");    
+        LoggerLog::debug("LoggerPatternParser::finalizeConverter() with char '$c'");
 
         $pc = null;
         switch($c) {
-        	
-        	case 'b':
+
+            case 'b':
                 $pc = new LoggerBasicPatternConverterScalr($this->formattingInfo, LOG4PHP_LOGGER_PATTERN_PARSER_BACKTRACE_CONVERTER);
                 LoggerLog::debug("LoggerPatternParser::finalizeConverter() BACKTRACE converter.");
                 $this->currentLiteral = '';
                 break;
-        	
+
             case 'c':
                 $pc = new LoggerCategoryPatternConverter($this->formattingInfo, $this->extractPrecisionOption());
                 LoggerLog::debug("LoggerPatternParser::finalizeConverter() CATEGORY converter.");
@@ -143,7 +143,7 @@ class LoggerPatternParserScalr extends LoggerPatternParser {
 
                 if($dOpt !== null)
                         $dateFormatStr = $dOpt;
-                    
+
                 if ($dateFormatStr == 'ISO8601') {
                     $df = LOG4PHP_LOGGER_PATTERN_PARSER_DATE_FORMAT_ISO8601;
                 } elseif($dateFormatStr == 'ABSOLUTE') {
@@ -165,11 +165,11 @@ class LoggerPatternParserScalr extends LoggerPatternParser {
                 $this->currentLiteral = '';
                 break;
             case 'f':
-                $pc = new LoggerBasicPatternConverterScalr($this->formattingInfo, LOG4PHP_LOGGER_PATTERN_PARSER_FARMID_CONVERTER);                
+                $pc = new LoggerBasicPatternConverterScalr($this->formattingInfo, LOG4PHP_LOGGER_PATTERN_PARSER_FARMID_CONVERTER);
                 LoggerLog::debug("LoggerPatternParser::finalizeConverter() FARMID converter.");
                 $this->currentLiteral = '';
                 break;
-                
+
             case 'l':
                 $pc = new LoggerLocationPatternConverter($this->formattingInfo, LOG4PHP_LOGGER_PATTERN_PARSER_FULL_LOCATION_CONVERTER);
                 LoggerLog::debug("LoggerPatternParser::finalizeConverter() Location converter.");
@@ -208,7 +208,7 @@ class LoggerPatternParserScalr extends LoggerPatternParser {
                 LoggerLog::debug("LoggerPatternParser::finalizeConverter() SUBTHREAD converter.");
                 $this->currentLiteral = '';
                 break;
-                
+
             case 'u':
                 if($this->i < $this->patternLength) {
                         $cNext = $this->pattern{$this->i};

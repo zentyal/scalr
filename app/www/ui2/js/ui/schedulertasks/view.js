@@ -1,7 +1,7 @@
 Scalr.regPage('Scalr.ui.schedulertasks.view', function (loadParams, moduleParams) {
 	var store = Ext.create('store.store', {
 		fields: [
-			'id', 'name', 'type', 'targetName', 'targetType', 'startTime', 'config',
+			'id', 'name', 'type', 'comments', 'targetName', 'targetType', 'startTime', 'config',
 			'endTime', 'lastStartTime', 'timezone', 'restartEvery','orderIndex', 'status', 'targetFarmId', 'targetFarmName', 'targetRoleId', 'targetRoleName', 'targetId'
 		],
 		proxy: {
@@ -41,9 +41,10 @@ Scalr.regPage('Scalr.ui.schedulertasks.view', function (loadParams, moduleParams
 
 		columns: [
 			{ text: 'ID', width: 50, dataIndex: 'id', sortable: true },
-			{ text: 'Task name', flex: 1, dataIndex: 'name', sortable: true },
-			{ text: 'Task type', flex: 2, dataIndex: 'type', sortable: true, xtype: 'templatecolumn', tpl:
-				'<tpl if="type == &quot;Execute script&quot;">Execute script: <a href="#/scripts/{config.scriptId}/view">{config.scriptName}</a> (<tpl if="config.scriptVersion == -1">latest<tpl else>{config.scriptVersion}</tpl>)' +
+			{ text: 'Name', flex: 1, dataIndex: 'name', sortable: true },
+            { text: 'Description', flex: 2, dataIndex: 'comments', sortable: false, hidden: true },
+			{ text: 'Type', flex: 2, dataIndex: 'type', sortable: true, xtype: 'templatecolumn', tpl:
+				'<tpl if="type == &quot;Execute script&quot;">Execute script: <a href="#/scripts/{config.scriptId}/view?version={config.scriptVersion}">{config.scriptName}</a> (<tpl if="config.scriptVersion == -1">latest<tpl else>{config.scriptVersion}</tpl>)' +
 				'<tpl else>{type}</tpl>'
 			},
 			{ text: 'Target name', flex: 3, dataIndex: 'target', sortable: false, xtype: 'templatecolumn', tpl:
@@ -315,25 +316,6 @@ Scalr.regPage('Scalr.ui.schedulertasks.view', function (loadParams, moduleParams
 			items: [{
 				xtype: 'filterfield',
 				store: store
-			}, ' ', {
-				xtype: 'button',
-				text: 'Transfer all tasks from old scheduler',
-				hidden: !moduleParams['oldTasks'],
-				handler: function () {
-					Scalr.Request({
-						confirmBox: {
-							type: 'action',
-							msg: 'Transfer all tasks to new scheduler ?'
-						},
-						processBox: {
-							type: 'action'
-						},
-						url: '/schedulertasks/xTransfer',
-						success: function () {
-							Scalr.event.fireEvent('reload');
-						}
-					});
-				}
 			}]
 		}]
 	});

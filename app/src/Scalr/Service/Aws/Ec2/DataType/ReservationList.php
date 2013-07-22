@@ -9,6 +9,10 @@ use Scalr\Service\Aws\Ec2Exception;
  *
  * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    10.01.2013
+ *
+ * @method   \Scalr\Service\Aws\Ec2\DataType\ReservationData get()
+ *           get($index)
+ *           Gets ReservationData object from the spicified position from the list
  */
 class ReservationList extends Ec2ListDataType
 {

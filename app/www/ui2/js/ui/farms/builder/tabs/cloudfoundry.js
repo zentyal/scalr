@@ -1,7 +1,6 @@
 Scalr.regPage('Scalr.ui.farms.builder.tabs.cloudfoundry', function () {
 	return Ext.create('Scalr.ui.FarmsBuilderTab', {
 		tabTitle: 'CloudFoundry settings',
-		cache: {},
 
 		isEnabled: function (record) {
 			return (record.get('behaviors').match('cf_') && record.get('platform') == 'ec2');

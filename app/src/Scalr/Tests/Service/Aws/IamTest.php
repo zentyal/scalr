@@ -11,7 +11,7 @@ use Scalr\Service\Aws\DataType\ErrorData;
 /**
  * Amazon Iam Test
  *
- * @author    Vitaliy Demidov   <zend@i.ua>
+ * @author    Vitaliy Demidov   <vitaliy@scalr.com>
  * @since     13.11.2012
  */
 class IamTest extends AwsTestCase
@@ -129,19 +129,19 @@ class IamTest extends AwsTestCase
             sleep(5);
 
             //Start cloudyn integration test
-// 			$cloudyn = new Cloudyn(null, null, isset(\CONFIG::$CLOUDYN_ENVIRONMENT) ? \CONFIG::$CLOUDYN_ENVIRONMENT : null);
-// 			$cyUser = $cloudyn->registerCustomer('phpunit@scalr.com', $userpassword, 'test', 'phpunit', 'scalr', \CONFIG::$CLOUDYN_MASTER_EMAIL, $userpassword);
-// 			$this->assertInstanceOf('stdClass', $cyUser);
-// 			$this->assertNotEmpty($cyUser->customerid);
+//             $cloudyn = new Cloudyn(null, null, \Scalr::config('scalr.cloudyn.environment'));
+//             $cyUser = $cloudyn->registerCustomer('phpunit@scalr.com', $userpassword, 'test', 'phpunit', 'scalr', \Scalr::config('scalr.cloudyn.master_email'), $userpassword);
+//             $this->assertInstanceOf('stdClass', $cyUser);
+//             $this->assertNotEmpty($cyUser->customerid);
 
-            $cy = new Cloudyn('phpunit@scalr.com', $userpassword, isset(\CONFIG::$CLOUDYN_ENVIRONMENT) ? \CONFIG::$CLOUDYN_ENVIRONMENT : null);
+            $cy = new Cloudyn('phpunit@scalr.com', $userpassword, \Scalr::config('scalr.cloudyn.environment'));
             //This is necessary for removing an existing aws account from another cloydyn user.
-// 			$acc = \Scalr_Account::init()->loadById($this->getContainer()->environment->clientId);
-// 			$cy = new Cloudyn(
-// 				$acc->getSetting(\Scalr_Account::SETTING_CLOUDYN_USER_EMAIL),
-// 				$acc->getSetting(\Scalr_Account::SETTING_CLOUDYN_USER_PASSWD),
-//              \CONFIG::$CLOUDYN_ENVIRONMENT
-// 			);
+//             $acc = \Scalr_Account::init()->loadById($this->getContainer()->environment->clientId);
+//             $cy = new Cloudyn(
+//                 $acc->getSetting(\Scalr_Account::SETTING_CLOUDYN_USER_EMAIL),
+//                 $acc->getSetting(\Scalr_Account::SETTING_CLOUDYN_USER_PASSWD),
+//                 \Scalr::config('scalr.cloudyn.environment')
+//             );
 
             $cy->login();
             $this->assertNotEmpty($cy->getToken());

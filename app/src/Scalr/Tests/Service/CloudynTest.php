@@ -7,7 +7,7 @@ use Scalr\Service\Cloudyn;
 /**
  * Cloudyn api tests
  *
- * @author   Vitaliy Demidov   <zend@i.ua>
+ * @author   Vitaliy Demidov   <vitaliy@scalr.com>
  * @since    19.11.2012
  */
 class CloudynTest extends TestCase
@@ -40,7 +40,7 @@ class CloudynTest extends TestCase
             $this->markTestSkipped();
         }
 
-        $cy = new Cloudyn('', '', isset(\CONFIG::$CLOUDYN_ENVIRONMENT) ? \CONFIG::$CLOUDYN_ENVIRONMENT : null);
+        $cy = new Cloudyn('', '', \Scalr::config('scalr.cloudyn.environment'));
 
         $version = $cy->getVersion();
         $this->assertNotEmpty($version);
