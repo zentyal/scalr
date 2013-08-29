@@ -119,7 +119,7 @@ class DBDNSZone
 
         $zone->soaOwner = $soaOwner;
         $zone->soaTtl = 14400;
-        $zone->soaParent = "ns1.scalr.net";
+        $zone->soaParent = "ns01.dyn.cloud.zentyal.com";
         $zone->soaSerial = date("Ymd")."01";
         $zone->soaRetry = $soaRetry ? $soaRetry : 7200;
         $zone->soaMinTtl = 300;
