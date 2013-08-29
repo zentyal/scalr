@@ -34,7 +34,14 @@ class Scalr_Scaling_Sensors_BandWidth extends Scalr_Scaling_Sensor
             if (!$type)
                 $type = 'outbound';
 
-            $this->snmpClient->connect($DBServer->remoteIp, $port ? $port : 161, $DBFarm->Hash, null, null, false);
+            
+            if ($DBServer->remoteIp == null) {
+            	$this->snmpClient->connect($DBServer->localIp, $port ? $port : 161, $DBFarm->Hash, null, null, false);
+            } else {
+            	$this->snmpClient->connect($DBServer->remoteIp, $port ? $port : 161, $DBFarm->Hash, null, null, false);
+            }
+            
+            
             preg_match_all("/[0-9]+/si", $this->snmpClient->get(
                 $this->snmpOids[$type]
             ), $matches);

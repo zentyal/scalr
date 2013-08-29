@@ -60,7 +60,11 @@
                     if (!$period)
                         $period = '15';
 
-                    $this->snmpClient->connect($DBServer->remoteIp, $port ? $port : 161, $dbFarm->Hash, null, null, false);
+                    if ($DBServer->remoteIp == null) {
+                    	$this->snmpClient->connect($DBServer->localIp, $port ? $port : 161, $dbFarm->Hash, null, null, false);
+                    } else {
+                    	$this->snmpClient->connect($DBServer->remoteIp, $port ? $port : 161, $dbFarm->Hash, null, null, false);
+                    }
                     $res = $this->snmpClient->get(
                         $this->snmpOids[$period]
                     );
