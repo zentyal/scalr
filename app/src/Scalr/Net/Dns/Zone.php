@@ -15,7 +15,7 @@
 //{name}-BEGIN
 zone "{name}" {
    type master;
-   file "client_zones/{name}.db";
+   file "/srv/scalr/scalr-home/namedb/{name}.db";
    {allow_transfer}
    {also-notify}
 };

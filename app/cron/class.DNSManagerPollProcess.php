@@ -31,7 +31,7 @@ class DNSManagerPollProcess implements \Scalr\System\Pcntl\ProcessInterface
 
         $remoteBind = new Scalr_Net_Dns_Bind_RemoteBind();
 
-        $transport = new Scalr_Net_Dns_Bind_Transports_LocalFs('/usr/sbin/rndc', '/var/named/etc/namedb/client_zones');
+        $transport = new Scalr_Net_Dns_Bind_Transports_LocalFs('/usr/sbin/rndc', '/srv/scalr/scalr-home/namedb');
 
         $remoteBind->setTransport($transport);
 
@@ -81,7 +81,7 @@ class DNSManagerPollProcess implements \Scalr\System\Pcntl\ProcessInterface
 
         $remoteBind = new Scalr_Net_Dns_Bind_RemoteBind();
 
-        $transport = new Scalr_Net_Dns_Bind_Transports_LocalFs('/usr/sbin/rndc', '/var/named/etc/namedb/client_zones');
+        $transport = new Scalr_Net_Dns_Bind_Transports_LocalFs('/usr/sbin/rndc', '/srv/scalr/scalr-home/namedb');
            $remoteBind->setTransport($transport);
 
            switch($DBDNSZone->status)
