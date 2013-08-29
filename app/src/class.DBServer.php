@@ -980,12 +980,15 @@ class DBServer
                     if ($routerRole) {
                         // No remote IP need to use proxy
                         if (!$this->remoteIp) {
+                            /*
                             $routerRole = $this->GetFarmObject()->GetFarmRoleByBehavior(ROLE_BEHAVIORS::VPC_ROUTER);
                             $requestHost = $routerRole->GetSetting(Scalr_Role_Behavior_Router::ROLE_VPC_IP) . ":80";
                             $request->addHeaders(array(
                                 "X-Receiver-Host" =>  $this->localIp,
                                 "X-Receiver-Port" => $ctrlPort
                             ));
+                            */
+                            $requestHost = "{$this->localIp}:{$ctrlPort}";
                         // There is public IP, can use it
                         } else {
                             $requestHost = "{$this->remoteIp}:{$ctrlPort}";

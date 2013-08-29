@@ -90,6 +90,7 @@
                     $requestHost = "{$this->dbServer->localIp}:{$this->port}";
             }
 
+            /*
             if ($this->isVPC) {
                 $routerRole = $this->dbServer->GetFarmObject()->GetFarmRoleByBehavior(ROLE_BEHAVIORS::VPC_ROUTER);
                 if ($routerRole) {
@@ -106,6 +107,7 @@
                     }
                 }
             }
+            */
 
             $request->setUrl("http://{$requestHost}/{$namespace}");
 
