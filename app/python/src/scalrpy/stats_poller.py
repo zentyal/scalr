@@ -376,10 +376,10 @@ class StatsPoller(basedaemon.BaseDaemon):
                 db.farms.id, db.farms.hash).filter(db.farms.clientid.in_(clients)))
 
         servers = session.query(db.servers.server_id, db.servers.farm_id, db.servers.farm_roleid,
-                db.servers.index, db.servers.remote_ip).filter(and_(
+                db.servers.index, db.servers.local_ip).filter(and_(
                 db.servers.client_id.in_(clients),
-                db.servers.status=='Running',
-                db.servers.remote_ip!='None')).all()
+                db.servers.status=='Running')).all()
+                # db.servers.remote_ip!='None'
 
         servers_id = [srv.server_id for srv in servers]
         if not servers_id:
@@ -415,7 +415,7 @@ class StatsPoller(basedaemon.BaseDaemon):
         for srv in servers:
             task = {
                     'farm_id':srv.farm_id, 'farm_role_id':srv.farm_roleid, 'index':srv.index,
-                    'host':srv.remote_ip, 'community':hashs[srv.farm_id], 'metrics':config['metrics']}
+                    'host':srv.local_ip, 'community':hashs[srv.farm_id], 'metrics':config['metrics']}
             try:
                 snmp_port = snmp_ports[srv.server_id]
             except Exception:
@@ -652,9 +652,12 @@ class RRDWriter():
 
 
     def _create_db(self, rrd_db_path):
+        #logger.error("Creating dir for: %s" % rrd_db_path)
         if not os.path.exists(os.path.dirname(rrd_db_path)):
             os.makedirs(os.path.dirname(rrd_db_path))
+        #logger.error("Creating rrd: source=%r, archive=%r" % (self.source, self.archive))
         rrdtool.create(rrd_db_path, self.source, self.archive)
+        #logger.error("Created rrd")
 
 
     def write(self, rrd_db_path, data):

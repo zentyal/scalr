@@ -195,6 +195,7 @@ class Messaging(basedaemon.BaseDaemon):
                             db.farm_settings.name=='ec2.vpc.id')
                     is_vpc = db.farm_settings.filter(where).first()
                     
+                    """
                     if(is_vpc):
                         where = and_(
                                 db.role_behaviors.behavior=='router')
@@ -222,6 +223,7 @@ class Messaging(basedaemon.BaseDaemon):
                                     headers['X-Receiver-Port'] = port
                                 else:
                                     ip = None
+                    """
 
                     if ip == None or ip == 'None':
                         logger.warning('Server: %s Null ip, delete message %s'
