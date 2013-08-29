@@ -2,6 +2,9 @@
 
     class ServersNumWatcher
     {
+    	
+    	const COLOR_RUNNING_SERVERS = "#0000ff";
+    	
         /**
          * Plot graphic
          *
