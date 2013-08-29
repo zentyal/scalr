@@ -32,7 +32,7 @@ final class CONFIG
     public static $STATISTICS_RRD_STATS_URL;
     public static $STATISTICS_RRD_GRAPH_STORAGE_PATH;
 
-    public static $INSTANCES_CONNECTION_POLICY = 'public'; // allowed values: public | local | auto
+    public static $INSTANCES_CONNECTION_POLICY = 'local'; // allowed values: public | local | auto
 
     //ec2,openstack,cloudstack,idcf,gce,eucalyptus,rackspace,rackspacenguk,rackspacengus,nimbula
     public static $GENERAL_ALLOWED_CLOUDS = 'ec2,openstack,cloudstack,idcf,gce,eucalyptus,rackspace,rackspacenguk,rackspacengus,nimbula';
@@ -88,13 +88,13 @@ final class CONFIG
     public static $EVENTS_TIMELINE_CACHE_LIFETIME = 300;
     public static $AJAX_PROCESSLIST_CACHE_LIFETIME = 120;
 
-    public static $HTTP_PROTO = "http";
+    public static $HTTP_PROTO = "https";
 
-    public static $PMA_INSTANCE_IP_ADDRESS = '184.73.181.141';
+    public static $PMA_INSTANCE_IP_ADDRESS =  '10.200.0.81';
 
     //**** Statistics and monitoring *******//
-    public static $MONITORING_SERVER_URL = 'http://monitoring.scalr.net';
-    public static $MONITORING_GRAPHS_URL = 'https://monitoring-graphs.scalr.net';
+    public static $MONITORING_SERVER_URL = 'https://scalr.cloud.zentyal.com';
+    public static $MONITORING_GRAPHS_URL = 'https://scalr.cloud.zentyal.com/graphics';
 
     public static $CRON_PROCESSES_NUMBER = 5;
 
